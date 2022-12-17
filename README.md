@@ -1,5 +1,8 @@
 # Jellyfin-RPC
-Program used to display what you're currently watching on discord
+Program used to display what you're currently watching on discord.
+
+Jellyfin-RPC uses the API to check what you're currently watching, this means that the program can be ran from a server or your computer. The only requirement is that discord is open and logged in.
+
 
 Example Movie:
 
