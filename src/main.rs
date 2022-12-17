@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut connected: bool = false;
     let mut start_time: i64 = 0;
     let mut drpc = DiscordIpcClient::new(rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
-    let img: String = "https://s2.qwant.com/thumbr/0x380/f/1/a63bf84e940773357439bba0cd9544a5626f172fe1e65f6fc873818cda4103/uybguvnj1p821.png?u=https%3A%2F%2Fi.redd.it%2Fuybguvnj1p821.png".to_string();
+    let img: String = "https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg".to_string();
     let mut curr_details: String = "".to_string();
     // Start loop
     loop {
