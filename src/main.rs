@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut start_time: i64 = 0;
     let mut drpc = DiscordIpcClient::new(rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
     let img: String = "https://s2.qwant.com/thumbr/0x380/f/1/a63bf84e940773357439bba0cd9544a5626f172fe1e65f6fc873818cda4103/uybguvnj1p821.png?u=https%3A%2F%2Fi.redd.it%2Fuybguvnj1p821.png".to_string();
-    let mut curr_state_message: String = "".to_string();
+    let mut curr_details: String = "".to_string();
     // Start loop
     loop {
         let jfresult = match get_jellyfin_playing(&url, &api_key, &username).await {
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
                 state_message = "S".to_owned() + jfresult[3].as_str() + "E" + jfresult[4].as_str() + " " + &jfresult[2][1..jfresult[2].len() - 1];
             } else if media_type == "movie" {
-                state_message = format!("{}", jfresult[1]);
+                details = format!("{}", jfresult[1]);
             }
             if connected != true {
                 // Start up the client connection, so that we can actually send and receive stuff
@@ -46,15 +46,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                     break;
                 }
-                println!("//////////////////////////////////////////////////////////////////\nConnected to Discord RPC client\n//////////////////////////////////////////////////////////////////\n{}", state_message);
+                println!("//////////////////////////////////////////////////////////////////\nConnected to Discord RPC client\n//////////////////////////////////////////////////////////////////\n{}", details);
 
                 // Set the starting time for the timestamp
                 start_time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
                 // Set current state message
-                curr_state_message = state_message.to_owned();
+                curr_details = details.to_owned();
                 // Set connected to true so that we don't try to connect again
                 connected = true;
-            } else if state_message != curr_state_message {
+            } else if details != curr_details {
                     // Disconnect from the client
                 drpc.close().expect("Failed to close Discord RPC client");
                 std::thread::sleep(std::time::Duration::from_secs(8));
@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
-                    .state(&state_message)
+                    .state(&details)
                     // Add a timestamp
                     .timestamps(activity::Timestamps::new()
                         .start(start_time)
