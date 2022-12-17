@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
                 state_message = "S".to_owned() + jfresult[3].as_str() + "E" + jfresult[4].as_str() + " " + &jfresult[2][1..jfresult[2].len() - 1];
             } else if media_type == "movie" {
-                state_message = format!("{}", jfresult[1])
+                state_message = format!("{}", jfresult[1]);
             }
             if connected != true {
                 // Start up the client connection, so that we can actually send and receive stuff
@@ -138,21 +138,20 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                 None => continue,
                 _ => (),
             };
-            let response = json[i].get("NowPlayingItem").expect("Couldn't find Object.");
-            if response.get("Type").unwrap().as_str().unwrap() == "Episode" {
+            let nowplayingitem = json[i].get("NowPlayingItem").expect("Couldn't find NowPlayingItem.");
+            name = nowplayingitem.get("Name").expect("Couldn't find Name").to_string();
+            if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Episode" {
                 itemtype = "episode".to_owned();
-                name = response.get("Name").expect("Couldn't find Name").to_string();
-                series_name = response.get("SeriesName").expect("Couldn't find SeriesName").to_string();
-                season = response.get("ParentIndexNumber").expect("Couldn't find IndexNumber").to_string();
-                episode = response.get("IndexNumber").expect("Couldn't find IndexNumber").to_string();
-    
+                series_name = nowplayingitem.get("SeriesName").expect("Couldn't find SeriesName.").to_string();
+                season = nowplayingitem.get("ParentIndexNumber").expect("Couldn't find IndexNumber.").to_string();
+                episode = nowplayingitem.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
+
                 if name != "" {
                     let result: Vec<String> = vec![itemtype, series_name, name, season, episode];
                     return Ok(result);
                 }
-            } else if response.get("Type").unwrap().as_str().unwrap() == "Movie" {
+            } else if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Movie" {
                 itemtype = "movie".to_owned();
-                name = response.get("Name").expect("Couldn't find Name").to_string();
 
                 if name != "" {
                     let result: Vec<String> = vec![itemtype, name];
