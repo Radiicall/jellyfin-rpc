@@ -1,6 +1,14 @@
 # Jellyfin-RPC
 Program used to display what you're currently watching on discord
 
+Example Movie:
+
+![image](https://user-images.githubusercontent.com/66682497/208263440-d8842ecb-0502-42fe-85bd-15e16eb86b48.png)
+
+Example Series:
+
+![image](https://user-images.githubusercontent.com/66682497/208263467-851e31de-1e7d-4000-aec3-ce1f440bd1e7.png)
+
 ## Setup
 Make a .env file with the following items
 ```
@@ -13,17 +21,19 @@ JELLYFIN_USERNAME=your_username_here
 ### Discord Application ID
 This step is optional as I have included my own.
 
-You can make a discord application by going <a href="">here</a>.
+You can make a discord application by going <a href="https://discord.com/developers/applications">here</a>.
 
 ### Jellyfin URL
 This will be the URL to your jellyfin instance, 
 
-if you want to know more about jellyfin you can check it out <a href="">here</a>.
+if you want to know more about jellyfin you can check it out <a href="https://jellyfin.org/">here</a>.
 
 ### Jellyfin API Key
 This is the API key used for checking what you're currently watching on Jellyfin.
 
-You can get one by going to <your instance url>/web/#!/apikeys.html
+You can get one by going to example.com/web/#!/apikeys.html
+
+Replace "example.com" with the actual URL
 
 ### Jellyfin Username
 This is the username you use to log into Jellyfin.
