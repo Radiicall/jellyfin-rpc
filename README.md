@@ -36,7 +36,7 @@ This is the API key used for checking what you're currently watching on Jellyfin
 
 You can get one by going to example.com/web/#!/apikeys.html
 
-Replace "example.com" with the actual URL
+Replace "example.com" with your instance URL.
 
 ### Jellyfin Username
 This is the username you use to log into Jellyfin.
