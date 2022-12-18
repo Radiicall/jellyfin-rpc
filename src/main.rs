@@ -2,6 +2,7 @@ use reqwest::{Response};
 use serde_json::Value;
 use dotenv;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+use colored::Colorize;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,6 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
     let username = dotenv::var("JELLYFIN_USERNAME").unwrap_or_else(|_| "".to_string());
     
+    println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
+
     let mut connected: bool = false;
     let mut start_time: i64 = 0;
     let mut drpc = DiscordIpcClient::new(rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
@@ -45,14 +48,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     match drpc.connect() {
                         Ok(result) => result,
                         Err(_) => {
-                            println!("Failed to connect, retrying in 10 seconds"); 
+                            println!("{}", "Failed to connect, retrying in 10 seconds".red().bold()); 
                             std::thread::sleep(std::time::Duration::from_secs(10)); 
                             continue
                         },
                     };
                     break;
                 }
-                println!("//////////////////////////////////////////////////////////////////\nConnected to Discord RPC client\n//////////////////////////////////////////////////////////////////\n{}", details);
+                println!("{}\n{}\n{}\n{}\n{}", "//////////////////////////////////////////////////////////////////".bold(), "Connected to Discord RPC client".bright_green().bold(), "//////////////////////////////////////////////////////////////////".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
 
                 // Set the starting time for the timestamp
                 start_time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
@@ -66,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 std::thread::sleep(std::time::Duration::from_secs(8));
                 // Set connected to false so that we dont try to disconnect again
                 connected = false;
-                println!("Disconnected from Discord RPC client");
+                println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
                 std::thread::sleep(std::time::Duration::from_secs(18));
                 continue;
             }
@@ -153,7 +156,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             drpc.close().expect("Failed to close Discord RPC client");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
-            println!("Disconnected from Discord RPC client");
+            println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
         }
     // Sleep for 10 seconds
     std::thread::sleep(std::time::Duration::from_secs(10));
