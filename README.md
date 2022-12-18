@@ -6,11 +6,16 @@ Jellyfin-RPC uses the API to check what you're currently watching, this means th
 
 Example Movie:
 
-![image](https://user-images.githubusercontent.com/66682497/208263440-d8842ecb-0502-42fe-85bd-15e16eb86b48.png)
+![image](https://user-images.githubusercontent.com/66682497/208309210-746a0b82-0db7-4b75-9c9c-516e83c7337a.png)
 
 Example Series:
 
-![image](https://user-images.githubusercontent.com/66682497/208263467-851e31de-1e7d-4000-aec3-ce1f440bd1e7.png)
+![image](https://user-images.githubusercontent.com/66682497/208309168-6c4870c4-4149-4c3d-ae70-9b0855652663.png)
+
+Terminal Output:
+
+![image](https://user-images.githubusercontent.com/66682497/208309134-1223c982-78ea-4d07-b2e1-cce3998efec2.png)
+
 
 ## Setup
 Make a .env file with the following items
