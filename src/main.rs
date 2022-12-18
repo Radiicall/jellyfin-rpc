@@ -38,8 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 jfresult[6].split(",").for_each(|p| exturl.push(p));
             } else if media_type == "movie" {
                 details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
-                jfresult[2].split(",").for_each(|p| extname.push(p));
-                jfresult[3].split(",").for_each(|p| exturl.push(p));
+                state_message = "".to_owned() + &jfresult[2];
+                jfresult[3].split(",").for_each(|p| extname.push(p));
+                jfresult[4].split(",").for_each(|p| exturl.push(p));
             }
 
             if connected != true {
@@ -82,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ));
             }
             
-            if media_type == "episode" && extname[0] != "".to_string() {
+            if state_message != "".to_string() && extname[0] != "".to_string() {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
@@ -100,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .large_text("https://github.com/Radiicall/jellyfin-rpc") 
                     )
                 ).expect("Failed to set activity");
-            } else if media_type == "movie" && extname[0] != "".to_string() {
+            } else if state_message == "".to_string() && extname[0] != "".to_string() {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
@@ -117,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .large_text("https://github.com/Radiicall/jellyfin-rpc") 
                     )
                 ).expect("Failed to set activity");   
-            } else if media_type == "episode" {
+            } else if state_message != "".to_string() {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
@@ -134,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .large_text("https://github.com/Radiicall/jellyfin-rpc") 
                     )
                 ).expect("Failed to set activity");
-            } else if media_type == "movie" {
+            } else if state_message == "".to_string() {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
@@ -177,7 +178,7 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     let mut name: String;
     let mut series_name: String;
     let mut season: String;
-    let mut episode: String;
+    let mut episode: String = "".to_string();
     let mut itemtype: String;
     let mut extname: String = "".to_string();
     let mut exturl: String = "".to_string();
@@ -226,8 +227,19 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
             } else if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Movie" {
                 itemtype = "movie".to_owned();
 
+                if match nowplayingitem.get("Genres") {
+                    None => false,
+                    _ => true,
+                } == true {
+                    for i in nowplayingitem.get("Genres").expect("Couldn't find Genres").as_array().unwrap() {
+                        episode.push_str(i.as_str().unwrap());
+                        episode.push_str(", ");
+                    }
+                    episode = episode[0..episode.len() - 2].to_string();
+                }
+
                 if name != "" {
-                    let result: Vec<String> = vec![itemtype, name, extname, exturl];
+                    let result: Vec<String> = vec![itemtype, name, episode, extname, exturl];
                     return Ok(result);
                 }
             }
