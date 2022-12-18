@@ -23,16 +23,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(_) => vec!["".to_string()],
         };
         let media_type = &jfresult[0];
-
         if media_type != "" {
             let mut state_message: String = "".to_owned();
             let mut details: String = "".to_owned();
+            let mut extname: Vec<&str> = std::vec::Vec::new();
+            let mut exturl: Vec<&str> = std::vec::Vec::new();
             if media_type == "episode" {
                 details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
                 state_message = "S".to_owned() + jfresult[3].as_str() + "E" + jfresult[4].as_str() + " " + &jfresult[2][1..jfresult[2].len() - 1];
+                jfresult[5].split(",").for_each(|p| extname.push(p));
+                jfresult[6].split(",").for_each(|p| exturl.push(p));
             } else if media_type == "movie" {
-                details = format!("{}", jfresult[1]);
+                details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
+                jfresult[2].split(",").for_each(|p| extname.push(p));
+                jfresult[3].split(",").for_each(|p| exturl.push(p));
             }
+
             if connected != true {
                 // Start up the client connection, so that we can actually send and receive stuff
                 loop {
@@ -65,7 +71,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
             // Set the activity
-            if media_type == "episode" {
+            let mut rpcbuttons: Vec<activity::Button> = std::vec::Vec::new();
+            for i in 0..extname.len() {
+                rpcbuttons.push(activity::Button::new(
+                    &extname[i],
+                    &exturl[i],
+                ));
+            }
+            
+            if media_type == "episode" && extname[0] != "".to_string() {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
@@ -73,8 +87,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .details(&details)
                     // Add a timestamp
                     .timestamps(activity::Timestamps::new()
+                        .start(start_time.to_owned())
+                    )
+                    .buttons(rpcbuttons)
+                    // Add image and a link to the github repo
+                    .assets(
+                        activity::Assets::new()
+                            .large_image(&img)
+                            .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+                    )
+                ).expect("Failed to set activity");
+            } else if media_type == "movie" && extname[0] != "".to_string() {
+                drpc.set_activity(
+                    activity::Activity::new()
+                    // Set the "state" or message
+                    .details(&details)
+                    // Add a timestamp
+                    .timestamps(activity::Timestamps::new()
                         .start(start_time)
                     )
+                    .buttons(rpcbuttons)
                     // Add image and a link to the github repo
                     .assets(
                         activity::Assets::new()
@@ -82,11 +114,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .large_text("https://github.com/Radiicall/jellyfin-rpc") 
                     )
                 ).expect("Failed to set activity");   
+            } else if media_type == "episode" {
+                drpc.set_activity(
+                    activity::Activity::new()
+                    // Set the "state" or message
+                    .state(&state_message)
+                    .details(&details)
+                    // Add a timestamp
+                    .timestamps(activity::Timestamps::new()
+                        .start(start_time.to_owned())
+                    )
+                    // Add image and a link to the github repo
+                    .assets(
+                        activity::Assets::new()
+                            .large_image(&img)
+                            .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+                    )
+                ).expect("Failed to set activity");
             } else if media_type == "movie" {
                 drpc.set_activity(
                     activity::Activity::new()
                     // Set the "state" or message
-                    .state(&details)
+                    .details(&details)
                     // Add a timestamp
                     .timestamps(activity::Timestamps::new()
                         .start(start_time)
@@ -102,13 +151,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else if connected == true {
             // Disconnect from the client
             drpc.close().expect("Failed to close Discord RPC client");
-            std::thread::sleep(std::time::Duration::from_secs(8));
             // Set connected to false so that we dont try to disconnect again
             connected = false;
             println!("Disconnected from Discord RPC client");
         }
-    // Sleep for 18 seconds
-    std::thread::sleep(std::time::Duration::from_secs(18));
+    // Sleep for 10 seconds
+    std::thread::sleep(std::time::Duration::from_secs(10));
     }
 }
 
@@ -128,6 +176,8 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     let mut season: String;
     let mut episode: String;
     let mut itemtype: String;
+    let mut extname: String = "".to_string();
+    let mut exturl: String = "".to_string();
     for i in 0..json.len() {
         match json[i].get("UserName") {
             None => continue,
@@ -139,22 +189,42 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                 _ => (),
             };
             let nowplayingitem = json[i].get("NowPlayingItem").expect("Couldn't find NowPlayingItem.");
+            if match nowplayingitem.get("ExternalUrls") {
+                None => false,
+                _ => true,
+            } == true {
+                if nowplayingitem.get("ExternalUrls").expect("Couldn't find ExternalUrls")[0].is_object() {
+                    let mut x = 0;
+                    for i in nowplayingitem.get("ExternalUrls").expect("Couldn't find ExternalUrls").as_array().unwrap() {
+                        extname.push_str(i.get("Name").unwrap().as_str().unwrap());
+                        exturl.push_str(i.get("Url").unwrap().as_str().unwrap());
+                        extname.push(',');
+                        exturl.push(',');
+                        x += 1;
+                        if x == 2 {
+                            break
+                        }
+                    }
+                    extname = extname[0..extname.len() - 1].to_string();
+                    exturl = exturl[0..exturl.len() - 1].to_string();
+                }
+            }
             name = nowplayingitem.get("Name").expect("Couldn't find Name").to_string();
             if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Episode" {
                 itemtype = "episode".to_owned();
                 series_name = nowplayingitem.get("SeriesName").expect("Couldn't find SeriesName.").to_string();
-                season = nowplayingitem.get("ParentIndexNumber").expect("Couldn't find IndexNumber.").to_string();
+                season = nowplayingitem.get("ParentIndexNumber").expect("Couldn't find ParentIndexNumber.").to_string();
                 episode = nowplayingitem.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
 
                 if name != "" {
-                    let result: Vec<String> = vec![itemtype, series_name, name, season, episode];
+                    let result: Vec<String> = vec![itemtype, series_name, name, season, episode, extname, exturl];
                     return Ok(result);
                 }
             } else if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Movie" {
                 itemtype = "movie".to_owned();
 
                 if name != "" {
-                    let result: Vec<String> = vec![itemtype, name];
+                    let result: Vec<String> = vec![itemtype, name, extname, exturl];
                     return Ok(result);
                 }
             }
