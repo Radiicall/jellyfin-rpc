@@ -183,22 +183,34 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     let mut extname: String = "".to_string();
     let mut exturl: String = "".to_string();
     let mut timeleft: String = "0".to_string();
+    // For each item in json
     for i in 0..json.len() {
+        // try to get the username, else repeat loop
         match json[i].get("UserName") {
             None => continue,
             _ => (),
         };
+        // If the username matches the one supplied
         if json[i].get("UserName").unwrap().as_str().unwrap() == username {
+            // Check if anything is playing, else repeat the loop
             match json[i].get("NowPlayingItem") {
                 None => continue,
-                t => {
-                    let nowplayingitem = t.unwrap();
+                npi => {
+                    // Unwrap the option that was returned
+                    let nowplayingitem = npi.unwrap();
+                    /*
+                    The next part is for external services that might host info about what we're currently watching.
+                    It first checks if they actually exist by checking if the first thing in the array is an object.
+                    If it is then it creates a for loop and pushes every "name" and "url" to 2 strings with commas seperating.
+                    When the for loop reaches 2 it breaks (this is the max number of buttons in discord rich presence),
+                    then it removes the trailing commas from the strings.
+                    */
                     match nowplayingitem.get("ExternalUrls") {
                         None => (),
                         extsrv => {
                             if extsrv.expect("Couldn't find ExternalUrls")[0].is_object() {
                                 let mut x = 0;
-                                for i in nowplayingitem.get("ExternalUrls").expect("Couldn't find ExternalUrls").as_array().unwrap() {
+                                for i in extsrv.expect("Couldn't find ExternalUrls").as_array().unwrap() {
                                     extname.push_str(i.get("Name").unwrap().as_str().unwrap());
                                     exturl.push_str(i.get("Url").unwrap().as_str().unwrap());
                                     extname.push(',');
@@ -213,6 +225,15 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                             }
                         }
                     };
+
+                    /* 
+                    This next part is for the end timer,
+                    it gets the PositionTicks as a string so we can cut off the last 7 digits (millis).
+                    Then if its empty afterwards we make it 0, then parse it to an i64.
+                    After that we get the RunTimeTicks, remove the last 7 digits and parse that to an i64.
+                    PositionTicks is how far into the video we are and RunTimeTicks is how many ticks the video will last for.
+                    We then do current "SystemTime + (RunTimeTicks - PositionTicks)" and that's how many seconds there are left in the video from the current unix epoch.
+                    */
                     match json[i].get("PlayState").unwrap().get("PositionTicks") {
                         None => (),
                         pst => {
@@ -231,6 +252,16 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                         },
                     };
 
+                    /*
+                    This is where we actually get the info for the Movie/Series that we're currently watching.
+                    First we set the name variable because that's not gonna change either way.
+                    Then we check if its an "Episode" or a "Movie".
+                    If its an "Episode" then we set the item type to "episode", get the name of the series, the season and the actual episode number.
+                    Then we send that off as a Vec<String> along with the external urls and end timer to the main loop.
+                    If its a "Movie" then we try to fetch the "Genres" with a simple for loop!
+                    After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
+                    Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
+                    */
                     name = nowplayingitem.get("Name").expect("Couldn't find Name").to_string();
                     if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Episode" {
                         itemtype = "episode".to_owned();
