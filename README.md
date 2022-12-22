@@ -6,15 +6,18 @@ Jellyfin-RPC uses the API to check what you're currently watching, this means th
 
 Example Movie:
 
-![image](https://user-images.githubusercontent.com/66682497/208316089-d9e19ae1-6587-4774-a5ef-202bc64d6a04.png)
+![image](https://user-images.githubusercontent.com/66682497/209229923-753d6b64-bad3-45cb-b732-a12c924a8921.png)
 
 Example Series:
 
-![image](https://user-images.githubusercontent.com/66682497/208309168-6c4870c4-4149-4c3d-ae70-9b0855652663.png)
+![image](https://user-images.githubusercontent.com/66682497/209229842-350d9fba-cf29-461e-9a0c-3bc47ec24389.png)
 
 Terminal Output:
 
 ![image](https://user-images.githubusercontent.com/66682497/208316064-0d66b0cc-2529-4947-8ea9-5b0f48df16e4.png)
+
+This program is very memory/cpu efficient using only 12mb of ram and ~0.1% of 1 core while sending info to discord.
+![image](https://user-images.githubusercontent.com/66682497/209229547-ef4b8c00-6f56-44e3-8912-6ed5d9513399.png)
 
 
 ## Setup
