@@ -32,32 +32,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut exturl: Vec<&str> = std::vec::Vec::new();
             let mut endtime: i64 = 0;
             if media_type == "episode" {
-                details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
-                state_message = "S".to_owned() + jfresult[3].as_str() + "E" + jfresult[4].as_str() + " " + &jfresult[2][1..jfresult[2].len() - 1];
-                jfresult[5].split(",").for_each(|p| extname.push(p));
-                jfresult[6].split(",").for_each(|p| exturl.push(p));
+                details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
+                state_message = "S".to_owned() + jfresult[5].as_str() + "E" + jfresult[6].as_str() + " " + &jfresult[4][1..jfresult[4].len() - 1];
+                jfresult[1].split(",").for_each(|p| extname.push(p));
+                jfresult[2].split(",").for_each(|p| exturl.push(p));
                 endtime = jfresult[7].parse::<i64>().unwrap();
             } else if media_type == "movie" {
                 details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
                 state_message = "".to_owned() + &jfresult[2];
-                jfresult[3].split(",").for_each(|p| extname.push(p));
-                jfresult[4].split(",").for_each(|p| exturl.push(p));
+                jfresult[1].split(",").for_each(|p| extname.push(p));
+                jfresult[2].split(",").for_each(|p| exturl.push(p));
                 endtime = jfresult[5].parse::<i64>().unwrap();
             }
 
             if connected != true {
                 // Start up the client connection, so that we can actually send and receive stuff
-                loop {
-                    match drpc.connect() {
-                        Ok(result) => result,
-                        Err(_) => {
-                            println!("{}", "Failed to connect, retrying in 10 seconds".red().bold()); 
-                            std::thread::sleep(std::time::Duration::from_secs(10)); 
-                            continue
-                        },
-                    };
-                    break;
-                }
+                connect(&mut drpc);
                 println!("{}\n{}\n{}\n{}\n{}", "//////////////////////////////////////////////////////////////////".bold(), "Connected to Discord RPC client".bright_green().bold(), "//////////////////////////////////////////////////////////////////".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
 
                 // Set current state message
@@ -67,11 +57,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else if details != curr_details {
                     // Disconnect from the client
                 drpc.close().expect("Failed to close Discord RPC client");
-                std::thread::sleep(std::time::Duration::from_secs(8));
                 // Set connected to false so that we dont try to disconnect again
                 connected = false;
                 println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
-                std::thread::sleep(std::time::Duration::from_secs(18));
+                std::thread::sleep(std::time::Duration::from_secs(2));
                 continue;
             }
             // Set the activity
@@ -83,75 +72,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ));
             }
             
-            if state_message != "".to_string() && extname[0] != "".to_string() {
-                drpc.set_activity(
-                    activity::Activity::new()
-                    // Set the "state" or message
-                    .state(&state_message)
-                    .details(&details)
-                    // Add a timestamp
-                    .timestamps(activity::Timestamps::new()
-                        .end(endtime)
-                    )
-                    .buttons(rpcbuttons)
-                    // Add image and a link to the github repo
-                    .assets(
-                        activity::Assets::new()
-                            .large_image(&img)
-                            .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-                    )
-                ).expect("Failed to set activity");
-            } else if state_message == "".to_string() && extname[0] != "".to_string() {
-                drpc.set_activity(
-                    activity::Activity::new()
-                    // Set the "state" or message
-                    .details(&details)
-                    // Add a timestamp
-                    .timestamps(activity::Timestamps::new()
-                        .end(endtime)
-                    )
-                    .buttons(rpcbuttons)
-                    // Add image and a link to the github repo
-                    .assets(
-                        activity::Assets::new()
-                            .large_image(&img)
-                            .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-                    )
-                ).expect("Failed to set activity");   
-            } else if state_message != "".to_string() {
-                drpc.set_activity(
-                    activity::Activity::new()
-                    // Set the "state" or message
-                    .state(&state_message)
-                    .details(&details)
-                    // Add a timestamp
-                    .timestamps(activity::Timestamps::new()
-                        .end(endtime)
-                    )
-                    // Add image and a link to the github repo
-                    .assets(
-                        activity::Assets::new()
-                            .large_image(&img)
-                            .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-                    )
-                ).expect("Failed to set activity");
-            } else if state_message == "".to_string() {
-                drpc.set_activity(
-                    activity::Activity::new()
-                    // Set the "state" or message
-                    .details(&details)
-                    // Add a timestamp
-                    .timestamps(activity::Timestamps::new()
-                        .end(endtime)
-                    )
-                    // Add image and a link to the github repo
-                    .assets(
-                        activity::Assets::new()
-                            .large_image(&img)
-                            .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-                    )
-                ).expect("Failed to set activity");   
-            }
+            set_activity(&mut drpc, &state_message, &details, endtime, rpcbuttons, &img)
+            
         } else if connected == true {
             // Disconnect from the client
             drpc.close().expect("Failed to close Discord RPC client");
@@ -175,14 +97,8 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     
     // Convert to json
     let json: Vec<Value> = serde_json::from_str(&body).unwrap();
-    let mut name: String;
-    let mut series_name: String;
-    let mut season: String;
-    let mut episode: String = "".to_string();
-    let mut itemtype: String;
     let mut extname: String = "".to_string();
     let mut exturl: String = "".to_string();
-    let mut timeleft: String = "0".to_string();
     // For each item in json
     for i in 0..json.len() {
         // try to get the username, else repeat loop
@@ -198,103 +114,209 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                 npi => {
                     // Unwrap the option that was returned
                     let nowplayingitem = npi.unwrap();
-                    /*
-                    The next part is for external services that might host info about what we're currently watching.
-                    It first checks if they actually exist by checking if the first thing in the array is an object.
-                    If it is then it creates a for loop and pushes every "name" and "url" to 2 strings with commas seperating.
-                    When the for loop reaches 2 it breaks (this is the max number of buttons in discord rich presence),
-                    then it removes the trailing commas from the strings.
-                    */
-                    match nowplayingitem.get("ExternalUrls") {
-                        None => (),
-                        extsrv => {
-                            if extsrv.expect("Couldn't find ExternalUrls")[0].is_object() {
-                                let mut x = 0;
-                                for i in extsrv.expect("Couldn't find ExternalUrls").as_array().unwrap() {
-                                    extname.push_str(i.get("Name").unwrap().as_str().unwrap());
-                                    exturl.push_str(i.get("Url").unwrap().as_str().unwrap());
-                                    extname.push(',');
-                                    exturl.push(',');
-                                    x += 1;
-                                    if x == 2 {
-                                        break
-                                    }
-                                }
-                                extname = extname[0..extname.len() - 1].to_string();
-                                exturl = exturl[0..exturl.len() - 1].to_string();
-                            }
-                        }
-                    };
 
-                    /* 
-                    This next part is for the end timer,
-                    it gets the PositionTicks as a string so we can cut off the last 7 digits (millis).
-                    Then if its empty afterwards we make it 0, then parse it to an i64.
-                    After that we get the RunTimeTicks, remove the last 7 digits and parse that to an i64.
-                    PositionTicks is how far into the video we are and RunTimeTicks is how many ticks the video will last for.
-                    We then do current "SystemTime + (RunTimeTicks - PositionTicks)" and that's how many seconds there are left in the video from the current unix epoch.
-                    */
-                    match json[i].get("PlayState").unwrap().get("PositionTicks") {
-                        None => (),
-                        pst => {
-                            let mut position_ticks_string = &pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7];
-                            if position_ticks_string == "" {
-                                position_ticks_string = "0"
-                            }
-                            let position_ticks = position_ticks_string.parse::<i64>().unwrap();
-                            match nowplayingitem.get("RunTimeTicks") {
-                                None => (),
-                                rtt => {
-                                    let runtime_ticks = rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7].parse::<i64>().unwrap();
-                                    timeleft = (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
-                                }
-                            }
-                        },
-                    };
-
-                    /*
-                    This is where we actually get the info for the Movie/Series that we're currently watching.
-                    First we set the name variable because that's not gonna change either way.
-                    Then we check if its an "Episode" or a "Movie".
-                    If its an "Episode" then we set the item type to "episode", get the name of the series, the season and the actual episode number.
-                    Then we send that off as a Vec<String> along with the external urls and end timer to the main loop.
-                    If its a "Movie" then we try to fetch the "Genres" with a simple for loop!
-                    After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
-                    Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
-                    */
-                    name = nowplayingitem.get("Name").expect("Couldn't find Name").to_string();
-                    if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Episode" {
-                        itemtype = "episode".to_owned();
-                        series_name = nowplayingitem.get("SeriesName").expect("Couldn't find SeriesName.").to_string();
-                        season = nowplayingitem.get("ParentIndexNumber").expect("Couldn't find ParentIndexNumber.").to_string();
-                        episode = nowplayingitem.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
-        
-                        if name != "" {
-                            let result: Vec<String> = vec![itemtype, series_name, name, season, episode, extname, exturl, timeleft];
-                            return Ok(result);
-                        }
-                    } else if nowplayingitem.get("Type").unwrap().as_str().unwrap() == "Movie" {
-                        itemtype = "movie".to_owned();
-        
-                        if match nowplayingitem.get("Genres") {
-                            None => false,
-                            _ => true,
-                        } == true {
-                            for i in nowplayingitem.get("Genres").expect("Couldn't find Genres").as_array().unwrap() {
-                                episode.push_str(i.as_str().unwrap());
-                                episode.push_str(", ");
-                            }
-                            episode = episode[0..episode.len() - 2].to_string();
-                        }
-        
-                        if name != "" {
-                            let result: Vec<String> = vec![itemtype, name, episode, extname, exturl, timeleft];
-                            return Ok(result);
-                        }
+                    let extsrv = get_external_services(nowplayingitem);
+                    if !extsrv[0].is_empty() {
+                        extname = "".to_owned() + &extsrv[0];
+                        exturl = "".to_owned() + &extsrv[1];
                     }
+
+                    let timeleft = get_end_timer(nowplayingitem, &json[i]);
+
+                    return Ok(get_currently_watching(nowplayingitem, &extname, &exturl, timeleft))
                 },
             };
         }
     }
     Ok(vec!["".to_owned()])
+}
+
+fn get_external_services(npi: &Value) -> Vec<String> {
+    /*
+    The is for external services that might host info about what we're currently watching.
+    It first checks if they actually exist by checking if the first thing in the array is an object.
+    If it is then it creates a for loop and pushes every "name" and "url" to 2 strings with commas seperating.
+    When the for loop reaches 2 it breaks (this is the max number of buttons in discord rich presence),
+    then it removes the trailing commas from the strings.
+    */
+    let mut extname: String = "".to_string();
+    let mut exturl: String = "".to_string();
+    match npi.get("ExternalUrls") {
+        None => (),
+        extsrv => {
+            if extsrv.expect("Couldn't find ExternalUrls")[0].is_object() {
+                let mut x = 0;
+                for i in extsrv.expect("Couldn't find ExternalUrls").as_array().unwrap() {
+                    extname.push_str(i.get("Name").unwrap().as_str().unwrap());
+                    exturl.push_str(i.get("Url").unwrap().as_str().unwrap());
+                    extname.push(',');
+                    exturl.push(',');
+                    x += 1;
+                    if x == 2 {
+                        break
+                    }
+                }
+                extname = extname[0..extname.len() - 1].to_string();
+                exturl = exturl[0..exturl.len() - 1].to_string();
+                return vec![extname, exturl]
+            }
+        }
+    };
+    vec!["".to_string()]
+}
+
+fn get_end_timer(npi: &Value, json: &Value) -> String {
+    /*
+    This is for the end timer,
+    it gets the PositionTicks as a string so we can cut off the last 7 digits (millis).
+    Then if its empty afterwards we make it 0, then parse it to an i64.
+    After that we get the RunTimeTicks, remove the last 7 digits and parse that to an i64.
+    PositionTicks is how far into the video we are and RunTimeTicks is how many ticks the video will last for.
+    We then do current "SystemTime + (RunTimeTicks - PositionTicks)" and that's how many seconds there are left in the video from the current unix epoch.
+    */
+    match json.get("PlayState").unwrap().get("PositionTicks") {
+        None => (),
+        pst => {
+            let mut position_ticks_string = &pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7];
+            if position_ticks_string == "" {
+                position_ticks_string = "0"
+            }
+            let position_ticks = position_ticks_string.parse::<i64>().unwrap();
+            match npi.get("RunTimeTicks") {
+                None => (),
+                rtt => {
+                    let runtime_ticks = rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7].parse::<i64>().unwrap();
+                    return (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
+                }
+            }
+        },
+    };
+    "0".to_string()
+}
+
+fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timeleft: String) -> Vec<String> {
+    /*
+    This is where we actually get the info for the Movie/Series that we're currently watching.
+    First we set the name variable because that's not gonna change either way.
+    Then we check if its an "Episode" or a "Movie".
+    If its an "Episode" then we set the item type to "episode", get the name of the series, the season and the actual episode number.
+    Then we send that off as a Vec<String> along with the external urls and end timer to the main loop.
+    If its a "Movie" then we try to fetch the "Genres" with a simple for loop!
+    After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
+    Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
+    */
+    let name = npi.get("Name").expect("Couldn't find Name").to_string();
+    if npi.get("Type").unwrap().as_str().unwrap() == "Episode" {
+        let itemtype = "episode".to_owned();
+        let series_name = npi.get("SeriesName").expect("Couldn't find SeriesName.").to_string();
+        let season = npi.get("ParentIndexNumber").expect("Couldn't find ParentIndexNumber.").to_string();
+        let episode = npi.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
+
+
+        return vec![itemtype, extname.to_owned(), exturl.to_owned(), series_name, name, season, episode, timeleft];
+
+    } else if npi.get("Type").unwrap().as_str().unwrap() == "Movie" {
+        let itemtype = "movie".to_owned();
+        let mut episode = "".to_string();
+        if match npi.get("Genres") {
+            None => false,
+            _ => true,
+        } == true {
+            for i in npi.get("Genres").expect("Couldn't find Genres").as_array().unwrap() {
+                episode.push_str(i.as_str().unwrap());
+                episode.push_str(", ");
+            }
+            episode = episode[0..episode.len() - 2].to_string();
+        }
+
+        return vec![itemtype, extname.to_owned(), exturl.to_owned(), name, episode, timeleft];
+    } else {
+        return vec!["".to_string()]
+    }
+}
+
+fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &String, endtime: i64, rpcbuttons: Vec<activity::Button>, img: &String) {
+    if state_message != "" && !rpcbuttons.is_empty() {
+        drpc.set_activity(
+            activity::Activity::new()
+            // Set the "state" or message
+            .state(state_message)
+            .details(details)
+            // Add a timestamp
+            .timestamps(activity::Timestamps::new()
+                .end(endtime)
+            )
+            .buttons(rpcbuttons)
+            // Add image and a link to the github repo
+            .assets(
+                activity::Assets::new()
+                    .large_image(img)
+                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+            )
+        ).expect("Failed to set activity");
+    } else if state_message == "" && !rpcbuttons.is_empty() {
+        drpc.set_activity(
+            activity::Activity::new()
+            // Set the "state" or message
+            .details(details)
+            // Add a timestamp
+            .timestamps(activity::Timestamps::new()
+                .end(endtime)
+            )
+            .buttons(rpcbuttons)
+            // Add image and a link to the github repo
+            .assets(
+                activity::Assets::new()
+                    .large_image(&img)
+                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+            )
+        ).expect("Failed to set activity");   
+    } else if state_message != "" {
+        drpc.set_activity(
+            activity::Activity::new()
+            // Set the "state" or message
+            .state(&state_message)
+            .details(&details)
+            // Add a timestamp
+            .timestamps(activity::Timestamps::new()
+                .end(endtime)
+            )
+            // Add image and a link to the github repo
+            .assets(
+                activity::Assets::new()
+                    .large_image(&img)
+                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+            )
+        ).expect("Failed to set activity");
+    } else if state_message == "" {
+        drpc.set_activity(
+            activity::Activity::new()
+            // Set the "state" or message
+            .details(&details)
+            // Add a timestamp
+            .timestamps(activity::Timestamps::new()
+                .end(endtime)
+            )
+            // Add image and a link to the github repo
+            .assets(
+                activity::Assets::new()
+                    .large_image(&img)
+                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+            )
+        ).expect("Failed to set activity");   
+    }
+}
+
+fn connect(drpc: &mut DiscordIpcClient) -> () {
+    loop {
+        match drpc.connect() {
+            Ok(result) => result,
+            Err(_) => {
+                println!("{}", "Failed to connect, retrying in 10 seconds".red().bold()); 
+                std::thread::sleep(std::time::Duration::from_secs(10)); 
+                continue
+            },
+        };
+        break;
+    }
 }
