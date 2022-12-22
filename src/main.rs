@@ -177,6 +177,7 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
     match json.get("PlayState").unwrap().get("PositionTicks") {
         None => (),
         pst => {
+            // TODO: Find a better way to do this
             let mut position_ticks_string = &pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7];
             if position_ticks_string == "" {
                 position_ticks_string = "0"
@@ -185,7 +186,12 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
             match npi.get("RunTimeTicks") {
                 None => (),
                 rtt => {
-                    let runtime_ticks = rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7].parse::<i64>().unwrap();
+                    // TODO: Find a better way to do this
+                    let mut runtime_ticks_string = &rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7];
+                    if runtime_ticks_string == "" {
+                        runtime_ticks_string = "0"
+                    }
+                    let runtime_ticks = runtime_ticks_string.parse::<i64>().unwrap();
                     return (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
                 }
             }
