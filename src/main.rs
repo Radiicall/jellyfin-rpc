@@ -38,8 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 jfresult[2].split(",").for_each(|p| exturl.push(p));
                 endtime = jfresult[7].parse::<i64>().unwrap();
             } else if media_type == "movie" {
-                details = "Watching ".to_owned() + &jfresult[1][1..jfresult[1].len() - 1];
-                state_message = "".to_owned() + &jfresult[2];
+                details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
+                state_message = "".to_owned() + &jfresult[4];
                 jfresult[1].split(",").for_each(|p| extname.push(p));
                 jfresult[2].split(",").for_each(|p| exturl.push(p));
                 endtime = jfresult[5].parse::<i64>().unwrap();
