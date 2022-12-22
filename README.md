@@ -17,6 +17,7 @@ Terminal Output:
 ![image](https://user-images.githubusercontent.com/66682497/208316064-0d66b0cc-2529-4947-8ea9-5b0f48df16e4.png)
 
 This program is very memory/cpu efficient using only 12mb of ram and ~0.1% of 1 core while sending info to discord.
+
 ![image](https://user-images.githubusercontent.com/66682497/209229547-ef4b8c00-6f56-44e3-8912-6ed5d9513399.png)
 
 
