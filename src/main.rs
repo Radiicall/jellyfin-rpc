@@ -26,24 +26,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let media_type = &jfresult[0];
         if media_type != "" {
-            let mut state_message: String = "".to_owned();
-            let mut details: String = "".to_owned();
             let mut extname: Vec<&str> = std::vec::Vec::new();
+            jfresult[1].split(",").for_each(|p| extname.push(p));
             let mut exturl: Vec<&str> = std::vec::Vec::new();
-            let mut endtime: i64 = 0;
-            if media_type == "episode" {
-                details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
-                state_message = "S".to_owned() + jfresult[5].as_str() + "E" + jfresult[6].as_str() + " " + &jfresult[4][1..jfresult[4].len() - 1];
-                jfresult[1].split(",").for_each(|p| extname.push(p));
-                jfresult[2].split(",").for_each(|p| exturl.push(p));
-                endtime = jfresult[7].parse::<i64>().unwrap();
-            } else if media_type == "movie" {
-                details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
-                state_message = "".to_owned() + &jfresult[4];
-                jfresult[1].split(",").for_each(|p| extname.push(p));
-                jfresult[2].split(",").for_each(|p| exturl.push(p));
-                endtime = jfresult[5].parse::<i64>().unwrap();
-            }
+            jfresult[2].split(",").for_each(|p| exturl.push(p));
+            let details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
+            let endtime = jfresult[4].parse::<i64>().unwrap();
+            let state_message = "".to_owned() + &jfresult[5];
 
             if connected != true {
                 // Start up the client connection, so that we can actually send and receive stuff
@@ -189,7 +178,7 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
                     // TODO: Find a better way to do this
                     let mut runtime_ticks_string = &rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7];
                     if runtime_ticks_string == "" {
-                        runtime_ticks_string = "0"
+                        runtime_ticks_string = "1"
                     }
                     let runtime_ticks = runtime_ticks_string.parse::<i64>().unwrap();
                     return (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
@@ -218,24 +207,24 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
         let season = npi.get("ParentIndexNumber").expect("Couldn't find ParentIndexNumber.").to_string();
         let episode = npi.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
 
-
-        return vec![itemtype, extname.to_owned(), exturl.to_owned(), series_name, name, season, episode, timeleft];
+        let msg = "S".to_owned() + &season + "E" + &episode + " " + &name[1..name.len() - 1];
+        return vec![itemtype, extname.to_owned(), exturl.to_owned(), series_name, timeleft, msg];
 
     } else if npi.get("Type").unwrap().as_str().unwrap() == "Movie" {
         let itemtype = "movie".to_owned();
         let mut episode = "".to_string();
-        if match npi.get("Genres") {
-            None => false,
-            _ => true,
-        } == true {
-            for i in npi.get("Genres").expect("Couldn't find Genres").as_array().unwrap() {
-                episode.push_str(i.as_str().unwrap());
-                episode.push_str(", ");
+        match npi.get("Genres") {
+            None => (),
+            genres => {
+                for i in genres.unwrap().as_array().unwrap() {
+                    episode.push_str(i.as_str().unwrap());
+                    episode.push_str(", ");
+                }
+                episode = episode[0..episode.len() - 2].to_string();
             }
-            episode = episode[0..episode.len() - 2].to_string();
-        }
+        };
 
-        return vec![itemtype, extname.to_owned(), exturl.to_owned(), name, episode, timeleft];
+        return vec![itemtype, extname.to_owned(), exturl.to_owned(), name, timeleft, episode];
     } else {
         return vec!["".to_string()]
     }
