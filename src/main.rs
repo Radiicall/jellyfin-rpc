@@ -1,6 +1,5 @@
 use reqwest::{Response};
 use serde_json::Value;
-use dotenv;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
 
@@ -25,16 +24,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(_) => vec!["".to_string()],
         };
         let media_type = &jfresult[0];
-        if media_type != "" {
+        if !media_type.is_empty() {
             let mut extname: Vec<&str> = std::vec::Vec::new();
-            jfresult[1].split(",").for_each(|p| extname.push(p));
+            jfresult[1].split(',').for_each(|p| extname.push(p));
             let mut exturl: Vec<&str> = std::vec::Vec::new();
-            jfresult[2].split(",").for_each(|p| exturl.push(p));
+            jfresult[2].split(',').for_each(|p| exturl.push(p));
             let details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
             let endtime = jfresult[4].parse::<i64>().unwrap();
             let state_message = "".to_owned() + &jfresult[5];
 
-            if connected != true {
+            if !connected {
                 // Start up the client connection, so that we can actually send and receive stuff
                 connect(&mut drpc);
                 println!("{}\n{}\n{}\n{}\n{}", "//////////////////////////////////////////////////////////////////".bold(), "Connected to Discord RPC client".bright_green().bold(), "//////////////////////////////////////////////////////////////////".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
@@ -56,14 +55,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut rpcbuttons: Vec<activity::Button> = std::vec::Vec::new();
             for i in 0..extname.len() {
                 rpcbuttons.push(activity::Button::new(
-                    &extname[i],
-                    &exturl[i],
+                    extname[i],
+                    exturl[i],
                 ));
             }
             
             set_activity(&mut drpc, &state_message, &details, endtime, rpcbuttons, &img)
             
-        } else if connected == true {
+        } else if connected {
             // Disconnect from the client
             drpc.close().expect("Failed to close Discord RPC client");
             // Set connected to false so that we dont try to disconnect again
@@ -91,10 +90,7 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     // For each item in json
     for i in 0..json.len() {
         // try to get the username, else repeat loop
-        match json[i].get("UserName") {
-            None => continue,
-            _ => (),
-        };
+        if Option::is_none(&json[i].get("UserName")) { continue }
         // If the username matches the one supplied
         if json[i].get("UserName").unwrap().as_str().unwrap() == username {
             // Check if anything is playing, else repeat the loop
@@ -167,9 +163,12 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
         None => (),
         pst => {
             // TODO: Find a better way to do this
-            let mut position_ticks_string = &pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7];
-            if position_ticks_string == "" {
-                position_ticks_string = "0"
+            let mut position_ticks_string = "0".to_string();
+            if pst.unwrap().as_i64().unwrap() >= 7 {
+                position_ticks_string = pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7].to_string();
+            }
+            if position_ticks_string.trim().is_empty() {
+                position_ticks_string = "0".to_string()
             }
             let position_ticks = position_ticks_string.parse::<i64>().unwrap();
             match npi.get("RunTimeTicks") {
@@ -177,7 +176,7 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
                 rtt => {
                     // TODO: Find a better way to do this
                     let mut runtime_ticks_string = &rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7];
-                    if runtime_ticks_string == "" {
+                    if runtime_ticks_string.trim().is_empty() {
                         runtime_ticks_string = "1"
                     }
                     let runtime_ticks = runtime_ticks_string.parse::<i64>().unwrap();
@@ -208,7 +207,7 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
         let episode = npi.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
 
         let msg = "S".to_owned() + &season + "E" + &episode + " " + &name[1..name.len() - 1];
-        return vec![itemtype, extname.to_owned(), exturl.to_owned(), series_name, timeleft, msg];
+        vec![itemtype, extname.to_owned(), exturl.to_owned(), series_name, timeleft, msg]
 
     } else if npi.get("Type").unwrap().as_str().unwrap() == "Movie" {
         let itemtype = "movie".to_owned();
@@ -230,8 +229,8 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
     }
 }
 
-fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &String, endtime: i64, rpcbuttons: Vec<activity::Button>, img: &String) {
-    if state_message != "" && !rpcbuttons.is_empty() {
+fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &str, endtime: i64, rpcbuttons: Vec<activity::Button>, img: &str) {
+    if !state_message.is_empty() && !rpcbuttons.is_empty() {
         drpc.set_activity(
             activity::Activity::new()
             // Set the "state" or message
@@ -249,7 +248,7 @@ fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &S
                     .large_text("https://github.com/Radiicall/jellyfin-rpc") 
             )
         ).expect("Failed to set activity");
-    } else if state_message == "" && !rpcbuttons.is_empty() {
+    } else if state_message.is_empty() && !rpcbuttons.is_empty() {
         drpc.set_activity(
             activity::Activity::new()
             // Set the "state" or message
@@ -262,16 +261,16 @@ fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &S
             // Add image and a link to the github repo
             .assets(
                 activity::Assets::new()
-                    .large_image(&img)
+                    .large_image(img)
                     .large_text("https://github.com/Radiicall/jellyfin-rpc") 
             )
         ).expect("Failed to set activity");   
-    } else if state_message != "" {
+    } else if !state_message.is_empty() {
         drpc.set_activity(
             activity::Activity::new()
             // Set the "state" or message
-            .state(&state_message)
-            .details(&details)
+            .state(state_message)
+            .details(details)
             // Add a timestamp
             .timestamps(activity::Timestamps::new()
                 .end(endtime)
@@ -279,15 +278,15 @@ fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &S
             // Add image and a link to the github repo
             .assets(
                 activity::Assets::new()
-                    .large_image(&img)
+                    .large_image(img)
                     .large_text("https://github.com/Radiicall/jellyfin-rpc") 
             )
         ).expect("Failed to set activity");
-    } else if state_message == "" {
+    } else if state_message.is_empty() {
         drpc.set_activity(
             activity::Activity::new()
             // Set the "state" or message
-            .details(&details)
+            .details(details)
             // Add a timestamp
             .timestamps(activity::Timestamps::new()
                 .end(endtime)
@@ -295,14 +294,14 @@ fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &S
             // Add image and a link to the github repo
             .assets(
                 activity::Assets::new()
-                    .large_image(&img)
+                    .large_image(img)
                     .large_text("https://github.com/Radiicall/jellyfin-rpc") 
             )
         ).expect("Failed to set activity");   
     }
 }
 
-fn connect(drpc: &mut DiscordIpcClient) -> () {
+fn connect(drpc: &mut DiscordIpcClient) {
     loop {
         match drpc.connect() {
             Ok(result) => result,
