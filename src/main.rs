@@ -164,7 +164,7 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
         pst => {
             // TODO: Find a better way to do this
             let mut position_ticks_string = "0".to_string();
-            if pst.unwrap().as_i64().unwrap() >= 7 {
+            if pst.unwrap().as_str().unwrap().len() >= 7 {
                 position_ticks_string = pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7].to_string();
             }
             if position_ticks_string.trim().is_empty() {
