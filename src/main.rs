@@ -60,7 +60,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ));
             }
             
-            set_activity(&mut drpc, &state_message, &details, endtime, rpcbuttons, &img)
+            drpc.set_activity(
+                setactivity(&state_message, &details, endtime, rpcbuttons, &img)
+            ).expect("Failed to set activity");
             
         } else if connected {
             // Disconnect from the client
@@ -229,75 +231,26 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
     }
 }
 
-fn set_activity(drpc: &mut DiscordIpcClient, state_message: &String, details: &str, endtime: i64, rpcbuttons: Vec<activity::Button>, img: &str) {
+fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rpcbuttons: Vec<activity::Button<'a>>, img: &'a str) -> activity::Activity<'a> {
+    let payload = activity::Activity::new()
+        .details(details)
+        .assets(
+            activity::Assets::new()
+                .large_image(img)
+                .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+        )
+        .timestamps(activity::Timestamps::new()
+            .end(endtime)
+        );
+
     if !state_message.is_empty() && !rpcbuttons.is_empty() {
-        drpc.set_activity(
-            activity::Activity::new()
-            // Set the "state" or message
-            .state(state_message)
-            .details(details)
-            // Add a timestamp
-            .timestamps(activity::Timestamps::new()
-                .end(endtime)
-            )
-            .buttons(rpcbuttons)
-            // Add image and a link to the github repo
-            .assets(
-                activity::Assets::new()
-                    .large_image(img)
-                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-            )
-        ).expect("Failed to set activity");
+        payload.state(state_message).buttons(rpcbuttons)
     } else if state_message.is_empty() && !rpcbuttons.is_empty() {
-        drpc.set_activity(
-            activity::Activity::new()
-            // Set the "state" or message
-            .details(details)
-            // Add a timestamp
-            .timestamps(activity::Timestamps::new()
-                .end(endtime)
-            )
-            .buttons(rpcbuttons)
-            // Add image and a link to the github repo
-            .assets(
-                activity::Assets::new()
-                    .large_image(img)
-                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-            )
-        ).expect("Failed to set activity");   
+        payload.buttons(rpcbuttons)
     } else if !state_message.is_empty() {
-        drpc.set_activity(
-            activity::Activity::new()
-            // Set the "state" or message
-            .state(state_message)
-            .details(details)
-            // Add a timestamp
-            .timestamps(activity::Timestamps::new()
-                .end(endtime)
-            )
-            // Add image and a link to the github repo
-            .assets(
-                activity::Assets::new()
-                    .large_image(img)
-                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-            )
-        ).expect("Failed to set activity");
-    } else if state_message.is_empty() {
-        drpc.set_activity(
-            activity::Activity::new()
-            // Set the "state" or message
-            .details(details)
-            // Add a timestamp
-            .timestamps(activity::Timestamps::new()
-                .end(endtime)
-            )
-            // Add image and a link to the github repo
-            .assets(
-                activity::Assets::new()
-                    .large_image(img)
-                    .large_text("https://github.com/Radiicall/jellyfin-rpc") 
-            )
-        ).expect("Failed to set activity");   
+        payload.state(state_message)
+    } else {
+        payload
     }
 }
 
