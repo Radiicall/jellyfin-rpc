@@ -167,19 +167,19 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
             // TODO: Find a better way to do this
             let mut position_ticks_string = "0".to_string();
             if pst.unwrap().to_string().len() >= 7 {
-                position_ticks_string = pst.unwrap().to_string()[0..pst.unwrap().to_string().len() - 7].to_string();
+                position_ticks_string = pst.unwrap().to_string();
             }
-            if position_ticks_string.trim().is_empty() {
-                position_ticks_string = "0".to_string()
+            if position_ticks_string.len() > 7 {
+                position_ticks_string = position_ticks_string[0..position_ticks_string.len() - 7].to_string()
             }
             let position_ticks = position_ticks_string.parse::<i64>().unwrap();
             match npi.get("RunTimeTicks") {
                 None => (),
                 rtt => {
                     // TODO: Find a better way to do this
-                    let mut runtime_ticks_string = &rtt.unwrap().to_string()[0..rtt.unwrap().to_string().len() - 7];
-                    if runtime_ticks_string.trim().is_empty() {
-                        runtime_ticks_string = "1"
+                    let mut runtime_ticks_string = rtt.unwrap().to_string();
+                    if runtime_ticks_string.len() > 7 {
+                        runtime_ticks_string = runtime_ticks_string[0..runtime_ticks_string.len() - 7].to_string();
                     }
                     let runtime_ticks = runtime_ticks_string.parse::<i64>().unwrap();
                     return (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
