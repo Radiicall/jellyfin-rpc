@@ -90,13 +90,13 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     let mut extname: String = "".to_string();
     let mut exturl: String = "".to_string();
     // For each item in json
-    for i in 0..json.len() {
+    for i in json {
         // try to get the username, else repeat loop
-        if Option::is_none(&json[i].get("UserName")) { continue }
+        if Option::is_none(&i.get("UserName")) { continue }
         // If the username matches the one supplied
-        if json[i].get("UserName").unwrap().as_str().unwrap() == username {
+        if i.get("UserName").unwrap().as_str().unwrap() == username {
             // Check if anything is playing, else repeat the loop
-            match json[i].get("NowPlayingItem") {
+            match i.get("NowPlayingItem") {
                 None => continue,
                 npi => {
                     // Unwrap the option that was returned
@@ -108,7 +108,7 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                         exturl = "".to_owned() + &extsrv[1];
                     }
 
-                    let timeleft = get_end_timer(nowplayingitem, &json[i]);
+                    let timeleft = get_end_timer(nowplayingitem, &i);
 
                     return Ok(get_currently_watching(nowplayingitem, &extname, &exturl, timeleft))
                 },
