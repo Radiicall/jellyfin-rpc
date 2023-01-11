@@ -109,8 +109,8 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
 
                     let extsrv = get_external_services(nowplayingitem);
                     if !extsrv[0].is_empty() {
-                        extname = "".to_owned() + &extsrv[0];
-                        exturl = "".to_owned() + &extsrv[1];
+                        extname = extsrv[0].clone();
+                        exturl = extsrv[1].clone();
                     }
 
                     let timeleft = get_end_timer(nowplayingitem, &i);
@@ -148,8 +148,8 @@ fn get_external_services(npi: &Value) -> Vec<String> {
                         break
                     }
                 }
-                extname = extname[0..extname.len() - 1].to_string();
-                exturl = exturl[0..exturl.len() - 1].to_string();
+                extname = extname.trim_end_matches(',').to_string();
+                exturl = exturl.trim_end_matches(',').to_string();
                 return vec![extname, exturl]
             }
         }
