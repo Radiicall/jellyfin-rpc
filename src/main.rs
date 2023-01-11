@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             jfresult[1].split(',').for_each(|p| extname.push(p));
             let mut exturl: Vec<&str> = std::vec::Vec::new();
             jfresult[2].split(',').for_each(|p| exturl.push(p));
-            let details = "Watching ".to_owned() + &jfresult[3][1..jfresult[3].len() - 1];
+            let details = "Watching ".to_owned() + &jfresult[3].trim_start_matches('"').trim_end_matches('"');
             let endtime = jfresult[4].parse::<i64>().unwrap();
             let state_message = "".to_owned() + &jfresult[5];
 
@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             connected = false;
             println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
         }
-    // Sleep for 10 seconds
+    // Sleep for 2 seconds
     std::thread::sleep(std::time::Duration::from_secs(2));
     }
 }
@@ -237,7 +237,7 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
 }
 
 fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rpcbuttons: Vec<activity::Button<'a>>, img: &'a str) -> activity::Activity<'a> {
-    let payload = activity::Activity::new()
+    let mut payload = activity::Activity::new()
         .details(details)
         .assets(
             activity::Assets::new()
@@ -248,15 +248,13 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rp
             .end(endtime)
         );
 
-    if !state_message.is_empty() && !rpcbuttons.is_empty() {
-        payload.state(state_message).buttons(rpcbuttons)
-    } else if state_message.is_empty() && !rpcbuttons.is_empty() {
-        payload.buttons(rpcbuttons)
-    } else if !state_message.is_empty() {
-        payload.state(state_message)
-    } else {
-        payload
+    if !state_message.is_empty() {
+        payload = payload.clone().state(&state_message);
     }
+    if !rpcbuttons.is_empty() {
+        payload = payload.clone().buttons(rpcbuttons);
+    }
+    payload
 }
 
 fn connect(drpc: &mut DiscordIpcClient) {
