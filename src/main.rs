@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             jfresult[1].split(',').for_each(|p| extname.push(p));
             let mut exturl: Vec<&str> = std::vec::Vec::new();
             jfresult[2].split(',').for_each(|p| exturl.push(p));
-            let details = "Watching ".to_owned() + &jfresult[3].trim_start_matches('"').trim_end_matches('"');
+            let details = "Watching ".to_owned() + jfresult[3].trim_start_matches('"').trim_end_matches('"');
             let endtime = jfresult[4].parse::<i64>().unwrap();
             let state_message = "".to_owned() + &jfresult[5];
 
@@ -249,7 +249,7 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rp
         );
 
     if !state_message.is_empty() {
-        payload = payload.clone().state(&state_message);
+        payload = payload.clone().state(state_message);
     }
     if !rpcbuttons.is_empty() {
         payload = payload.clone().buttons(rpcbuttons);
