@@ -26,7 +26,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut connected: bool = false;
     let mut drpc = DiscordIpcClient::new(rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
     let img: String = "https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg".to_string();
-    let mut curr_details: String = "".to_string();
     // Start loop
     loop {
         let jfresult = match get_jellyfin_playing(&url, &api_key, &username).await {
@@ -48,19 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 connect(&mut drpc);
                 println!("{}\n{}\n{}\n{}\n{}", "//////////////////////////////////////////////////////////////////".bold(), "Connected to Discord RPC client".bright_green().bold(), "//////////////////////////////////////////////////////////////////".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
 
-                // Set current state message
-                curr_details = details.to_owned();
                 // Set connected to true so that we don't try to connect again
                 connected = true;
-            } else if details != curr_details {
-                    // Disconnect from the client
-                drpc.close().expect("Failed to close Discord RPC client");
-                // Set connected to false so that we dont try to disconnect again
-                connected = false;
-                println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                continue;
             }
+
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = std::vec::Vec::new();
             for i in 0..extname.len() {
@@ -88,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String) -> Result<Vec<String>, reqwest::Error> {
     // Create the request
-    let url = format!("{}/Sessions?api_key={}", url, api_key);
+    let url = format!("{}/Sessions?api_key={}", url.trim_end_matches("/"), api_key);
     // Get response
     let res: Response = reqwest::get(url).await?;
     
@@ -171,17 +161,14 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
     PositionTicks is how far into the video we are and RunTimeTicks is how many ticks the video will last for.
     We then do current "SystemTime + (RunTimeTicks - PositionTicks)" and that's how many seconds there are left in the video from the current unix epoch.
     */
-    let pst = match json.get("PlayState").unwrap().get("PositionTicks") {
-        None => return "0".to_string(),
-        pst => pst,
-    };
-    let rtt = match npi.get("RunTimeTicks") {
-        None => return "0".to_string(),
-        rtt => rtt,
-    };
-    let mut position_ticks = pst.unwrap().as_i64().unwrap_or(0);
+    let mut position_ticks = json
+        .get("PlayState").unwrap()
+        .get("PositionTicks").unwrap_or(&serde_json::json!(0))
+        .as_i64().unwrap_or(0);
     position_ticks /= 10000000;
-    let mut runtime_ticks = rtt.unwrap().as_i64().unwrap_or(0);
+    let mut runtime_ticks = npi
+    .get("RunTimeTicks").unwrap_or(&serde_json::json!(0))
+    .as_i64().unwrap_or(0);
     runtime_ticks /= 10000000;
     (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
 }
