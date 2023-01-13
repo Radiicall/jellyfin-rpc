@@ -3,13 +3,18 @@ use serde_json::Value;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
 
+const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::from_path(std::env::current_exe()?.parent().unwrap().join(".env")).ok();
-    let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "".to_string());
+    let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "1053747938519679018".to_string());
     let url = dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string());
     let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
     let username = dotenv::var("JELLYFIN_USERNAME").unwrap_or_else(|_| "".to_string());
+
+    checkargs();
+    
     
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
@@ -166,33 +171,19 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
     PositionTicks is how far into the video we are and RunTimeTicks is how many ticks the video will last for.
     We then do current "SystemTime + (RunTimeTicks - PositionTicks)" and that's how many seconds there are left in the video from the current unix epoch.
     */
-    match json.get("PlayState").unwrap().get("PositionTicks") {
-        None => (),
-        pst => {
-            // TODO: Find a better way to do this
-            let mut position_ticks_string = "0".to_string();
-            if pst.unwrap().to_string().len() >= 7 {
-                position_ticks_string = pst.unwrap().to_string();
-            }
-            if position_ticks_string.len() > 7 {
-                position_ticks_string = position_ticks_string[0..position_ticks_string.len() - 7].to_string()
-            }
-            let position_ticks = position_ticks_string.parse::<i64>().unwrap();
-            match npi.get("RunTimeTicks") {
-                None => (),
-                rtt => {
-                    // TODO: Find a better way to do this
-                    let mut runtime_ticks_string = rtt.unwrap().to_string();
-                    if runtime_ticks_string.len() > 7 {
-                        runtime_ticks_string = runtime_ticks_string[0..runtime_ticks_string.len() - 7].to_string();
-                    }
-                    let runtime_ticks = runtime_ticks_string.parse::<i64>().unwrap();
-                    return (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
-                }
-            }
-        },
+    let pst = match json.get("PlayState").unwrap().get("PositionTicks") {
+        None => return "0".to_string(),
+        pst => pst,
     };
-    "0".to_string()
+    let rtt = match npi.get("RunTimeTicks") {
+        None => return "0".to_string(),
+        rtt => rtt,
+    };
+    let mut position_ticks = pst.unwrap().as_i64().unwrap_or(0);
+    position_ticks /= 10000000;
+    let mut runtime_ticks = rtt.unwrap().as_i64().unwrap_or(0);
+    runtime_ticks /= 10000000;
+    (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
 }
 
 fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timeleft: String) -> Vec<String> {
@@ -268,5 +259,26 @@ fn connect(drpc: &mut DiscordIpcClient) {
             },
         };
         break;
+    }
+}
+
+fn checkargs() {
+    match std::env::args().nth(1).unwrap_or_default().as_str() {
+        "-h" | "--help" => {
+            println!(r#"Start rich presence for Jellyfin
+
+Usage: {} [Options]
+
+Options:
+    -h, --help     shows this page
+    -v, --version  shows version information
+            "#, std::env::args().next().unwrap());
+            std::process::exit(0)
+        },
+        "-v" | "--version" => {
+            println!("jellyfin-rpc v{}", VERSION.unwrap_or("unknown"));
+            std::process::exit(0)
+        }
+        _ => (),
     }
 }
