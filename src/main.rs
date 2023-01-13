@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             jfresult[1].split(',').for_each(|p| extname.push(p));
             let mut exturl: Vec<&str> = std::vec::Vec::new();
             jfresult[2].split(',').for_each(|p| exturl.push(p));
-            let details = "Watching ".to_owned() + jfresult[3].trim_start_matches('"').trim_end_matches('"');
+            let details = "Watching ".to_owned() + jfresult[3].trim_matches('"');
             let endtime = jfresult[4].parse::<i64>().unwrap();
             let state_message = "".to_owned() + &jfresult[5];
 
@@ -77,25 +77,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String) -> Result<Vec<String>, reqwest::Error> {
-    // Create the request
+    /*
+    Make a request to the jellyfin server with the api key, wait for response, then get body text and convert to json.
+    Make a for loop for the json, jellyfin makes a list of all active sessions so we need to look through them.
+    Check if the username matches the one in the config, if we dont do this then it would literally grab any user and set it as status.
+    It then checks if anything is actually playing on said user's session.
+    From here it runs all of the other functions to get the proper information, then returns it to the main loop.
+    */
     let url = format!("{}/Sessions?api_key={}", url.trim_end_matches("/"), api_key);
-    // Get response
+
     let res: Response = reqwest::get(url).await?;
     
-    // Get the body of the response
     let body = res.text().await?;
     
-    // Convert to json
-    let json: Vec<Value> = serde_json::from_str(&body).unwrap();
-    let mut extname: String = "".to_string();
-    let mut exturl: String = "".to_string();
-    // For each item in json
+    let json: Vec<Value> = serde_json::from_str(&body).unwrap_or_else(|_|
+        panic!("Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
+            // Grabbing dotenv var again because i dont know how im supposed to use url variable twice lol
+            dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string()))
+        );
     for i in json {
-        // try to get the username, else repeat loop
-        if Option::is_none(&i.get("UserName")) { continue }
-        // If the username matches the one supplied
-        if i.get("UserName").unwrap().as_str().unwrap() == username {
-            // Check if anything is playing, else repeat the loop
+        if Option::is_none(&i.get("UserName")) {
+            continue 
+        } else if i.get("UserName").unwrap().as_str().unwrap() == username {
             match i.get("NowPlayingItem") {
                 None => continue,
                 npi => {
@@ -103,14 +106,10 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
                     let nowplayingitem = npi.unwrap();
 
                     let extsrv = get_external_services(nowplayingitem);
-                    if !extsrv[0].is_empty() {
-                        extname = extsrv[0].clone();
-                        exturl = extsrv[1].clone();
-                    }
 
                     let timeleft = get_end_timer(nowplayingitem, &i);
 
-                    return Ok(get_currently_watching(nowplayingitem, &extname, &exturl, timeleft))
+                    return Ok(get_currently_watching(nowplayingitem, &extsrv[0], &extsrv[1], timeleft))
                 },
             };
         }
