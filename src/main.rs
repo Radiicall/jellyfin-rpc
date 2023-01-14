@@ -42,7 +42,13 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    dotenv::from_path(args.config.unwrap_or_else(|| std::env::current_exe().unwrap().parent().unwrap().join(".env").to_string_lossy().to_string())).ok();
+    dotenv::from_path(
+        args.config.unwrap_or_else(|| 
+            std::env::current_exe().unwrap()
+            .parent().unwrap()
+            .join(".env").to_string_lossy().to_string()
+        )
+    ).ok();
     let config = load_config().expect("Please make a file called .env and populate it with the needed variables (https://github.com/Radiicall/jellyfin-rpc#setup)");
     
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
