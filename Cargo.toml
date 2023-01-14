@@ -11,6 +11,10 @@ dotenv = "0.15"
 discord-rich-presence = "0.2"
 colored = "2.0"
 
+[dependencies.clap]
+features = ["derive"]
+version = "4.1"
+
 [dependencies.reqwest]
 features = ["default", "default-tls", "hyper-tls", "native-tls-crate", "tokio-native-tls", "json"]
 version = "0.11"

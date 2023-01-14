@@ -2,31 +2,56 @@ use reqwest::{Response};
 use serde_json::Value;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
+use clap::Parser;
 
-const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
+struct Config {
+    rpc_client_id: String,
+    url: String,
+    api_key: String,
+    username: String,
+}
+
+#[derive(Debug)]
+enum ConfigError {
+    MissingConfig,
+    Io(std::io::Error),
+    Var(std::env::VarError),
+}
+
+impl From<std::env::VarError> for ConfigError {
+    fn from(value: std::env::VarError) -> Self {
+        Self::Var(value)
+    }
+}
+
+impl From<std::io::Error> for ConfigError {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
+#[derive(Parser, Debug)]
+#[command(author = "Radiicall <radical@radical.fun>")]
+#[command(version)]
+#[command(about = "Rich presence for Jellyfin", long_about = None)]
+struct Args {
+    #[arg(short = 'c', long = "config", help = "path to the config file")]
+    config: Option<String>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv::from_path(std::env::current_exe()?.parent().unwrap().join(".env")).ok();
-    let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "1053747938519679018".to_string());
-    let url = dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string());
-    let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
-    let username = dotenv::var("JELLYFIN_USERNAME").unwrap_or_else(|_| "".to_string());
-
-    checkargs();
-    
+    let args = Args::parse();
+    dotenv::from_path(args.config.unwrap_or_else(|| std::env::current_exe().unwrap().parent().unwrap().join(".env").to_string_lossy().to_string())).ok();
+    let config = load_config().expect("Please make a file called .env and populate it with the needed variables (https://github.com/Radiicall/jellyfin-rpc#setup)");
     
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
-    if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
-        panic!("Please make a file called .env and populate it with the needed variables (https://github.com/Radiicall/jellyfin-rpc#setup)");
-    }
-
     let mut connected: bool = false;
-    let mut drpc = DiscordIpcClient::new(rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
+    let mut drpc = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
     // Start loop
     loop {
-        let jfresult = match get_jellyfin_playing(&url, &api_key, &username).await {
+        let jfresult = match get_jellyfin_playing(&config.url, &config.api_key, &config.username).await {
             Ok(res) => res,
             Err(_) => vec!["".to_string()],
         };
@@ -161,11 +186,11 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
     let mut position_ticks = json
         .get("PlayState").unwrap()
         .get("PositionTicks").unwrap_or(&serde_json::json!(0))
-        .as_i64().unwrap_or(0);
+        .as_i64().unwrap();
     position_ticks /= 10000000;
     let mut runtime_ticks = npi
     .get("RunTimeTicks").unwrap_or(&serde_json::json!(0))
-    .as_i64().unwrap_or(0);
+    .as_i64().unwrap();
     runtime_ticks /= 10000000;
     (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
 }
@@ -246,25 +271,19 @@ fn connect(drpc: &mut DiscordIpcClient) {
     }
 }
 
-fn checkargs() {
-    match std::env::args().nth(1).unwrap_or_default().as_str() {
-        "-h" | "--help" => {
-            println!(
-r#"Start rich presence for Jellyfin
-
-Usage: {} [Options]
-
-Options:
-    -h, --help     shows this page
-    -v, --version  shows version information
-"#,
-            std::env::args().next().unwrap());
-            std::process::exit(0)
-        },
-        "-v" | "--version" => {
-            println!("jellyfin-rpc v{}", VERSION.unwrap_or("unknown"));
-            std::process::exit(0)
-        }
-        _ => (),
+fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
+    let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "1053747938519679018".to_string());
+    let url = dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string());
+    let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
+    let username = dotenv::var("JELLYFIN_USERNAME").unwrap_or_else(|_| "".to_string());
+    
+    if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
+        return Err(Box::new(ConfigError::MissingConfig))
     }
+    Ok(Config {
+        rpc_client_id,
+        url,
+        api_key,
+        username,
+    })
 }
