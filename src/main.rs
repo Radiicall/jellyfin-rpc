@@ -106,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String) -> Result<Vec<String>, reqwest::Error> {
+async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String) -> Result<Vec<String>, reqwest::Error> {
     /*
     Make a request to the jellyfin server with the api key, wait for response, then get body text and convert to json.
     Make a for loop for the json, jellyfin makes a list of all active sessions so we need to look through them.
@@ -114,7 +114,7 @@ async fn get_jellyfin_playing(url: &String, api_key: &String, username: &String)
     It then checks if anything is actually playing on said user's session.
     From here it runs all of the other functions to get the proper information, then returns it to the main loop.
     */
-    let url = format!("{}/Sessions?api_key={}", url.trim_end_matches("/"), api_key);
+    let url = format!("{}/Sessions?api_key={}", url.trim_end_matches('/'), api_key);
 
     let res: Response = reqwest::get(url).await?;
     
@@ -267,7 +267,7 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rp
 fn connect(drpc: &mut DiscordIpcClient) {
     println!("{}", "------------------------------------------------------------------".bold());
     retry_with_index(retry::delay::Fixed::from_millis(10000), |current_try| {
-        println!("{}", format!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to connect".bold().truecolor(225, 69, 0)));
+        println!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to connect".bold().truecolor(225, 69, 0));
         match drpc.connect() {
             Ok(result) => retry::OperationResult::Ok(result),
             Err(_) => {
