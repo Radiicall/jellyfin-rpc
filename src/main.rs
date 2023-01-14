@@ -3,6 +3,7 @@ use serde_json::Value;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
 use clap::Parser;
+use retry::retry_with_index;
 
 struct Config {
     rpc_client_id: String,
@@ -74,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !connected {
                 // Start up the client connection, so that we can actually send and receive stuff
                 connect(&mut drpc);
-                println!("{}\n{}\n{}\n{}\n{}", "//////////////////////////////////////////////////////////////////".bold(), "Connected to Discord RPC client".bright_green().bold(), "//////////////////////////////////////////////////////////////////".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
+                println!("{}\n{}\n{}\n{}", "Connected to Discord RPC client".bright_green().bold(), "------------------------------------------------------------------".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
 
                 // Set connected to true so that we don't try to connect again
                 connected = true;
@@ -264,17 +265,17 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rp
 }
 
 fn connect(drpc: &mut DiscordIpcClient) {
-    loop {
+    println!("{}", "------------------------------------------------------------------".bold());
+    retry_with_index(retry::delay::Fixed::from_millis(10000), |current_try| {
+        println!("{}", format!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to connect".bold().truecolor(225, 69, 0)));
         match drpc.connect() {
-            Ok(result) => result,
+            Ok(result) => retry::OperationResult::Ok(result),
             Err(_) => {
-                println!("{}", "Failed to connect, retrying in 10 seconds".red().bold()); 
-                std::thread::sleep(std::time::Duration::from_secs(10)); 
-                continue
+                println!("{}", "Failed to connect, retrying in 10 seconds".red().bold());
+                retry::OperationResult::Retry(())
             },
-        };
-        break;
-    }
+        }
+    }).unwrap();
 }
 
 fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
