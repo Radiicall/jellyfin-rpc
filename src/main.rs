@@ -24,7 +24,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut connected: bool = false;
     let mut drpc = DiscordIpcClient::new(rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
-    let img: String = "https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg".to_string();
     // Start loop
     loop {
         let jfresult = match get_jellyfin_playing(&url, &api_key, &username).await {
@@ -60,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             
             drpc.set_activity(
-                setactivity(&state_message, &details, endtime, rpcbuttons, &img)
+                setactivity(&state_message, &details, endtime, rpcbuttons)
             ).expect("Failed to set activity");
             
         } else if connected {
@@ -212,12 +211,12 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
     }
 }
 
-fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rpcbuttons: Vec<activity::Button<'a>>, img: &'a str) -> activity::Activity<'a> {
+fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
     let mut payload = activity::Activity::new()
         .details(details)
         .assets(
             activity::Assets::new()
-                .large_image(img)
+                .large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
                 .large_text("https://github.com/Radiicall/jellyfin-rpc") 
         )
         .timestamps(activity::Timestamps::new()
@@ -250,14 +249,16 @@ fn connect(drpc: &mut DiscordIpcClient) {
 fn checkargs() {
     match std::env::args().nth(1).unwrap_or_default().as_str() {
         "-h" | "--help" => {
-            println!(r#"Start rich presence for Jellyfin
+            println!(
+r#"Start rich presence for Jellyfin
 
 Usage: {} [Options]
 
 Options:
     -h, --help     shows this page
     -v, --version  shows version information
-            "#, std::env::args().next().unwrap());
+"#,
+            std::env::args().next().unwrap());
             std::process::exit(0)
         },
         "-v" | "--version" => {
