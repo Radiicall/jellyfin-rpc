@@ -35,7 +35,7 @@ impl From<std::io::Error> for ConfigError {
 #[command(version)]
 #[command(about = "Rich presence for Jellyfin", long_about = None)]
 struct Args {
-    #[arg(short = 'c', long = "config", help = "path to the config file")]
+    #[arg(short = 'c', long = "config", help = "Path to the config file")]
     config: Option<String>,
 }
 
