@@ -58,3 +58,17 @@ Replace "example.com" with your instance URL.
 This is the username you use to log into Jellyfin.
 
 The username is needed because if you have multiple accounts (friends, family) then the program will just grab the first person it sees in the list.
+
+## Building
+You need rust installed, you can get rustup from <a href="https://rustup.rs/">here</a>
+
+If you already have rustup installed then make sure its the latest 2021 version, you can run `rustup update` to update to the newest version.
+
+You also need openssl libs on linux (Don't remember exactly which one, running the jellyfin-rpc exec will tell you what you're missing)
+
+Please make an issue with the missing libs in this repo so i can put them here, also say what distro you're running so i can test it.
+
+After doing all of this you should be able to just run `cargo build` to get a binary.
+In order to get an optimized binary just add `--release` to the end of cargo build.
+
+Your binary will be located in `target/debug/jellyfin-rpc` or `target/release/jellyfin-rpc`
