@@ -32,7 +32,7 @@ Mem: 32GB
 Make a .env file with the following items
 ```
 DISCORD_APPLICATION_ID=1053747938519679018
-JELLYFIN_URL=your_url_here
+JELLYFIN_URL=your_url_here_with
 JELLYFIN_API_KEY=your_api_key_here
 JELLYFIN_USERNAME=your_username_here
 ```
@@ -40,24 +40,30 @@ JELLYFIN_USERNAME=your_username_here
 ### Discord Application ID
 This step is optional as I have included my own.
 
+If this env var is empty in the .env file then it will also use the default one
+
 You can make a discord application by going <a href="https://discord.com/developers/applications">here</a>.
 
 ### Jellyfin URL
-This will be the URL to your jellyfin instance, 
+This will be the URL to your jellyfin instance, remember to include http/https in the url.
 
-if you want to know more about jellyfin you can check it out <a href="https://jellyfin.org/">here</a>.
+If you want to know more about jellyfin you can check it out <a href="https://jellyfin.org/">here</a>.
 
 ### Jellyfin API Key
 This is the API key used for checking what you're currently watching on Jellyfin.
 
-You can get one by going to example.com/web/#!/apikeys.html
-
-Replace "example.com" with your instance URL.
+You can get one by going to <YOUR INSTANCE URL HERE>/web/#!/apikeys.html
 
 ### Jellyfin Username
 This is the username you use to log into Jellyfin.
 
 The username is needed because if you have multiple accounts (friends, family) then the program will just grab the first person it sees in the list.
+
+### Systemd
+
+For systemd I have included <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/jellyfin-rpc.service">this file</a>, you can download it directly by pressing ctrl+s on the page.
+
+In the service file you have to change the `ExecStart=` line. You can launch the script without -c if you put the `.env` file in the same directory as the executable
 
 ## Building
 You need rust installed, you can get rustup from <a href="https://rustup.rs/">here</a>
@@ -66,7 +72,7 @@ If you already have rustup installed then make sure its the latest 2021 version,
 
 You also need openssl libs on linux (Don't remember exactly which one, running the jellyfin-rpc exec will tell you what you're missing)
 
-Please make an issue with the missing libs in this repo so i can put them here, also say what distro you're running so i can test it.
+Please make an issue with the missing libs in this repo so I can put them here, also say what distro you're running so I can test it.
 
 After doing all of this you should be able to just run `cargo build` to get a binary.
 In order to get an optimized binary just add `--release` to the end of cargo build.
