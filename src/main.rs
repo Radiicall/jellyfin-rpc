@@ -13,6 +13,16 @@ struct Config {
 }
 
 #[derive(Debug)]
+struct Content {
+    media_type: String,
+    details: String,
+    state_message: String,
+    endtime: i64,
+    extname: Vec<String>,
+    exturl: Vec<String>,
+}
+
+#[derive(Debug)]
 enum ConfigError {
     MissingConfig,
     Io(std::io::Error),
@@ -51,31 +61,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
     ).ok();
     let config = load_config().expect("Please make a file called .env and populate it with the needed variables (https://github.com/Radiicall/jellyfin-rpc#setup)");
-    
+
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
     let mut connected: bool = false;
     let mut drpc = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
     // Start loop
     loop {
-        let jfresult = match get_jellyfin_playing(&config.url, &config.api_key, &config.username).await {
+        let content = match get_jellyfin_playing(&config.url, &config.api_key, &config.username).await {
             Ok(res) => res,
-            Err(_) => vec!["".to_string()],
+            Err(_) => Content {
+                media_type: "".to_string(),
+                details: "".to_string(),
+                state_message: "".to_string(),
+                endtime: 0,
+                extname: vec!["".to_string()],
+                exturl: vec!["".to_string()],
+            },
         };
-        let media_type = &jfresult[0];
-        if !media_type.is_empty() {
-            let mut extname: Vec<&str> = std::vec::Vec::new();
-            jfresult[1].split(',').for_each(|p| extname.push(p));
-            let mut exturl: Vec<&str> = std::vec::Vec::new();
-            jfresult[2].split(',').for_each(|p| exturl.push(p));
-            let details = "Watching ".to_owned() + jfresult[3].trim_matches('"');
-            let endtime = jfresult[4].parse::<i64>().unwrap();
-            let state_message = "".to_owned() + &jfresult[5];
-
+        println!("{:?}", content);
+        if !content.media_type.is_empty() {
             if !connected {
                 // Start up the client connection, so that we can actually send and receive stuff
                 connect(&mut drpc);
-                println!("{}\n{}\n{}\n{}", "Connected to Discord RPC client".bright_green().bold(), "------------------------------------------------------------------".bold(), details.bright_cyan().bold(), state_message.bright_cyan().bold());
+                println!("{}\n{}\n{}\n{}", "Connected to Discord RPC client".bright_green().bold(), "------------------------------------------------------------------".bold(), content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
 
                 // Set connected to true so that we don't try to connect again
                 connected = true;
@@ -83,15 +92,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = std::vec::Vec::new();
-            for i in 0..extname.len() {
+            for i in 0..content.extname.len() {
                 rpcbuttons.push(activity::Button::new(
-                    extname[i],
-                    exturl[i],
+                    &content.extname[i],
+                    &content.exturl[i],
                 ));
             }
             
             drpc.set_activity(
-                setactivity(&state_message, &details, endtime, rpcbuttons)
+                setactivity(&content.state_message, &content.details, content.endtime, rpcbuttons)
             ).expect("Failed to set activity");
             
         } else if connected {
@@ -106,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String) -> Result<Vec<String>, reqwest::Error> {
+async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String) -> Result<Content, reqwest::Error> {
     /*
     Make a request to the jellyfin server with the api key, wait for response, then get body text and convert to json.
     Make a for loop for the json, jellyfin makes a list of all active sessions so we need to look through them.
@@ -139,15 +148,31 @@ async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String) ->
 
                     let timeleft = get_end_timer(nowplayingitem, &i);
 
-                    return Ok(get_currently_watching(nowplayingitem, &extsrv[0], &extsrv[1], timeleft))
+                    let vector = get_currently_watching(nowplayingitem);
+                    return Ok(Content {
+                        media_type: vector[0].clone(),
+                        details: vector[1].clone(),
+                        state_message: vector[2].clone(),
+                        endtime: timeleft,
+                        extname: extsrv[0].clone(),
+                        exturl: extsrv[1].clone(),
+                    })
+
                 },
             };
         }
     }
-    Ok(vec!["".to_owned()])
+    Ok(Content {
+        media_type: "".to_string(),
+        details: "".to_string(),
+        state_message: "".to_string(),
+        endtime: 0,
+        extname: vec!["".to_string()],
+        exturl: vec!["".to_string()],
+    })
 }
 
-fn get_external_services(npi: &Value) -> Vec<String> {
+fn get_external_services(npi: &Value) -> Vec<Vec<String>> {
     /*
     The is for external services that might host info about what we're currently watching.
     It first checks if they actually exist by checking if the first thing in the array is an object.
@@ -155,33 +180,28 @@ fn get_external_services(npi: &Value) -> Vec<String> {
     When the for loop reaches 2 it breaks (this is the max number of buttons in discord rich presence),
     then it removes the trailing commas from the strings.
     */
-    let mut extname: String = "".to_string();
-    let mut exturl: String = "".to_string();
+    let mut extname: Vec<String> = vec![];
+    let mut exturl: Vec<String> = vec![];
     match npi.get("ExternalUrls") {
         None => (),
         extsrv => {
             if extsrv.expect("Couldn't find ExternalUrls")[0].is_object() {
                 let mut x = 0;
                 for i in extsrv.expect("Couldn't find ExternalUrls").as_array().unwrap() {
-                    extname.push_str(i.get("Name").unwrap().as_str().unwrap());
-                    exturl.push_str(i.get("Url").unwrap().as_str().unwrap());
-                    extname.push(',');
-                    exturl.push(',');
+                    extname.push(i["Name"].as_str().unwrap().to_string());
+                    exturl.push(i["Url"].as_str().unwrap().to_string());
                     x += 1;
                     if x == 2 {
                         break
                     }
                 }
-                extname = extname.trim_end_matches(',').to_string();
-                exturl = exturl.trim_end_matches(',').to_string();
-                return vec![extname, exturl]
             }
         }
     };
-    vec!["".to_string()]
+    vec![extname, exturl]
 }
 
-fn get_end_timer(npi: &Value, json: &Value) -> String {
+fn get_end_timer(npi: &Value, json: &Value) -> i64 {
     /*
     This is for the end timer,
     it gets the PositionTicks as a string so we can cut off the last 7 digits (millis).
@@ -199,10 +219,10 @@ fn get_end_timer(npi: &Value, json: &Value) -> String {
     .get("RunTimeTicks").unwrap_or(&serde_json::json!(0))
     .as_i64().unwrap();
     runtime_ticks /= 10000000;
-    (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)
 }
 
-fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timeleft: String) -> Vec<String> {
+fn get_currently_watching(npi: &Value) -> Vec<String> {
     /*
     This is where we actually get the info for the Movie/Series that we're currently watching.
     First we set the name variable because that's not gonna change either way.
@@ -213,33 +233,34 @@ fn get_currently_watching(npi: &Value, extname: &String, exturl: &String, timele
     After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
     Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
     */
-    let name = npi.get("Name").expect("Couldn't find Name").to_string();
-    if npi.get("Type").unwrap().as_str().unwrap() == "Episode" {
+    let name = npi["Name"].as_str().unwrap();
+    if npi["Type"].as_str().unwrap() == "Episode" {
         let itemtype = "episode".to_owned();
-        let series_name = npi.get("SeriesName").expect("Couldn't find SeriesName.").to_string();
-        let season = npi.get("ParentIndexNumber").expect("Couldn't find ParentIndexNumber.").to_string();
-        let episode = npi.get("IndexNumber").expect("Couldn't find IndexNumber.").to_string();
+        let series_name = npi["SeriesName"].as_str().unwrap().to_string();
+        let season = npi["ParentIndexNumber"].to_string();
+        let episode = npi["IndexNumber"].to_string();
 
-        let msg = "S".to_owned() + &season + "E" + &episode + " " + &name[1..name.len() - 1];
-        vec![itemtype, extname.to_owned(), exturl.to_owned(), series_name, timeleft, msg]
+        let msg = "S".to_owned() + &season + "E" + &episode + " " + name;
+        vec![itemtype, series_name, msg]
 
-    } else if npi.get("Type").unwrap().as_str().unwrap() == "Movie" {
+    } else if npi["Type"].as_str().unwrap() == "Movie" {
         let itemtype = "movie".to_owned();
-        let mut episode = "".to_string();
+        let mut genre_vector = "".to_string();
         match npi.get("Genres") {
             None => (),
             genres => {
                 for i in genres.unwrap().as_array().unwrap() {
-                    episode.push_str(i.as_str().unwrap());
-                    episode.push_str(", ");
+                    genre_vector.push_str(i.as_str().unwrap());
+                    genre_vector.push_str(", ");
                 }
-                episode = episode[0..episode.len() - 2].to_string();
+                genre_vector = genre_vector[0..genre_vector.len() - 2].to_string();
             }
         };
 
-        return vec![itemtype, extname.to_owned(), exturl.to_owned(), name, timeleft, episode];
+        return vec![itemtype, name.to_string(), genre_vector];
     } else {
-        return vec!["".to_string()]
+        // Return 3 empty strings to make vector equal length
+        return vec!["".to_string(), "".to_string(), "".to_string()]
     }
 }
 
