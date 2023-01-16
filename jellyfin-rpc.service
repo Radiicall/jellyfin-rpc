@@ -1,0 +1,12 @@
+[Unit]
+Description=Jellyfin-RPC Service
+Documentation=https://github.com/Radiicall/jellyfin-rpc
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/path/to/jellyfin-rpc/executable -c /path/to/jellyfin-rpc/.env
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
