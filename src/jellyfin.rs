@@ -1,4 +1,3 @@
-use reqwest::{Response};
 use serde_json::Value;
 
 pub struct Content {
@@ -18,13 +17,15 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
     It then checks if anything is actually playing on said user's session.
     From here it runs all of the other functions to get the proper information, then returns it to the main loop.
     */
-    let url = format!("{}/Sessions?api_key={}", url.trim_end_matches('/'), api_key);
-
-    let res: Response = reqwest::get(url).await?;
-    
-    let body = res.text().await?;
-    
-    let json: Vec<Value> = serde_json::from_str(&body).unwrap_or_else(|_|
+    let json: Vec<Value> = serde_json::from_str(
+        &reqwest::get(
+            format!(
+                "{}/Sessions?api_key={}",
+                url.trim_end_matches('/'),
+                api_key
+            )
+        ).await?.text().await?)
+        .unwrap_or_else(|_|
         panic!("Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
             // Grabbing dotenv var again because i dont know how im supposed to use url variable twice lol
             dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string()))
@@ -39,16 +40,14 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
                     // Unwrap the option that was returned
                     let nowplayingitem = npi.unwrap();
 
-                    let extsrv = get_external_services(nowplayingitem);
+                    let extsrv = get_external_services(nowplayingitem).await;
 
-                    let timeleft = get_end_timer(nowplayingitem, &i);
-
-                    let vector = get_currently_watching(nowplayingitem);
+                    let vector = get_currently_watching(nowplayingitem).await;
                     return Ok(Content {
                         media_type: vector[0].clone(),
                         details: vector[1].clone(),
                         state_message: vector[2].clone(),
-                        endtime: timeleft,
+                        endtime: get_end_timer(nowplayingitem, &i).await,
                         extname: extsrv[0].clone(),
                         exturl: extsrv[1].clone(),
                     })
@@ -67,7 +66,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
     })
 }
 
-fn get_external_services(npi: &Value) -> Vec<Vec<String>> {
+async fn get_external_services(npi: &Value) -> Vec<Vec<String>> {
     /*
     The is for external services that might host info about what we're currently watching.
     It first checks if they actually exist by checking if the first thing in the array is an object.
@@ -96,7 +95,7 @@ fn get_external_services(npi: &Value) -> Vec<Vec<String>> {
     vec![extname, exturl]
 }
 
-fn get_end_timer(npi: &Value, json: &Value) -> i64 {
+async fn get_end_timer(npi: &Value, json: &Value) -> i64 {
     /*
     This is for the end timer,
     it gets the PositionTicks as a string so we can cut off the last 7 digits (millis).
@@ -117,7 +116,7 @@ fn get_end_timer(npi: &Value, json: &Value) -> i64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)
 }
 
-fn get_currently_watching(npi: &Value) -> Vec<String> {
+async fn get_currently_watching(npi: &Value) -> Vec<String> {
     /*
     This is where we actually get the info for the Movie/Series that we're currently watching.
     First we set the name variable because that's not gonna change either way.
