@@ -124,12 +124,12 @@ fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
 
 fn connect(drpc: &mut DiscordIpcClient) {
     println!("{}", "------------------------------------------------------------------".bold());
-    retry_with_index(retry::delay::Fixed::from_millis(10000), |current_try| {
+    retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
         println!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to connect".bold().truecolor(225, 69, 0));
         match drpc.connect() {
             Ok(result) => retry::OperationResult::Ok(result),
             Err(_) => {
-                println!("{}", "Failed to connect, retrying in 10 seconds".red().bold());
+                println!("{}", "Failed to connect, retrying soon".red().bold());
                 retry::OperationResult::Retry(())
             },
         }
