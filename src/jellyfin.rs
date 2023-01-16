@@ -5,19 +5,12 @@ pub struct Content {
     pub details: String,
     pub state_message: String,
     pub endtime: i64,
-    pub extname: Vec<String>,
-    pub exturl: Vec<String>,
+    pub external_service_names: Vec<String>,
+    pub external_service_urls: Vec<String>,
 }
 
 pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String) -> Result<Content, reqwest::Error> {
-    /*
-    Make a request to the jellyfin server with the api key, wait for response, then get body text and convert to json.
-    Make a for loop for the json, jellyfin makes a list of all active sessions so we need to look through them.
-    Check if the username matches the one in the config, if we dont do this then it would literally grab any user and set it as status.
-    It then checks if anything is actually playing on said user's session.
-    From here it runs all of the other functions to get the proper information, then returns it to the main loop.
-    */
-    let json: Vec<Value> = serde_json::from_str(
+    let sessions: Vec<Value> = serde_json::from_str(
         &reqwest::get(
             format!(
                 "{}/Sessions?api_key={}",
@@ -27,93 +20,76 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         ).await?.text().await?)
         .unwrap_or_else(|_|
         panic!("Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
-            // Grabbing dotenv var again because i dont know how im supposed to use url variable twice lol
-            dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string()))
+            url)
         );
-    for i in json {
-        if Option::is_none(&i.get("UserName")) {
+    for session in sessions {
+        if Option::is_none(&session.get("UserName")) {
             continue 
-        } else if i["UserName"].as_str().unwrap() == username {
-            match i.get("NowPlayingItem") {
-                None => continue,
-                npi => {
-                    let extsrv = get_external_services(npi.unwrap()).await;
-
-                    let vector = get_currently_watching(npi.unwrap()).await;
-                    return Ok(Content {
-                        media_type: vector[0].clone(),
-                        details: vector[1].clone(),
-                        state_message: vector[2].clone(),
-                        endtime: get_end_timer(npi.unwrap(), &i).await,
-                        extname: extsrv[0].clone(),
-                        exturl: extsrv[1].clone(),
-                    })
-
-                },
-            };
         }
+        if session["UserName"].as_str().unwrap() != username {
+            continue
+        }
+        if Option::is_none(&session.get("NowPlayingItem")) {
+            continue
+        }
+
+        let now_playing_item = &session["NowPlayingItem"];
+
+        let external_services = get_external_services(now_playing_item).await;
+
+        let main = get_currently_watching(now_playing_item).await;
+        return Ok(Content {
+            media_type: main[0].clone(),
+            details: main[1].clone(),
+            state_message: main[2].clone(),
+            endtime: get_end_timer(now_playing_item, &session).await,
+            external_service_names: external_services[0].clone(),
+            external_service_urls: external_services[1].clone(),
+        })
     }
     Ok(Content {
         media_type: "".to_string(),
         details: "".to_string(),
         state_message: "".to_string(),
         endtime: 0,
-        extname: vec!["".to_string()],
-        exturl: vec!["".to_string()],
+        external_service_names: vec!["".to_string()],
+        external_service_urls: vec!["".to_string()],
     })
 }
 
-async fn get_external_services(npi: &Value) -> Vec<Vec<String>> {
-    /*
-    The is for external services that might host info about what we're currently watching.
-    It first checks if they actually exist by checking if the first thing in the array is an object.
-    If it is then it creates a for loop and pushes every "name" and "url" to 2 strings with commas seperating.
-    When the for loop reaches 2 it breaks (this is the max number of buttons in discord rich presence),
-    then it removes the trailing commas from the strings.
-    */
-    let mut extname: Vec<String> = vec![];
-    let mut exturl: Vec<String> = vec![];
-    match npi.get("ExternalUrls") {
-        None => (),
-        extsrv => {
-            if extsrv.expect("Couldn't find ExternalUrls")[0].is_object() {
-                let mut x = 0;
-                for i in extsrv.expect("Couldn't find ExternalUrls").as_array().unwrap() {
-                    extname.push(i["Name"].as_str().unwrap().to_string());
-                    exturl.push(i["Url"].as_str().unwrap().to_string());
-                    x += 1;
-                    if x == 2 {
-                        break
-                    }
-                }
+async fn get_external_services(now_playing_item: &Value) -> Vec<Vec<String>> {
+    let mut external_service_names: Vec<String> = vec![];
+    let mut external_service_urls: Vec<String> = vec![];
+
+    let external_services = &now_playing_item["ExternalUrls"];
+
+    if external_services[0].is_object() {
+        let mut x = 0;
+        for i in external_services.as_array().unwrap() {
+            external_service_names.push(i["Name"].as_str().unwrap().to_string());
+            external_service_urls.push(i["Url"].as_str().unwrap().to_string());
+            x += 1;
+            if x == 2 {
+                break
             }
         }
-    };
-    vec![extname, exturl]
+    }
+    vec![external_service_names, external_service_urls]
 }
 
-async fn get_end_timer(npi: &Value, json: &Value) -> i64 {
-    /*
-    This is for the end timer,
-    it gets the PositionTicks as a string so we can cut off the last 7 digits (millis).
-    Then if its empty afterwards we make it 0, then parse it to an i64.
-    After that we get the RunTimeTicks, remove the last 7 digits and parse that to an i64.
-    PositionTicks is how far into the video we are and RunTimeTicks is how many ticks the video will last for.
-    We then do current "SystemTime + (RunTimeTicks - PositionTicks)" and that's how many seconds there are left in the video from the current unix epoch.
-    */
-    let mut position_ticks = json
-        .get("PlayState").unwrap()
-        .get("PositionTicks").unwrap_or(&serde_json::json!(0))
-        .as_i64().unwrap();
-    position_ticks /= 10000000;
-    let mut runtime_ticks = npi
-    .get("RunTimeTicks").unwrap_or(&serde_json::json!(0))
-    .as_i64().unwrap();
-    runtime_ticks /= 10000000;
+async fn get_end_timer(now_playing_item: &Value, json: &Value) -> i64 {
+    let ticks_to_seconds = 10000000;
+
+    let mut position_ticks = json["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
+    position_ticks /= ticks_to_seconds;
+
+    let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
+    runtime_ticks /= ticks_to_seconds;
+
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)
 }
 
-async fn get_currently_watching(npi: &Value) -> Vec<String> {
+async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     /*
     This is where we actually get the info for the Movie/Series that we're currently watching.
     First we set the name variable because that's not gonna change either way.
@@ -124,33 +100,34 @@ async fn get_currently_watching(npi: &Value) -> Vec<String> {
     After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
     Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
     */
-    let name = npi["Name"].as_str().unwrap();
-    if npi["Type"].as_str().unwrap() == "Episode" {
-        let itemtype = "episode".to_owned();
-        let series_name = npi["SeriesName"].as_str().unwrap().to_string();
-        let season = npi["ParentIndexNumber"].to_string();
-        let episode = npi["IndexNumber"].to_string();
+    let name = now_playing_item["Name"].as_str().unwrap();
+    let item_type: String;
+    if now_playing_item["Type"].as_str().unwrap() == "Episode" {
+        item_type = "episode".to_owned();
+        let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
 
+        let season = now_playing_item["ParentIndexNumber"].to_string();
+        let episode = now_playing_item["IndexNumber"].to_string();
         let msg = "S".to_owned() + &season + "E" + &episode + " " + name;
-        vec![itemtype, series_name, msg]
 
-    } else if npi["Type"].as_str().unwrap() == "Movie" {
-        let itemtype = "movie".to_owned();
-        let mut genre_vector = "".to_string();
-        match npi.get("Genres") {
+        vec![item_type, series_name, msg]
+    } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
+        item_type = "movie".to_owned();
+        let mut genres = "".to_string();
+        match now_playing_item.get("Genres") {
             None => (),
-            genres => {
-                for i in genres.unwrap().as_array().unwrap() {
-                    genre_vector.push_str(i.as_str().unwrap());
-                    genre_vector.push_str(", ");
+            genres_array => {
+                for i in genres_array.unwrap().as_array().unwrap() {
+                    genres.push_str(i.as_str().unwrap());
+                    genres.push_str(", ");
                 }
-                genre_vector = genre_vector[0..genre_vector.len() - 2].to_string();
+                genres = genres[0..genres.len() - 2].to_string();
             }
         };
 
-        return vec![itemtype, name.to_string(), genre_vector];
+        vec![item_type, name.to_string(), genres]
     } else {
         // Return 3 empty strings to make vector equal length
-        return vec!["".to_string(), "".to_string(), "".to_string()]
+        vec!["".to_string(), "".to_string(), "".to_string()]
     }
 }

@@ -55,25 +55,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
     let mut connected: bool = false;
-    let mut drpc = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
+    let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
     // Start loop
     loop {
-        let content = match get_jellyfin_playing(&config.url, &config.api_key, &config.username).await {
-            Ok(res) => res,
-            Err(_) => Content {
-                media_type: "".to_string(),
-                details: "".to_string(),
-                state_message: "".to_string(),
-                endtime: 0,
-                extname: vec!["".to_string()],
-                exturl: vec!["".to_string()],
-            },
-        };
+        let content = get_jellyfin_playing(&config.url, &config.api_key, &config.username).await.unwrap();
 
         if !content.media_type.is_empty() {
             if !connected {
                 // Start up the client connection, so that we can actually send and receive stuff
-                connect(&mut drpc);
+                connect(&mut rich_presence_client);
                 println!("{}\n{}\n{}\n{}", "Connected to Discord RPC client".bright_green().bold(), "------------------------------------------------------------------".bold(), content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
 
                 // Set connected to true so that we don't try to connect again
@@ -82,26 +72,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = std::vec::Vec::new();
-            for i in 0..content.extname.len() {
+            for i in 0..content.external_service_names.len() {
                 rpcbuttons.push(activity::Button::new(
-                    &content.extname[i],
-                    &content.exturl[i],
+                    &content.external_service_names[i],
+                    &content.external_service_urls[i],
                 ));
             }
             
-            drpc.set_activity(
+            rich_presence_client.set_activity(
                 setactivity(&content.state_message, &content.details, content.endtime, rpcbuttons)
             ).expect("Failed to set activity");
             
         } else if connected {
             // Disconnect from the client
-            drpc.close().expect("Failed to close Discord RPC client");
+            rich_presence_client.close().expect("Failed to close Discord RPC client");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
             println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
         }
     // Sleep for 2 seconds
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    std::thread::sleep(std::time::Duration::from_millis(750));
     }
 }
 
@@ -122,11 +112,11 @@ fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
     })
 }
 
-fn connect(drpc: &mut DiscordIpcClient) {
+fn connect(rich_presence_client: &mut DiscordIpcClient) {
     println!("{}", "------------------------------------------------------------------".bold());
     retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
         println!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to connect".bold().truecolor(225, 69, 0));
-        match drpc.connect() {
+        match rich_presence_client.connect() {
             Ok(result) => retry::OperationResult::Ok(result),
             Err(_) => {
                 println!("{}", "Failed to connect, retrying soon".red().bold());
@@ -137,22 +127,22 @@ fn connect(drpc: &mut DiscordIpcClient) {
 }
 
 fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
-    let mut payload = activity::Activity::new()
+    let mut new_activity = activity::Activity::new()
         .details(details)
         .assets(
             activity::Assets::new()
                 .large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
-                .large_text("https://github.com/Radiicall/jellyfin-rpc") 
+                .large_text("https://github.com/Radiicall/jellyfin-rpc")
         )
         .timestamps(activity::Timestamps::new()
             .end(endtime)
         );
 
     if !state_message.is_empty() {
-        payload = payload.clone().state(state_message);
+        new_activity = new_activity.clone().state(state_message);
     }
     if !rpcbuttons.is_empty() {
-        payload = payload.clone().buttons(rpcbuttons);
+        new_activity = new_activity.clone().buttons(rpcbuttons);
     }
-    payload
+    new_activity
 }
