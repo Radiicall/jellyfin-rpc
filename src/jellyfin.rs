@@ -33,21 +33,18 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
     for i in json {
         if Option::is_none(&i.get("UserName")) {
             continue 
-        } else if i.get("UserName").unwrap().as_str().unwrap() == username {
+        } else if i["UserName"].as_str().unwrap() == username {
             match i.get("NowPlayingItem") {
                 None => continue,
                 npi => {
-                    // Unwrap the option that was returned
-                    let nowplayingitem = npi.unwrap();
+                    let extsrv = get_external_services(npi.unwrap()).await;
 
-                    let extsrv = get_external_services(nowplayingitem).await;
-
-                    let vector = get_currently_watching(nowplayingitem).await;
+                    let vector = get_currently_watching(npi.unwrap()).await;
                     return Ok(Content {
                         media_type: vector[0].clone(),
                         details: vector[1].clone(),
                         state_message: vector[2].clone(),
-                        endtime: get_end_timer(nowplayingitem, &i).await,
+                        endtime: get_end_timer(npi.unwrap(), &i).await,
                         extname: extsrv[0].clone(),
                         exturl: extsrv[1].clone(),
                     })
