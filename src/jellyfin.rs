@@ -5,6 +5,7 @@ pub struct Content {
     pub details: String,
     pub state_message: String,
     pub endtime: i64,
+    pub image_url: String,
     pub external_service_names: Vec<String>,
     pub external_service_urls: Vec<String>,
 }
@@ -43,6 +44,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
             details: main[1].clone(),
             state_message: main[2].clone(),
             endtime: get_end_timer(now_playing_item, &session).await,
+            image_url: get_image(url, main[3].clone()).await,
             external_service_names: external_services[0].clone(),
             external_service_urls: external_services[1].clone(),
         })
@@ -52,6 +54,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         details: "".to_string(),
         state_message: "".to_string(),
         endtime: 0,
+        image_url: "".to_string(),
         external_service_names: vec!["".to_string()],
         external_service_urls: vec!["".to_string()],
     })
@@ -77,10 +80,10 @@ async fn get_external_services(now_playing_item: &Value) -> Vec<Vec<String>> {
     vec![external_service_names, external_service_urls]
 }
 
-async fn get_end_timer(now_playing_item: &Value, json: &Value) -> i64 {
+async fn get_end_timer(now_playing_item: &Value, session: &Value) -> i64 {
     let ticks_to_seconds = 10000000;
 
-    let mut position_ticks = json["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
+    let mut position_ticks = session["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
     position_ticks /= ticks_to_seconds;
 
     let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
@@ -102,22 +105,25 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     */
     let name = now_playing_item["Name"].as_str().unwrap();
     let item_type: String;
+    let item_id: String;
     if now_playing_item["Type"].as_str().unwrap() == "Episode" {
         item_type = "episode".to_owned();
         let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
+        item_id = now_playing_item["SeriesId"].as_str().unwrap().to_string();
 
         let season = now_playing_item["ParentIndexNumber"].to_string();
         let episode = now_playing_item["IndexNumber"].to_string();
         let msg = "S".to_owned() + &season + "E" + &episode + " " + name;
 
-        vec![item_type, series_name, msg]
+        vec![item_type, series_name, msg, item_id]
     } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
         item_type = "movie".to_owned();
+        item_id = now_playing_item["Id"].as_str().unwrap().to_string();
         let mut genres = "".to_string();
         match now_playing_item.get("Genres") {
             None => (),
-            genres_array => {
-                for i in genres_array.unwrap().as_array().unwrap() {
+            genre_array => {
+                for i in genre_array.unwrap().as_array().unwrap() {
                     genres.push_str(i.as_str().unwrap());
                     genres.push_str(", ");
                 }
@@ -125,9 +131,17 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
             }
         };
 
-        vec![item_type, name.to_string(), genres]
+        vec![item_type, name.to_string(), genres, item_id]
     } else {
         // Return 3 empty strings to make vector equal length
         vec!["".to_string(), "".to_string(), "".to_string()]
     }
+}
+
+async fn get_image(url: &str, item_id: String) -> String {
+    format!(
+        "{}/Items/{}/Images/Primary",
+        url.trim_end_matches('/'),
+        item_id
+    )
 }
