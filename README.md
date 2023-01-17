@@ -35,6 +35,7 @@ DISCORD_APPLICATION_ID=1053747938519679018
 JELLYFIN_URL=your_url_here_with
 JELLYFIN_API_KEY=your_api_key_here
 JELLYFIN_USERNAME=your_username_here
+ENABLE_IMAGES=true
 ```
 
 ### Discord Application ID
