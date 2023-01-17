@@ -10,6 +10,7 @@ struct Config {
     url: String,
     api_key: String,
     username: String,
+    enable_images: bool,
 }
 
 #[derive(Debug)]
@@ -58,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
     // Start loop
     loop {
-        let content = get_jellyfin_playing(&config.url, &config.api_key, &config.username).await.unwrap();
+        let content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await.unwrap();
 
         if !content.media_type.is_empty() {
             if !connected {
@@ -100,6 +101,11 @@ fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
     let url = dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string());
     let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
     let username = dotenv::var("JELLYFIN_USERNAME").unwrap_or_else(|_| "".to_string());
+    let enable_images = match dotenv::var("ENABLE_IMAGES").unwrap_or_else(|_| "".to_string()).to_lowercase().as_str() {
+        "true" => true,
+        "false" => false,
+        _ => false,
+    };
     
     if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
         return Err(Box::new(ConfigError::MissingConfig))
@@ -109,6 +115,7 @@ fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
         url,
         api_key,
         username,
+        enable_images,
     })
 }
 
@@ -129,15 +136,23 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
 fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
     let mut new_activity = activity::Activity::new()
         .details(details)
-        .assets(
-            activity::Assets::new()
-                //.large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
-                .large_image(image_url)
-                .large_text("https://github.com/Radiicall/jellyfin-rpc")
-        )
         .timestamps(activity::Timestamps::new()
             .end(endtime)
         );
+
+    if !image_url.is_empty() {
+        new_activity = new_activity.clone().assets(
+            activity::Assets::new()
+                .large_image(image_url)
+                .large_text("https://github.com/Radiicall/jellyfin-rpc")
+        )
+    } else {
+        new_activity = new_activity.clone().assets(
+            activity::Assets::new()
+                .large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
+                .large_text("https://github.com/Radiicall/jellyfin-rpc")
+        )
+    }
 
     if !state_message.is_empty() {
         new_activity = new_activity.clone().state(state_message);

@@ -10,7 +10,7 @@ pub struct Content {
     pub external_service_urls: Vec<String>,
 }
 
-pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String) -> Result<Content, reqwest::Error> {
+pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String, enable_images: &bool) -> Result<Content, reqwest::Error> {
     let sessions: Vec<Value> = serde_json::from_str(
         &reqwest::get(
             format!(
@@ -39,12 +39,18 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         let external_services = get_external_services(now_playing_item).await;
 
         let main = get_currently_watching(now_playing_item).await;
+
+        let mut image_url: String = "".to_string();
+        if enable_images == &true {
+            image_url = get_image(url, main[3].clone()).await;
+        }
+
         return Ok(Content {
             media_type: main[0].clone(),
             details: main[1].clone(),
             state_message: main[2].clone(),
             endtime: get_end_timer(now_playing_item, &session).await,
-            image_url: get_image(url, main[3].clone()).await,
+            image_url,
             external_service_names: external_services[0].clone(),
             external_service_urls: external_services[1].clone(),
         })
