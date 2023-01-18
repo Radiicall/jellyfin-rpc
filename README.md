@@ -64,7 +64,9 @@ The username is needed because if you have multiple accounts (friends, family) t
 
 For systemd I have included <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/jellyfin-rpc.service">this file</a>, you can download it directly by pressing ctrl+s on the page.
 
-In the service file you have to change the `ExecStart=` line. You can launch the script without -c if you put the `.env` file in the same directory as the executable
+In the service file you have to change the `ExecStart=` line. You can launch the script without -c if you put the `.env` file in the same directory as the executable.
+
+The service is supposed to run in user mode, put the service file into this directory `$HOME/.config/systemd/user/` and use `systemctl --user enable --now jellyfin-rpc.service` to start and enable it.
 
 ## Building
 You need rust installed, you can get rustup from <a href="https://rustup.rs/">here</a>
