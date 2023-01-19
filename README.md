@@ -6,11 +6,11 @@ Jellyfin-RPC uses the API to check what you're currently watching, this means th
 
 Example Movie:
 
-![image](https://user-images.githubusercontent.com/66682497/209231361-411296d1-031c-4a87-bcdf-87efde6f3ada.png)
+![image](https://user-images.githubusercontent.com/66682497/213467832-5eb6b0a0-1b83-47db-bf00-48c0e739aec4.png)
 
 Example Series:
 
-![image](https://user-images.githubusercontent.com/66682497/209229842-350d9fba-cf29-461e-9a0c-3bc47ec24389.png)
+![image](https://user-images.githubusercontent.com/66682497/213467669-8375841d-b846-4afe-8bd3-0b09f4c7f2ad.png)
 
 Terminal Output:
 
