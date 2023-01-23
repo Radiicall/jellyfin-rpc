@@ -1,6 +1,6 @@
 [package]
 name = "jellyfin-rpc"
-version = "0.6.1-rc"
+version = "0.7.0-rc"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
