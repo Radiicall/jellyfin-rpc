@@ -55,17 +55,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
+    if config.enable_images {
+        println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images won't work unless the server is forwarded!!!!".bold().red())
+    }
+
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
+
+    // Start up the client connection, so that we can actually send and receive stuff
+    connect(&mut rich_presence_client);
+    println!("{}\n{}", "Connected to Discord Rich Presence Socket".bright_green().bold(), "------------------------------------------------------------------".bold());
+
     // Start loop
     loop {
         let content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await.unwrap();
 
         if !content.media_type.is_empty() {
+            // Print what we're watching
             if !connected {
-                // Start up the client connection, so that we can actually send and receive stuff
-                connect(&mut rich_presence_client);
-                println!("{}\n{}\n{}\n{}", "Connected to Discord RPC client".bright_green().bold(), "------------------------------------------------------------------".bold(), content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
+                println!("{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
 
                 // Set connected to true so that we don't try to connect again
                 connected = true;
@@ -79,17 +87,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &content.external_service_urls[i],
                 ));
             }
-            
+
             rich_presence_client.set_activity(
                 setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons)
-            ).expect("Failed to set activity");
-            
+            ).unwrap_or_else(|_| {
+                rich_presence_client.reconnect().expect("Failed to reconnect");
+            });
+
         } else if connected {
             // Disconnect from the client
-            rich_presence_client.close().expect("Failed to close Discord RPC client");
+            rich_presence_client.clear_activity().expect("Failed to clear activity");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
-            println!("{}", "Disconnected from Discord RPC client".bright_red().bold());
+            println!("{}", "Cleared Rich Presence".bright_red().bold());
         }
     // Sleep for 2 seconds
     std::thread::sleep(std::time::Duration::from_millis(750));
@@ -106,7 +116,7 @@ fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
         "false" => false,
         _ => false,
     };
-    
+
     if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
         return Err(Box::new(ConfigError::MissingConfig))
     }
