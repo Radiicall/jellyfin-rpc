@@ -118,8 +118,14 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         item_id = now_playing_item["SeriesId"].as_str().unwrap().to_string();
 
         let season = now_playing_item["ParentIndexNumber"].to_string();
-        let episode = now_playing_item["IndexNumber"].to_string();
-        let msg = "S".to_owned() + &season + "E" + &episode + " " + name;
+        let first_episode_number = now_playing_item["IndexNumber"].to_string();
+        let mut msg = "S".to_owned() + &season + "E" + &first_episode_number;
+
+        if !Option::is_none(&now_playing_item.get("IndexNumberEnd")) {
+            msg += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
+        }
+
+        msg += &(" ".to_string() + name);
 
         vec![item_type, series_name, msg, item_id]
     } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
