@@ -99,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             rich_presence_client.clear_activity().expect("Failed to clear activity");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
-            println!("{}", "Cleared Rich Presence".bright_red().bold());
+            println!("{}\n{}\n{}", "------------------------------------------------------------------".bold(), "Cleared Rich Presence".bright_red().bold(), "------------------------------------------------------------------".bold());
         }
     // Sleep for 2 seconds
     std::thread::sleep(std::time::Duration::from_millis(750));
