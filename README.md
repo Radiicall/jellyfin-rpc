@@ -14,7 +14,7 @@ Example Series:
 
 Terminal Output:
 
-![image](https://user-images.githubusercontent.com/66682497/208316064-0d66b0cc-2529-4947-8ea9-5b0f48df16e4.png)
+<img width="474" alt="image" src="https://user-images.githubusercontent.com/66682497/214524256-7347df00-9247-4140-814d-569055ce39f8.png">
 
 This program is very memory/cpu efficient using ~13mb of ram and ~0.1% of the cpu while sending info to discord.
 
