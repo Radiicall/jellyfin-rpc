@@ -1,0 +1,11 @@
+{
+    "Jellyfin": {
+        "URL": "https://example.com",
+        "API_KEY": "sadasodsapasdskd",
+        "USERNAME": "your_username_here"
+    },
+    "Discord": {
+        "APPLICATION_ID": "1053747938519679018",
+        "ENABLE_IMAGES": false
+    }
+}

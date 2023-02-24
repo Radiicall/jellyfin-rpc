@@ -6,10 +6,10 @@ use clap::Parser;
 use retry::retry_with_index;
 
 struct Config {
-    rpc_client_id: String,
     url: String,
     api_key: String,
     username: String,
+    rpc_client_id: String,
     enable_images: bool,
 }
 
@@ -33,7 +33,7 @@ impl From<std::io::Error> for ConfigError {
 }
 
 #[derive(Parser, Debug)]
-#[command(author = "Radiicall <radical@radical.fun>")]
+#[command(author = "Radical <Radiicall> <radical@radical.fun>")]
 #[command(version)]
 #[command(about = "Rich presence for Jellyfin", long_about = None)]
 struct Args {
@@ -44,14 +44,18 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    dotenv::from_path(
-        args.config.unwrap_or_else(|| 
-            std::env::current_exe().unwrap()
-            .parent().unwrap()
-            .join(".env").to_string_lossy().to_string()
+    let config_path = args.config.unwrap_or_else(||
+        std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
+            {
+                let mut dir = std::env::var("HOME").unwrap();
+                dir.push_str("/.config/jellyfin-rpc/main.json");
+                dir
+            }
         )
-    ).ok();
-    let config = load_config().expect("Please make a file called .env and populate it with the needed variables (https://github.com/Radiicall/jellyfin-rpc#setup)");
+    );
+    let config = load_config(
+        config_path.clone()
+    ).expect(format!("\n\nPlease populate your config file '{}' with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", std::fs::canonicalize(config_path).unwrap().to_string_lossy()).as_str());
 
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
@@ -106,7 +110,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
+fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
+    let data = std::fs::read_to_string(&path).expect(format!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path).as_str());
+    let res: serde_json::Value = serde_json::from_str(&data).expect("Unable to parse config file");
+
+    let jellyfin: serde_json::Value = res["Jellyfin"].clone();
+    let discord: serde_json::Value = res["Discord"].clone();
+
+    let url = jellyfin["URL"].as_str().unwrap().to_string();
+    let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
+    let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
+    let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap().to_string();
+    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap();
+
+    /*
     let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "1053747938519679018".to_string());
     let url = dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string());
     let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
@@ -116,15 +133,16 @@ fn load_config() -> Result<Config, Box<dyn core::fmt::Debug>> {
         "false" => false,
         _ => false,
     };
+    */
 
     if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
         return Err(Box::new(ConfigError::MissingConfig))
     }
     Ok(Config {
-        rpc_client_id,
         url,
         api_key,
         username,
+        rpc_client_id,
         enable_images,
     })
 }

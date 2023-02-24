@@ -1,0 +1,30 @@
+#!/bin/sh
+
+if [ `whoami` == "root" ]; then
+    echo "Running this as root is probably not what you want... "
+    exit 1
+fi
+
+export JRPC_EXEC=jellyfin-rpc-$(uname -m)-linux
+
+wget https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/$JRPC_EXEC
+mkdir -p $HOME/.local/bin
+mv $JRPC_EXEC $HOME/.local/bin/jellyfin-rpc
+
+if [ !$XDG_CONFIG_HOME ]; then
+    export XDG_CONFIG_HOME=$HOME/.config
+fi
+mkdir -p $XDG_CONFIG_HOME/jellyfin-rpc
+touch $XDG_CONFIG_HOME/jellyfin-rpc/main.json
+
+wget https://github.com/Radiicall/jellyfin-rpc/raw/main/jellyfin-rpc.service
+
+sed "s/\/path\/to\/jellyfin-rpc\/executable -c \/path\/to\/jellyfin-rpc\/main.json/\/home\/$USER\/.local\/bin\/jellyfin-rpc/g" jellyfin-rpc.service > jellyfin-rpc.service
+
+mkdir -p $XDG_CONFIG_HOME/systemd/user/
+
+mv jellyfin-rpc.service $XDG_CONFIG_HOME/systemd/user/
+
+echo "Installed jellyfin-rpc executable and systemd file"
+
+echo "Remember to add $HOME/.local/bin to your PATH"
