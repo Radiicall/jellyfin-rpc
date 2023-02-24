@@ -53,6 +53,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         )
     );
+
+    if config_path.ends_with(".env") {
+        panic!("\n\nPlease update your .env to JSON format. \n(Example: https://github.com/Radiicall/jellyfin-rpc/blob/main/example.json)\n\n")
+    }
+
     let config = load_config(
         config_path.clone()
     ).expect(format!("\n\nPlease populate your config file '{}' with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", std::fs::canonicalize(config_path).unwrap().to_string_lossy()).as_str());
@@ -112,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let data = std::fs::read_to_string(&path).expect(format!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path).as_str());
-    let res: serde_json::Value = serde_json::from_str(&data).expect("Unable to parse config file");
+    let res: serde_json::Value = serde_json::from_str(&data).expect(format!("{}", "\nUnable to parse config file. Is this a json file?\n".red().bold()).as_str());
 
     let jellyfin: serde_json::Value = res["Jellyfin"].clone();
     let discord: serde_json::Value = res["Discord"].clone();
