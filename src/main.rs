@@ -45,13 +45,17 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(||
-        std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
-            {
-                let mut dir = std::env::var("HOME").unwrap();
-                dir.push_str("/.config/jellyfin-rpc/main.json");
-                dir
-            }
-        )
+        if std::env::var("USER").unwrap() != "root".to_string() {
+            std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
+                {
+                    let mut dir = std::env::var("HOME").unwrap();
+                    dir.push_str("/.config/jellyfin-rpc/main.json");
+                    dir
+                }
+            )
+        } else {
+            "/etc/jellyfin-rpc/main.json".to_string()
+        }
     );
 
     if config_path.ends_with(".env") {
@@ -110,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             connected = false;
             println!("{}\n{}\n{}", "------------------------------------------------------------------".bold(), "Cleared Rich Presence".bright_red().bold(), "------------------------------------------------------------------".bold());
         }
-    // Sleep for 2 seconds
+
     std::thread::sleep(std::time::Duration::from_millis(750));
     }
 }
@@ -126,7 +130,7 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap().to_string();
-    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap();
+    let enable_images = discord["ENABLE_IMAGES"].as_bool().expect(format!("\n{}\n{} {} {} {}\n", "ENABLE_IMAGES has to be a bool...".red().bold(), "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()).as_str());
 
     /*
     let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "1053747938519679018".to_string());
