@@ -174,22 +174,28 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: String,
     let mut new_activity = activity::Activity::new()
         .details(details);
 
+    let mut small_image = "";
+    let mut small_text = "";
+
     match endtime.parse::<i64>() {
         Ok(time) => {
             new_activity = new_activity.clone().timestamps(activity::Timestamps::new()
                 .end(time)
             );
         },
-        Err(_) => {()},
+        Err(_) => {
+            small_image = "https://i.imgur.com/wlHSvYy.png";
+            small_text = "Paused";
+        },
     }
-    
-
 
     if !image_url.is_empty() {
         new_activity = new_activity.clone().assets(
             activity::Assets::new()
                 .large_image(image_url)
                 .large_text("https://github.com/Radiicall/jellyfin-rpc")
+                .small_image(small_image)
+                .small_text(small_text)
         )
     } else {
         new_activity = new_activity.clone().assets(

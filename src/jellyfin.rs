@@ -42,7 +42,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
 
         let mut image_url: String = "".to_string();
         if enable_images == &true {
-            image_url = get_image(url, main[3].clone()).await;
+            image_url = get_image_jf(url, main[3].clone()).await;
         }
 
         return Ok(Content {
@@ -154,7 +154,7 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     }
 }
 
-async fn get_image(url: &str, item_id: String) -> String {
+async fn get_image_jf(url: &str, item_id: String) -> String {
     format!(
         "{}/Items/{}/Images/Primary",
         url.trim_end_matches('/'),
