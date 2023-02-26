@@ -170,12 +170,20 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
     }).unwrap();
 }
 
-fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: i64, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
+fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: String, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
     let mut new_activity = activity::Activity::new()
-        .details(details)
-        .timestamps(activity::Timestamps::new()
-            .end(endtime)
-        );
+        .details(details);
+
+    match endtime.parse::<i64>() {
+        Ok(time) => {
+            new_activity = new_activity.clone().timestamps(activity::Timestamps::new()
+                .end(time)
+            );
+        },
+        Err(_) => {()},
+    }
+    
+
 
     if !image_url.is_empty() {
         new_activity = new_activity.clone().assets(

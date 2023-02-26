@@ -4,7 +4,7 @@ pub struct Content {
     pub media_type: String,
     pub details: String,
     pub state_message: String,
-    pub endtime: i64,
+    pub endtime: String,
     pub image_url: String,
     pub external_service_names: Vec<String>,
     pub external_service_urls: Vec<String>,
@@ -59,7 +59,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         media_type: "".to_string(),
         details: "".to_string(),
         state_message: "".to_string(),
-        endtime: 0,
+        endtime: "".to_string(),
         image_url: "".to_string(),
         external_service_names: vec!["".to_string()],
         external_service_urls: vec!["".to_string()],
@@ -86,16 +86,20 @@ async fn get_external_services(now_playing_item: &Value) -> Vec<Vec<String>> {
     vec![external_service_names, external_service_urls]
 }
 
-async fn get_end_timer(now_playing_item: &Value, session: &Value) -> i64 {
-    let ticks_to_seconds = 10000000;
+async fn get_end_timer(now_playing_item: &Value, session: &Value) -> String {
+    if !session["PlayState"]["IsPaused"].as_bool().unwrap() {
+        let ticks_to_seconds = 10000000;
 
-    let mut position_ticks = session["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
-    position_ticks /= ticks_to_seconds;
-
-    let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
-    runtime_ticks /= ticks_to_seconds;
-
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)
+        let mut position_ticks = session["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
+        position_ticks /= ticks_to_seconds;
+    
+        let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
+        runtime_ticks /= ticks_to_seconds;
+    
+        (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks)).to_string()
+    } else {
+        "Paused".to_string()
+    }
 }
 
 async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
