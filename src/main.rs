@@ -132,18 +132,6 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap().to_string();
     let enable_images = discord["ENABLE_IMAGES"].as_bool().expect(format!("\n{}\n{} {} {} {}\n", "ENABLE_IMAGES has to be a bool...".red().bold(), "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()).as_str());
 
-    /*
-    let rpc_client_id = dotenv::var("DISCORD_APPLICATION_ID").unwrap_or_else(|_| "1053747938519679018".to_string());
-    let url = dotenv::var("JELLYFIN_URL").unwrap_or_else(|_| "".to_string());
-    let api_key = dotenv::var("JELLYFIN_API_KEY").unwrap_or_else(|_| "".to_string());
-    let username = dotenv::var("JELLYFIN_USERNAME").unwrap_or_else(|_| "".to_string());
-    let enable_images = match dotenv::var("ENABLE_IMAGES").unwrap_or_else(|_| "".to_string()).to_lowercase().as_str() {
-        "true" => true,
-        "false" => false,
-        _ => false,
-    };
-    */
-
     if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
         return Err(Box::new(ConfigError::MissingConfig))
     }
@@ -174,8 +162,8 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: String,
     let mut new_activity = activity::Activity::new()
         .details(details);
 
-    let mut small_image = "";
-    let mut small_text = "";
+    let mut assets = activity::Assets::new();
+
 
     match endtime.parse::<i64>() {
         Ok(time) => {
@@ -184,22 +172,20 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: String,
             );
         },
         Err(_) => {
-            small_image = "https://i.imgur.com/wlHSvYy.png";
-            small_text = "Paused";
+            assets = assets.clone().small_image("https://i.imgur.com/wlHSvYy.png")
+                .small_text("Paused");
         },
     }
 
     if !image_url.is_empty() {
         new_activity = new_activity.clone().assets(
-            activity::Assets::new()
+            assets.clone()
                 .large_image(image_url)
                 .large_text("https://github.com/Radiicall/jellyfin-rpc")
-                .small_image(small_image)
-                .small_text(small_text)
         )
     } else {
         new_activity = new_activity.clone().assets(
-            activity::Assets::new()
+            assets.clone()
                 .large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
                 .large_text("https://github.com/Radiicall/jellyfin-rpc")
         )
