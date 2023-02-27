@@ -11,6 +11,8 @@ wget https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/$JRPC_EX
 mkdir -p $HOME/.local/bin
 mv $JRPC_EXEC $HOME/.local/bin/jellyfin-rpc
 
+chmod +x $HOME/.local/bin/jellyfin-rpc
+
 if [ !$XDG_CONFIG_HOME ]; then
     export XDG_CONFIG_HOME=$HOME/.config
 fi
