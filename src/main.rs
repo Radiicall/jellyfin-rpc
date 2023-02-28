@@ -45,7 +45,7 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(||
-        if std::env::var("USER").unwrap() != "root".to_string() {
+        if std::env::var("USER").unwrap() != *"root" {
             std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
                 {
                     let mut dir = std::env::var("HOME").unwrap();
@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = load_config(
         config_path.clone()
-    ).expect(format!("\n\nPlease populate your config file '{}' with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", std::fs::canonicalize(config_path).unwrap().to_string_lossy()).as_str());
+    ).unwrap_or_else(|_| panic!("\n\nPlease populate your config file '{}' with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", std::fs::canonicalize(config_path).unwrap().to_string_lossy()));
 
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
@@ -120,8 +120,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
-    let data = std::fs::read_to_string(&path).expect(format!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path).as_str());
-    let res: serde_json::Value = serde_json::from_str(&data).expect(format!("{}", "\nUnable to parse config file. Is this a json file?\n".red().bold()).as_str());
+    let data = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path));
+    let res: serde_json::Value = serde_json::from_str(&data).unwrap_or_else(|_| panic!("{}", "\nUnable to parse config file. Is this a json file?\n".red().bold()));
 
     let jellyfin: serde_json::Value = res["Jellyfin"].clone();
     let discord: serde_json::Value = res["Discord"].clone();
@@ -130,7 +130,7 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap().to_string();
-    let enable_images = discord["ENABLE_IMAGES"].as_bool().expect(format!("\n{}\n{} {} {} {}\n", "ENABLE_IMAGES has to be a bool...".red().bold(), "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()).as_str());
+    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| panic!("\n{}\n{} {} {} {}\n", "ENABLE_IMAGES has to be a bool...".red().bold(), "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()));
 
     if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
         return Err(Box::new(ConfigError::MissingConfig))
