@@ -32,19 +32,28 @@ Mem: 32GB
 ![image](https://user-images.githubusercontent.com/66682497/211466607-6482a37c-3cf8-434c-a282-85c53e84697e.png)
 
 ## Setup
-Make a .env file with the following items
+Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `$APPDATA\jellyfin-rpc\main.json` on Windows.
+
+If you're unsure about the directory then run jellyfin-rpc and it will tell you where to place it.
+
 ```
-DISCORD_APPLICATION_ID=1053747938519679018
-JELLYFIN_URL=your_url_here
-JELLYFIN_API_KEY=your_api_key_here
-JELLYFIN_USERNAME=your_username_here
-ENABLE_IMAGES=true
+{
+    "Jellyfin": {
+        "URL": "YOUR_JELLYFIN_URL_WITH_HTTP/HTTPS",
+        "API_KEY": "YOUR_JELLYFIN_API_KEY_HERE",
+        "USERNAME": "YOUR_JELLYFIN_USERNAME_HERE"
+    },
+    "Discord": {
+        "APPLICATION_ID": "1053747938519679018",
+        "ENABLE_IMAGES": false
+    }
+}
 ```
 
 ### Discord Application ID
 This step is optional as I have included my own.
 
-If this env var is empty in the .env file then it will also use the default one
+If this variable is empty it will use the default one
 
 You can make a discord application by going <a href="https://discord.com/developers/applications">here</a>.
 
@@ -67,7 +76,7 @@ The username is needed because if you have multiple accounts (friends, family) t
 
 For systemd I have included <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/jellyfin-rpc.service">this file</a>, you can download it directly by pressing ctrl+s on the page.
 
-In the service file you have to change the `ExecStart=` line. You can launch the script without -c if you put the `.env` file in the same directory as the executable.
+In the service file you have to change the `ExecStart=` line. You can launch the script without -c if you put the `main.json` file in the `XDG_CONFIG_HOME` directory
 
 The service is supposed to run in user mode, put the service file into this directory `$HOME/.config/systemd/user/` and use `systemctl --user enable --now jellyfin-rpc.service` to start and enable it.
 
