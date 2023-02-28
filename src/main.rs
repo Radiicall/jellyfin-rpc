@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if config_path.ends_with(".env") {
-        panic!("\n\nPlease update your .env to JSON format. \n(Example: https://github.com/Radiicall/jellyfin-rpc/blob/main/example.json)\n\n")
+        panic!("\n{}\n(Example: https://github.com/Radiicall/jellyfin-rpc/blob/main/example.json)\n", "Please update your .env to JSON format.".bold().red())
     }
 
     let config = load_config(
@@ -130,7 +130,13 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap().to_string();
-    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| panic!("\n{}\n{} {} {} {}\n", "ENABLE_IMAGES has to be a bool...".red().bold(), "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()));
+    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
+        panic!(
+            "\n{}\n{} {} {} {}\n",
+            "ENABLE_IMAGES has to be a bool...".red().bold(),
+            "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
+        )
+    );
 
     if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
         return Err(Box::new(ConfigError::MissingConfig))
