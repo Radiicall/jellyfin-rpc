@@ -45,18 +45,26 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(||
-        if std::env::var("USER").unwrap() != *"root" {
-            std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
-                {
-                    let mut dir = std::env::var("HOME").unwrap();
-                    dir.push_str("/.config/jellyfin-rpc/main.json");
-                    dir
-                }
-            )
+        if !cfg!(windows) {
+            if std::env::var("USER").unwrap() != *"root" {
+                std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
+                    {
+                        let mut dir = std::env::var("HOME").unwrap();
+                        dir.push_str("/.config/jellyfin-rpc/main.json");
+                        dir
+                    }
+                )
+            } else {
+                "/etc/jellyfin-rpc/main.json".to_string()
+            }
         } else {
-            "/etc/jellyfin-rpc/main.json".to_string()
+            let mut dir = std::env::var("APPDATA").unwrap();
+            dir.push_str("\\jellyfin-rpc\\main.json");
+            dir
         }
     );
+
+    std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
 
     if config_path.ends_with(".env") {
         panic!("\n{}\n(Example: https://github.com/Radiicall/jellyfin-rpc/blob/main/example.json)\n", "Please update your .env to JSON format.".bold().red())
@@ -129,7 +137,7 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let url = jellyfin["URL"].as_str().unwrap().to_string();
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
-    let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap().to_string();
+    let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or_else(|| "1053747938519679018").to_string();
     let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
         panic!(
             "\n{}\n{} {} {} {}\n",
