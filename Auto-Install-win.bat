@@ -1,11 +1,17 @@
 @echo off
 
 REM Set paths
-set EXE_PATH=%CD%\jellyfin-rpc\jellyfin-rpc.exe
-set JSON_PATH=%CD%\jellyfin-rpc\main.json
+set EXE_PATH=%APPDATA%\jellyfin-rpc\jellyfin-rpc.exe
+set JSON_PATH=%APPDATA%\jellyfin-rpc\main.json
 set DOWNLOAD_URL=https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe
-set DOWNLOAD_DIR=jellyfin-rpc
+set DOWNLOAD_DIR=%APPDATA%\jellyfin-rpc
 
+REM set 
+set JELLYFIN_URL=https://example.com || http://localhost || http://123.456.789.888
+set JELLYFIN_API_KEY=abcdef0123456789
+set JELLYFIN_USERNAME=admin
+set DISCORD_APPLICATION_ID=1053747938519679018
+set DISCORD_ENABLE_IMAGES=false
 
 echo ===============================================================================
 echo                        JELLYFIN-RPC INSTALLATION 
@@ -29,7 +35,27 @@ if exist "%JSON_PATH%" (
     echo main.json file is already present & timeout /t 3 /nobreak >nul
 ) else (
     echo   
-    set /p SAY=Make a main.json file in %DOWNLOAD_DIR% folder and Hit ENTER to continue...
+    set /p SAY=Write valid information and Hit ENTER to continue...
+
+    rem Prompt the user for input
+    set /p JELLYFIN_URL=Enter Jellyfin URL [%JELLYFIN_URL%]: 
+    set /p JELLYFIN_API_KEY=Enter Jellyfin API key [%JELLYFIN_API_KEY%]: 
+    set /p JELLYFIN_USERNAME=Enter Jellyfin username [%JELLYFIN_USERNAME%]: 
+    set /p DISCORD_APPLICATION_ID=Enter Discord application ID [%DISCORD_APPLICATION_ID%]: 
+    set /p DISCORD_ENABLE_IMAGES=Enable Discord images (true/false) [%DISCORD_ENABLE_IMAGES%]:
+
+    rem Output the JSON data to the file
+    echo { > main.json
+    echo     "Jellyfin": { >> main.json
+    echo         "URL": "%JELLYFIN_URL%", >> main.json
+    echo         "API_KEY": "%JELLYFIN_API_KEY%", >> main.json
+    echo         "USERNAME": "%JELLYFIN_USERNAME%" >> main.json
+    echo     }, >> main.json
+    echo     "Discord": { >> main.json
+    echo         "APPLICATION_ID": "%DISCORD_APPLICATION_ID%", >> main.json
+    echo         "ENABLE_IMAGES": %DISCORD_ENABLE_IMAGES% >> main.json
+    echo     } >> main.json
+    echo } >> main.json
 )
 
 REM Check if NSSM is already installed
