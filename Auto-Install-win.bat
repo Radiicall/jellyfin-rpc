@@ -1,35 +1,39 @@
 @echo off
 
 REM Set paths
-set EXE_PATH=%CD%\jellyflix-rpc\jellyflix-rpc.exe
-set ENV_PATH=%CD%\jellyflix-rpc\.env
+set EXE_PATH=%CD%\jellyfin-rpc\jellyfin-rpc.exe
+set JSON_PATH=%CD%\jellyfin-rpc\main.json
+set DOWNLOAD_URL=https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe
+set DOWNLOAD_DIR=jellyfin-rpc
+
 
 echo ===============================================================================
-echo                        JELLYFLIX-RPC INSTALLATION 
+echo                        JELLYFIN-RPC INSTALLATION 
 echo ===============================================================================
 echo.
 
-REM Check if jellyflix-rpc.exe is present
+REM Check if jellyfin-rpc folder exist
+if not exist "%DOWNLOAD_DIR%" mkdir "%DOWNLOAD_DIR%"
+
+REM Check if jellyfin-rpc.exe is present
 if exist "%EXE_PATH%" (
-    echo jellyflix-rpc.exe is already present. & timeout /t 3 /nobreak >nul
+    echo jellyfin-rpc.exe is already present. & timeout /t 3 /nobreak >nul
 ) else (
-    REM Download and unzip jellyflix-rpc.zip from GitHub
-    echo Downloading and unzipping jellyflix-rpc.zip from GitHub... & timeout /t 3 /nobreak >nul
-    curl -L https://github.com/xenoncolt/jellyflix-rpc/releases/download/v0.2.0/jellyflix-rpc.zip -o jellyflix-rpc.zip
-    powershell -Command "Expand-Archive -LiteralPath jellyflix-rpc.zip -DestinationPath ."
+    REM Downloading jellyfin-rpc binary
+    echo Downloading jellyfin-rpc binary from GitHub... & timeout /t 3 /nobreak >nul
+    curl -L %DOWNLOAD_URL% -o "%DOWNLOAD_DIR%\jellyfin-rpc.exe"
 )
 
-REM Check if .env file is present
-if exist "%ENV_PATH%" (
-    echo .env file is already present. & timeout /t 3 /nobreak >nul
+REM Check if main.json is present
+if exist "%JSON_PATH%" (
+    echo main.json file is already present & timeout /t 3 /nobreak >nul
 ) else (
-    REM Copy example.env to .env
-    copy jellyflix-rpc\example.env jellyflix-rpc\.env
-    echo Created .env file from example.env. & timeout /t 3 /nobreak >nul
+    echo   
+    set /p SAY=Make a main.json file in %DOWNLOAD_DIR% folder and Hit ENTER to continue...
 )
 
 REM Check if NSSM is already installed
-if exist "nssm-2.24\win64\nssm.exe" (
+if exist "%DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe" (
     echo NSSM is already installed. & timeout /t 3 /nobreak >nul
 ) else (
     REM Download NSSM installer
@@ -38,28 +42,33 @@ if exist "nssm-2.24\win64\nssm.exe" (
 
     REM Unzip NSSM
     powershell -Command "Expand-Archive -LiteralPath nssm.zip -DestinationPath ."
+    move /Y "nssm-2.24" "%DOWNLOAD_DIR%\"
+    echo Deleting unnecessary nssm.zip file
+    del "nssm.zip"
 )
 
 REM Install NSSM
-echo Installing Jellyflix-rpc service... & timeout /t 3 /nobreak >nul
-nssm-2.24\win64\nssm.exe install jellyflix-rpc "%EXE_PATH%"
+echo Installing jellyfin-rpc service... & timeout /t 3 /nobreak >nul
+%DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe install jellyfin-rpc "%EXE_PATH%"
 
 REM Start the executable using NSSM
-echo Starting Jellyflix-rpc service... & timeout /t 3 /nobreak >nul
-set "psCommand=powershell -Command "Start-Process nssm-2.24\win64\nssm.exe -Verb RunAs -ArgumentList 'start','jellyflix-rpc'""
+echo Starting jellyfin-rpc service... & timeout /t 3 /nobreak >nul
+set "psCommand=powershell -Command "Start-Process %DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe -Verb RunAs -ArgumentList 'start','jellyfin-rpc'""
 powershell -NoProfile -ExecutionPolicy Bypass -Command "%psCommand%"
 
 REM Pause for 5 seconds
 ping -n 5 127.0.0.1 > nul
 
+REM Coded by xenoncolt.tk
+
 REM Check if the service is running
-tasklist /fi "imagename eq jellyflix-test.exe" | find ":" > nul
+tasklist /fi "imagename eq jellyfin-rpc.exe" | find ":" > nul
 if %errorlevel%==0 (
     echo ===============================================================================
-    echo                   JELLYFLIX-RPC SERVICE IS RUNNING
+    echo                   JELLYFIN-RPC SERVICE IS RUNNING
     echo ===============================================================================
 ) else (
-    echo Jellyflix-rpc service failed to start.
+    echo jellyfin-rpc service failed to start.
 )
 
 echo.
