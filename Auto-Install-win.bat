@@ -6,7 +6,7 @@ set JSON_PATH=%APPDATA%\jellyfin-rpc\main.json
 set DOWNLOAD_URL=https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe
 set DOWNLOAD_DIR=%APPDATA%\jellyfin-rpc
 
-REM set 
+REM set
 set JELLYFIN_URL=https://example.com
 set JELLYFIN_API_KEY=abcdef0123456789
 set JELLYFIN_USERNAME=admin
