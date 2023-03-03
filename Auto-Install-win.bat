@@ -6,8 +6,8 @@ set JSON_PATH=%APPDATA%\jellyfin-rpc\main.json
 set DOWNLOAD_URL=https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe
 set DOWNLOAD_DIR=%APPDATA%\jellyfin-rpc
 
-REM set 
-set JELLYFIN_URL=https://example.com || http://localhost || http://123.456.789.888
+REM set
+set JELLYFIN_URL=https://example.com
 set JELLYFIN_API_KEY=abcdef0123456789
 set JELLYFIN_USERNAME=admin
 set DISCORD_APPLICATION_ID=1053747938519679018
@@ -30,32 +30,33 @@ if exist "%EXE_PATH%" (
     curl -L %DOWNLOAD_URL% -o "%DOWNLOAD_DIR%\jellyfin-rpc.exe"
 )
 
+rem Prompt the user for input
+set /p JELLYFIN_URL=Enter Jellyfin URL "[%JELLYFIN_URL%]": 
+set /p JELLYFIN_API_KEY=Enter Jellyfin API key "[%JELLYFIN_API_KEY%]": 
+set /p JELLYFIN_USERNAME=Enter Jellyfin username "[%JELLYFIN_USERNAME%]": 
+set /p DISCORD_APPLICATION_ID=Enter Discord application ID "[%DISCORD_APPLICATION_ID%]": 
+set /p DISCORD_ENABLE_IMAGES=Enable Discord images (true/false) [%DISCORD_ENABLE_IMAGES%]:
+
+
+rem Output the JSON data to the file
+echo { > main.json
+echo     "Jellyfin": { >> main.json
+echo         "URL": "%JELLYFIN_URL%", >> main.json
+echo         "API_KEY": "%JELLYFIN_API_KEY%", >> main.json
+echo         "USERNAME": "%JELLYFIN_USERNAME%" >> main.json
+echo     }, >> main.json
+echo     "Discord": { >> main.json
+echo         "APPLICATION_ID": "%DISCORD_APPLICATION_ID%", >> main.json
+echo         "ENABLE_IMAGES": %DISCORD_ENABLE_IMAGES% >> main.json
+echo     } >> main.json
+echo } >> main.json
+
 REM Check if main.json is present
 if exist "%JSON_PATH%" (
     echo main.json file is already present & timeout /t 3 /nobreak >nul
+    del "main.json"
 ) else (
-    echo   
-    set /p SAY=Write valid information and Hit ENTER to continue...
-
-    rem Prompt the user for input
-    set /p JELLYFIN_URL=Enter Jellyfin URL [%JELLYFIN_URL%]: 
-    set /p JELLYFIN_API_KEY=Enter Jellyfin API key [%JELLYFIN_API_KEY%]: 
-    set /p JELLYFIN_USERNAME=Enter Jellyfin username [%JELLYFIN_USERNAME%]: 
-    set /p DISCORD_APPLICATION_ID=Enter Discord application ID [%DISCORD_APPLICATION_ID%]: 
-    set /p DISCORD_ENABLE_IMAGES=Enable Discord images (true/false) [%DISCORD_ENABLE_IMAGES%]:
-
-    rem Output the JSON data to the file
-    echo { > main.json
-    echo     "Jellyfin": { >> main.json
-    echo         "URL": "%JELLYFIN_URL%", >> main.json
-    echo         "API_KEY": "%JELLYFIN_API_KEY%", >> main.json
-    echo         "USERNAME": "%JELLYFIN_USERNAME%" >> main.json
-    echo     }, >> main.json
-    echo     "Discord": { >> main.json
-    echo         "APPLICATION_ID": "%DISCORD_APPLICATION_ID%", >> main.json
-    echo         "ENABLE_IMAGES": %DISCORD_ENABLE_IMAGES% >> main.json
-    echo     } >> main.json
-    echo } >> main.json
+    move "main.json" "%DOWNLOAD_DIR%\"
 )
 
 REM Check if NSSM is already installed
@@ -91,7 +92,7 @@ REM Check if the service is running
 tasklist /fi "imagename eq jellyfin-rpc.exe" | find ":" > nul
 if %errorlevel%==0 (
     echo ===============================================================================
-    echo                   JELLYFIN-RPC SERVICE IS RUNNING
+    echo                      JELLYFIN-RPC SERVICE IS RUNNING
     echo ===============================================================================
 ) else (
     echo jellyfin-rpc service failed to start.
@@ -99,5 +100,5 @@ if %errorlevel%==0 (
 
 echo.
 echo ===============================================================================
-echo                              INSTALLATION COMPLETE!
+echo                            INSTALLATION COMPLETE!
 echo ===============================================================================
