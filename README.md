@@ -34,7 +34,7 @@ Mem: 32GB
 ![image](https://user-images.githubusercontent.com/66682497/211466607-6482a37c-3cf8-434c-a282-85c53e84697e.png)
 
 ## Setup
-If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/Auto-Install-win.bat">here</a>!
+If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/Auto-Install-win.bat">here</a>! (if anyone wants to make something similar for linux then make a PR!)
 
 Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `$APPDATA\jellyfin-rpc\main.json` on Windows.
 
