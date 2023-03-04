@@ -45,7 +45,7 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(||
-        if !cfg!(windows) {
+        if cfg!(not(windows)) {
             if std::env::var("USER").unwrap() != *"root" {
                 std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
                     {
