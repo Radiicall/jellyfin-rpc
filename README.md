@@ -17,21 +17,13 @@ Example Series:
 
 ![image](https://user-images.githubusercontent.com/66682497/213467669-8375841d-b846-4afe-8bd3-0b09f4c7f2ad.png)
 
+Example Music:
+
+![image](https://user-images.githubusercontent.com/66682497/222933472-095eb8c6-16f8-4e55-969c-77c6fe528dc4.png)
+
 Terminal Output:
 
-<img width="474" alt="image" src="https://user-images.githubusercontent.com/66682497/214524256-7347df00-9247-4140-814d-569055ce39f8.png">
-
-This program is very memory/cpu efficient using ~13mb of ram and ~0.1% of the cpu while sending info to discord.
-
-It's even better than previous versions of the code, before it would always sit on 0.1%-0.2% but now it sits on 0.0%-0.1%,
-the ram usage has increased by 1 megabyte however.
-
-```
-CPU: Ryzen 5 3600XT@4.4Ghz
-Mem: 32GB
-```
-
-![image](https://user-images.githubusercontent.com/66682497/211466607-6482a37c-3cf8-434c-a282-85c53e84697e.png)
+![image](https://user-images.githubusercontent.com/66682497/222933540-aa5f08ed-afb2-4713-8b9a-18cbaa94444b.png)
 
 ## Setup
 If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/Auto-Install-win.bat">here</a>! (if anyone wants to make something similar for linux then make a PR!)
