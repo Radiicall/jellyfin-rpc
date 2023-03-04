@@ -148,6 +148,12 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         };
 
         vec![item_type, name.to_string(), genres, item_id]
+    } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
+        item_type = "music".to_owned();
+        item_id = now_playing_item["Id"].as_str().unwrap().to_string();
+        let artist: String = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
+
+        vec![item_type, name.to_string(), artist, item_id]
     } else {
         // Return 3 empty strings to make vector equal length
         vec!["".to_string(), "".to_string(), "".to_string()]
