@@ -172,20 +172,20 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
     }).unwrap();
 }
 
-fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: String, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
+fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<i64>, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
     let mut new_activity = activity::Activity::new()
         .details(details);
 
     let mut assets = activity::Assets::new();
 
 
-    match endtime.parse::<i64>() {
-        Ok(time) => {
+    match endtime {
+        Some(time) => {
             new_activity = new_activity.clone().timestamps(activity::Timestamps::new()
                 .end(time)
             );
         },
-        Err(_) => {
+        None => {
             assets = assets.clone().small_image("https://i.imgur.com/wlHSvYy.png")
                 .small_text("Paused");
         },
