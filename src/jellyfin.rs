@@ -155,8 +155,8 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
 
         vec![item_type, name.to_string(), artist, item_id]
     } else {
-        // Return 3 empty strings to make vector equal length
-        vec!["".to_string(), "".to_string(), "".to_string()]
+        // Return 4 empty strings to make vector equal length
+        vec!["".to_string(), "".to_string(), "".to_string(), "".to_string()]
     }
 }
 
