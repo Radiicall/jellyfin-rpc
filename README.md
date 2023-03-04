@@ -1,5 +1,7 @@
 # Jellyfin-RPC
 
+<img src="https://badgen.net/github/license/Radiicall/jellyfin-rpc"/> <img src="https://badgen.net/github/tag/Radiicall/jellyfin-rpc?color=purple"/> <img src="https://badgen.net/github/assets-dl/Radiicall/jellyfin-rpc"/>
+
 [Frequently Asked Questions](FAQ.md)
 
 Program used to display what you're currently watching on discord.
