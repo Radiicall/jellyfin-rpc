@@ -58,9 +58,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "/etc/jellyfin-rpc/main.json".to_string()
             }
         } else {
-            let mut dir = std::env::var("APPDATA").unwrap();
-            dir.push_str("\\jellyfin-rpc\\main.json");
-            dir
+            if std::env::var("USERPROFILE").unwrap() == r"C:\Windows\system32\config\systemprofile" {
+                r"C:\ProgramData\jellyfin-rpc\main.json".to_string()
+            } else {
+                let mut dir = std::env::var("APPDATA").unwrap();
+                dir.push_str(r"\jellyfin-rpc\main.json");
+                dir
+            }
         }
     );
 
