@@ -28,7 +28,7 @@ Terminal Output:
 ## Setup
 If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-Install-win.bat">here</a>! (if anyone wants to make something similar for linux then make a PR!)
 
-Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `$APPDATA\jellyfin-rpc\main.json` on Windows.
+Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `%APPDATA%\jellyfin-rpc\main.json` on Windows.
 
 If you're unsure about the directory then run jellyfin-rpc and it will tell you where to place it.
 
