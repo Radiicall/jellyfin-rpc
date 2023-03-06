@@ -26,7 +26,7 @@ Terminal Output:
 ![image](https://user-images.githubusercontent.com/66682497/222933540-aa5f08ed-afb2-4713-8b9a-18cbaa94444b.png)
 
 ## Setup
-If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/Auto-Install-win.bat">here</a>! (if anyone wants to make something similar for linux then make a PR!)
+If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-Install-win.bat">here</a>! (if anyone wants to make something similar for linux then make a PR!)
 
 Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `$APPDATA\jellyfin-rpc\main.json` on Windows.
 
@@ -70,7 +70,7 @@ The username is needed because if you have multiple accounts (friends, family) t
 
 ### Systemd
 
-For systemd I have included <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/jellyfin-rpc.service">this file</a>, you can download it directly by pressing ctrl+s on the page.
+For systemd I have included <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/jellyfin-rpc.service">this file</a>, you can download it directly by pressing ctrl+s on the page.
 
 In the service file you have to change the `ExecStart=` line. You can launch the script without -c if you put the `main.json` file in the `XDG_CONFIG_HOME` directory
 
