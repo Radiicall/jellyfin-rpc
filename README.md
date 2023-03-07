@@ -35,16 +35,38 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
 ```
 {
     "Jellyfin": {
-        "URL": "YOUR_JELLYFIN_URL_WITH_HTTP/HTTPS",
-        "API_KEY": "YOUR_JELLYFIN_API_KEY_HERE",
-        "USERNAME": "YOUR_JELLYFIN_USERNAME_HERE"
+        "URL": "https://example.com",
+        "API_KEY": "sadasodsapasdskd",
+        "USERNAME": "your_username_here"
     },
     "Discord": {
-        "APPLICATION_ID": "1053747938519679018",
-        "ENABLE_IMAGES": false
+        "APPLICATION_ID": "1053747938519679018"
+    },
+    "Imgur": {
+        "CLIENT_ID": "asdjdjdg394209fdjs093"
+    },
+    "Images": {
+        "ENABLE_IMAGES": true,
+        "IMGUR_IMAGES": true
     }
 }
 ```
+
+### Jellyfin
+#### URL
+This will be the URL to your jellyfin instance, remember to include http/https in the url.
+
+If you want to know more about jellyfin you can check it out <a href="https://jellyfin.org/">here</a>.
+
+#### API Key
+This is the API key used for checking what you're currently watching on Jellyfin.
+
+You can get one by going to \<YOUR INSTANCE URL HERE>/web/#!/apikeys.html
+
+#### Username
+This is the username you use to log into Jellyfin.
+
+The username is needed because if you have multiple accounts (friends, family) then the program will just grab the first person it sees in the list.
 
 ### Discord Application ID
 This step is optional as I have included my own.
@@ -53,20 +75,19 @@ If this variable is empty it will use the default one
 
 You can make a discord application by going <a href="https://discord.com/developers/applications">here</a>.
 
-### Jellyfin URL
-This will be the URL to your jellyfin instance, remember to include http/https in the url.
+### Imgur API
 
-If you want to know more about jellyfin you can check it out <a href="https://jellyfin.org/">here</a>.
+For the imgur api to work you have to do this in the config
+```
+"ENABLE_IMAGES": true,
+"IMGUR_IMAGES": true
+```
 
-### Jellyfin API Key
-This is the API key used for checking what you're currently watching on Jellyfin.
+1. Go to Imgur's [application registration page](https://api.imgur.com/oauth2/addclient).
+2. Enter any name for the application and pick OAuth2 without a callback URL as the authorisation type.
+3. Submit the form to obtain your application's client ID.
 
-You can get one by going to \<YOUR INSTANCE URL HERE>/web/#!/apikeys.html
-
-### Jellyfin Username
-This is the username you use to log into Jellyfin.
-
-The username is needed because if you have multiple accounts (friends, family) then the program will just grab the first person it sees in the list.
+Tutorial stolen from <a href="https://github.com/phin05/discord-rich-presence-plex#obtaining-an-imgur-client-id">discord-rich-presence-plex</a>
 
 ### Systemd
 
