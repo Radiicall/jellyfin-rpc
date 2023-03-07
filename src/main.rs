@@ -81,14 +81,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
-    if config.enable_images {
-        println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images won't work unless the server is forwarded!!!!".bold().red())
+    if config.enable_images && !config.imgur_images {
+        println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images without Imgur requires port forwarding!".bold().red())
     }
 
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
-
-    let mut prev_details = "".to_string();
 
     // Start up the client connection, so that we can actually send and receive stuff
     connect(&mut rich_presence_client);
@@ -103,13 +101,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !connected {
                 println!("{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
 
-                if config.imgur_images && prev_details != content.details {
-                    prev_details = content.details.clone();
-                    content.image_url = get_image_imgur(&content.image_url, &content.item_id, &config.imgur_client_id, args.image_urls.clone()).await?;
-                }
-
                 // Set connected to true so that we don't try to connect again
                 connected = true;
+            }
+            if config.imgur_images {
+                content.image_url = get_image_imgur(&content.image_url, &content.item_id, &config.imgur_client_id, args.image_urls.clone()).await?;
             }
 
             // Set the activity

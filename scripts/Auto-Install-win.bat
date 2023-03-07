@@ -35,7 +35,10 @@ set /p JELLYFIN_URL=Enter Jellyfin URL "[%JELLYFIN_URL%]":
 set /p JELLYFIN_API_KEY=Enter Jellyfin API key "[%JELLYFIN_API_KEY%]": 
 set /p JELLYFIN_USERNAME=Enter Jellyfin username "[%JELLYFIN_USERNAME%]": 
 set /p DISCORD_APPLICATION_ID=Enter Discord application ID "[%DISCORD_APPLICATION_ID%]": 
-set /p DISCORD_ENABLE_IMAGES=Enable Discord images (true/false) [%DISCORD_ENABLE_IMAGES%]:
+set /p IMGUR_CLIENT_ID=Enter Imgur client ID (Leave empty if not using) "[%IMGUR_CLIENT_ID%]": 
+set /p IMAGES_ENABLE_IMAGES=Enable images (true/false) [%IMAGES_ENABLE_IMAGES%]:
+set /p IMAGES_IMGUR_IMAGES=Enable images from Imgur (true/false) [%IMAGES_IMGUR_IMAGES%]:
+
 
 
 rem Output the JSON data to the file
@@ -46,8 +49,14 @@ echo         "API_KEY": "%JELLYFIN_API_KEY%", >> main.json
 echo         "USERNAME": "%JELLYFIN_USERNAME%" >> main.json
 echo     }, >> main.json
 echo     "Discord": { >> main.json
-echo         "APPLICATION_ID": "%DISCORD_APPLICATION_ID%", >> main.json
-echo         "ENABLE_IMAGES": %DISCORD_ENABLE_IMAGES% >> main.json
+echo         "APPLICATION_ID": "%DISCORD_APPLICATION_ID%" >> main.json
+echo     }, >> main.json
+echo     "Imgur": { >> main.json
+echo         "CLIENT_ID": "%IMGUR_CLIENT_ID%" >> main.json
+echo     }, >> main.json
+echo     "Images": { >> main.json
+echo         "ENABLE_IMAGES": %IMAGES_ENABLE_IMAGES%, >> main.json
+echo         "IMGUR_IMAGES": %IMAGES_IMGUR_IMAGES% >> main.json
 echo     } >> main.json
 echo } >> main.json
 
