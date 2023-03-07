@@ -1,5 +1,6 @@
-pub mod jellyfin;
-pub use crate::jellyfin::*;
+pub mod services;
+pub use crate::services::jellyfin::*;
+pub use crate::services::imgur::*;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
 use clap::Parser;
@@ -41,6 +42,8 @@ impl From<std::io::Error> for ConfigError {
 struct Args {
     #[arg(short = 'c', long = "config", help = "Path to the config file")]
     config: Option<String>,
+    #[arg(short = 'i', long = "image-urls-file", help = "Path to image urls file for imgur")]
+    image_urls: Option<String>
 }
 
 #[tokio::main]
@@ -102,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if config.imgur_images && prev_details != content.details {
                     prev_details = content.details.clone();
-                    content.image_url = get_image_imgur(&content.image_url, &config.imgur_client_id).await?;
+                    content.image_url = get_image_imgur(&content.image_url, &config.imgur_client_id, args.image_urls.clone()).await?;
                 }
 
                 // Set connected to true so that we don't try to connect again
