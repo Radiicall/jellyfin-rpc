@@ -10,7 +10,9 @@ struct Config {
     api_key: String,
     username: String,
     rpc_client_id: String,
+    imgur_client_id: String,
     enable_images: bool,
+    imgur_images: bool,
 }
 
 #[derive(Debug)]
@@ -83,18 +85,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
 
+    let mut prev_details = "".to_string();
+
     // Start up the client connection, so that we can actually send and receive stuff
     connect(&mut rich_presence_client);
     println!("{}\n{}", "Connected to Discord Rich Presence Socket".bright_green().bold(), "------------------------------------------------------------------".bold());
 
     // Start loop
     loop {
-        let content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await.unwrap();
+        let mut content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await?;
 
         if !content.media_type.is_empty() {
             // Print what we're watching
             if !connected {
                 println!("{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
+
+                if config.imgur_images && prev_details != content.details {
+                    prev_details = content.details.clone();
+                    content.image_url = get_image_imgur(&content.image_url, &config.imgur_client_id).await?;
+                }
 
                 // Set connected to true so that we don't try to connect again
                 connected = true;
@@ -133,15 +142,25 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
 
     let jellyfin: serde_json::Value = res["Jellyfin"].clone();
     let discord: serde_json::Value = res["Discord"].clone();
+    let imgur: serde_json::Value = res["Imgur"].clone();
+    let images: serde_json::Value = res["Images"].clone();
 
     let url = jellyfin["URL"].as_str().unwrap().to_string();
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or_else(|| "1053747938519679018").to_string();
-    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
+    let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
+    let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
         panic!(
             "\n{}\n{} {} {} {}\n",
             "ENABLE_IMAGES has to be a bool...".red().bold(),
+            "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
+        )
+    );
+    let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| 
+        panic!(
+            "\n{}\n{} {} {} {}\n",
+            "IMGUR_IMAGES has to be a bool...".red().bold(),
             "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
         )
     );
@@ -154,7 +173,9 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
         api_key,
         username,
         rpc_client_id,
+        imgur_client_id,
         enable_images,
+        imgur_images,
     })
 }
 

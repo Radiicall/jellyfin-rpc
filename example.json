@@ -5,7 +5,13 @@
         "USERNAME": "your_username_here"
     },
     "Discord": {
-        "APPLICATION_ID": "1053747938519679018",
-        "ENABLE_IMAGES": false
+        "APPLICATION_ID": "1053747938519679018"
+    },
+    "Imgur": {
+        "CLIENT_ID": "asdjdjdg394209fdjs093"
+    },
+    "Images": {
+        "ENABLE_IMAGES": true,
+        "IMGUR_IMAGES": true
     }
 }

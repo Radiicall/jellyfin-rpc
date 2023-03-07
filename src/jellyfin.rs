@@ -167,3 +167,22 @@ async fn get_image_jf(url: &str, item_id: String) -> String {
         item_id
     )
 }
+
+pub async fn get_image_imgur(image_url: &String, client_id: &String) -> Result<String, reqwest::Error> {
+    macro_rules! imgur_api (
+        ($url: expr) => (
+            concat!("https://api.imgur.com/3/", $url)
+        );
+    );
+
+    let img = reqwest::get(image_url).await?
+        .bytes().await?;
+    let client = reqwest::Client::new();
+    let response = client.post(imgur_api!("image"))
+        .header(reqwest::header::AUTHORIZATION, format!("Client-ID {}", client_id))
+        .body(img)
+        .send().await?;
+    let val: Value = serde_json::from_str(&response.text().await?).unwrap();
+
+    Ok(val["data"]["link"].as_str().unwrap().to_string())
+}
