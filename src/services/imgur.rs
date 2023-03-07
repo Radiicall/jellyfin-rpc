@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::io::Write;
 
-pub async fn get_image_imgur(image_url: &String, client_id: &String, image_urls_file: Option<String>) -> Result<String, reqwest::Error> {
+pub async fn get_image_imgur(image_url: &String, item_id: &String, client_id: &String, image_urls_file: Option<String>) -> Result<String, reqwest::Error> {
     let file = image_urls_file.unwrap_or_else(||
         if cfg!(not(windows)) {
             if std::env::var("USER").unwrap() != *"root" {
@@ -22,11 +22,11 @@ pub async fn get_image_imgur(image_url: &String, client_id: &String, image_urls_
         }
     );
     let mut json = read_file(file.clone());
-    if json.get(image_url) != None {
-        return Ok(json[image_url].as_str().unwrap().to_string())
+    if json.get(item_id) != None {
+        return Ok(json[item_id].as_str().unwrap().to_string())
     }
 
-    Ok(write_file(file, image_url, client_id, &mut json).await)
+    Ok(write_file(file, image_url, item_id, client_id, &mut json).await)
     // Ok(upload_image(image_url, client_id).await?)
 }
 
@@ -45,10 +45,10 @@ fn read_file(file: String) -> Value {
     json
 }
 
-async fn write_file(file: String, image_url: &String, client_id: &String, json: &mut Value) -> String {
+async fn write_file(file: String, image_url: &String, item_id: &String, client_id: &String, json: &mut Value) -> String {
     let mut new_data = serde_json::Map::new();
     let imgur_url = upload_image(image_url, client_id).await.unwrap();
-    new_data.insert(image_url.to_string(), serde_json::json!(imgur_url));
+    new_data.insert(item_id.to_string(), serde_json::json!(imgur_url));
 
     let data = json.as_object_mut().unwrap();
     data.append(&mut new_data);

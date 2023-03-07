@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if config.imgur_images && prev_details != content.details {
                     prev_details = content.details.clone();
-                    content.image_url = get_image_imgur(&content.image_url, &config.imgur_client_id, args.image_urls.clone()).await?;
+                    content.image_url = get_image_imgur(&content.image_url, &content.item_id, &config.imgur_client_id, args.image_urls.clone()).await?;
                 }
 
                 // Set connected to true so that we don't try to connect again

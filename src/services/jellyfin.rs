@@ -6,6 +6,7 @@ pub struct Content {
     pub state_message: String,
     pub endtime: Option<i64>,
     pub image_url: String,
+    pub item_id: String,
     pub external_service_names: Vec<String>,
     pub external_service_urls: Vec<String>,
 }
@@ -51,6 +52,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
             state_message: main[2].clone(),
             endtime: get_end_timer(now_playing_item, &session).await,
             image_url,
+            item_id: main[3].clone(),
             external_service_names: external_services[0].clone(),
             external_service_urls: external_services[1].clone(),
         })
@@ -61,6 +63,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         state_message: "".to_string(),
         endtime: Some(0),
         image_url: "".to_string(),
+        item_id: "".to_string(),
         external_service_names: vec!["".to_string()],
         external_service_urls: vec!["".to_string()],
     })
