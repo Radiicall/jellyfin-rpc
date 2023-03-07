@@ -76,7 +76,7 @@ if exist "%DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe" (
 
 REM Install NSSM
 echo Installing jellyfin-rpc service... & timeout /t 3 /nobreak >nul
-%DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe install jellyfin-rpc "%EXE_PATH%" "-c %JSON_PATH%"
+%DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe install jellyfin-rpc "%EXE_PATH%" "-c %JSON_PATH% -i %DOWNLOAD_DIR%\urls.json"
 
 REM Start the executable using NSSM
 echo Starting jellyfin-rpc service... & timeout /t 3 /nobreak >nul
