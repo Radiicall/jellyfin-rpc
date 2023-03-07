@@ -58,13 +58,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "/etc/jellyfin-rpc/main.json".to_string()
             }
         } else {
-            if std::str::from_utf8(&std::process::Command::new("whoami").output().unwrap().stdout).unwrap() == r"nt authority\system" {
-                r"C:\ProgramData\jellyfin-rpc\main.json".to_string()
-            } else {
-                let mut dir = std::env::var("APPDATA").unwrap();
-                dir.push_str(r"\jellyfin-rpc\main.json");
-                dir
-            }
+            let mut dir = std::env::var("APPDATA").unwrap();
+            dir.push_str(r"\jellyfin-rpc\main.json");
+            dir
         }
     );
 
