@@ -6,6 +6,7 @@ pub struct Content {
     pub state_message: String,
     pub endtime: Option<i64>,
     pub image_url: String,
+    pub item_id: String,
     pub external_service_names: Vec<String>,
     pub external_service_urls: Vec<String>,
 }
@@ -51,6 +52,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
             state_message: main[2].clone(),
             endtime: get_end_timer(now_playing_item, &session).await,
             image_url,
+            item_id: main[3].clone(),
             external_service_names: external_services[0].clone(),
             external_service_urls: external_services[1].clone(),
         })
@@ -61,6 +63,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         state_message: "".to_string(),
         endtime: Some(0),
         image_url: "".to_string(),
+        item_id: "".to_string(),
         external_service_names: vec!["".to_string()],
         external_service_urls: vec!["".to_string()],
     })
@@ -150,7 +153,7 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         vec![item_type, name.to_string(), genres, item_id]
     } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
         item_type = "music".to_owned();
-        item_id = now_playing_item["Id"].as_str().unwrap().to_string();
+        item_id = now_playing_item["AlbumId"].as_str().unwrap().to_string();
         let artist: String = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
 
         vec![item_type, name.to_string(), artist, item_id]

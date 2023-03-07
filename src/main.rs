@@ -1,5 +1,6 @@
-pub mod jellyfin;
-pub use crate::jellyfin::*;
+pub mod services;
+pub use crate::services::jellyfin::*;
+pub use crate::services::imgur::*;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
 use clap::Parser;
@@ -10,7 +11,9 @@ struct Config {
     api_key: String,
     username: String,
     rpc_client_id: String,
+    imgur_client_id: String,
     enable_images: bool,
+    imgur_images: bool,
 }
 
 #[derive(Debug)]
@@ -39,6 +42,8 @@ impl From<std::io::Error> for ConfigError {
 struct Args {
     #[arg(short = 'c', long = "config", help = "Path to the config file")]
     config: Option<String>,
+    #[arg(short = 'i', long = "image-urls-file", help = "Path to image urls file for imgur")]
+    image_urls: Option<String>
 }
 
 #[tokio::main]
@@ -76,8 +81,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{}\n                          {}", "//////////////////////////////////////////////////////////////////".bold(), "Jellyfin-RPC".bright_blue());
 
-    if config.enable_images {
-        println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images won't work unless the server is forwarded!!!!".bold().red())
+    if config.enable_images && !config.imgur_images {
+        println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images without Imgur requires port forwarding!".bold().red())
     }
 
     let mut connected: bool = false;
@@ -89,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start loop
     loop {
-        let content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await.unwrap();
+        let mut content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await?;
 
         if !content.media_type.is_empty() {
             // Print what we're watching
@@ -98,6 +103,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 // Set connected to true so that we don't try to connect again
                 connected = true;
+            }
+            if config.imgur_images {
+                content.image_url = get_image_imgur(&content.image_url, &content.item_id, &config.imgur_client_id, args.image_urls.clone()).await?;
             }
 
             // Set the activity
@@ -133,15 +141,25 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
 
     let jellyfin: serde_json::Value = res["Jellyfin"].clone();
     let discord: serde_json::Value = res["Discord"].clone();
+    let imgur: serde_json::Value = res["Imgur"].clone();
+    let images: serde_json::Value = res["Images"].clone();
 
     let url = jellyfin["URL"].as_str().unwrap().to_string();
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or_else(|| "1053747938519679018").to_string();
-    let enable_images = discord["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
+    let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
+    let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
         panic!(
             "\n{}\n{} {} {} {}\n",
             "ENABLE_IMAGES has to be a bool...".red().bold(),
+            "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
+        )
+    );
+    let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| 
+        panic!(
+            "\n{}\n{} {} {} {}\n",
+            "IMGUR_IMAGES has to be a bool...".red().bold(),
             "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
         )
     );
@@ -154,7 +172,9 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
         api_key,
         username,
         rpc_client_id,
+        imgur_client_id,
         enable_images,
+        imgur_images,
     })
 }
 
