@@ -56,7 +56,7 @@ if exist "%JSON_PATH%" (
     echo main.json file is already present & timeout /t 3 /nobreak >nul
     del "main.json"
 ) else (
-    move "main.json" "%DOWNLOAD_DIR%\"
+    move "main.json" "%DOWNLOAD_DIR%\" >nul
 )
 
 REM Check if NSSM is already installed
@@ -69,7 +69,7 @@ if exist "%DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe" (
 
     REM Unzip NSSM
     powershell -Command "Expand-Archive -LiteralPath nssm.zip -DestinationPath ."
-    move /Y "nssm-2.24" "%DOWNLOAD_DIR%\"
+    move /Y "nssm-2.24" "%DOWNLOAD_DIR%\" >nul
     echo Deleting unnecessary nssm.zip file
     del "nssm.zip"
 )
@@ -83,8 +83,6 @@ echo Starting jellyfin-rpc service... & timeout /t 3 /nobreak >nul
 set "psCommand=powershell -Command "Start-Process %DOWNLOAD_DIR%\nssm-2.24\win64\nssm.exe -Verb RunAs -ArgumentList 'start','jellyfin-rpc'""
 powershell -NoProfile -ExecutionPolicy Bypass -Command "%psCommand%"
 
-REM Pause for 5 seconds
-ping -n 5 127.0.0.1 > nul
 
 REM Coded by xenoncolt.tk
 
@@ -97,8 +95,10 @@ if %errorlevel%==0 (
 ) else (
     echo jellyfin-rpc service failed to start.
 )
+timeout /t 5
 
 echo.
 echo ===============================================================================
 echo                            INSTALLATION COMPLETE!
 echo ===============================================================================
+pause >nul
