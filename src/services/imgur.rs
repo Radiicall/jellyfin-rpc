@@ -22,21 +22,20 @@ pub async fn get_image_imgur(image_url: &String, item_id: &String, client_id: &S
         }
     );
     let mut json = read_file(file.clone());
-    if json.get(item_id) != None {
+    if json.get(item_id).is_some() {
         return Ok(json[item_id].as_str().unwrap().to_string())
     }
 
     Ok(write_file(file, image_url, item_id, client_id, &mut json).await)
-    // Ok(upload_image(image_url, client_id).await?)
 }
 
 fn read_file(file: String) -> Value {
     let content = std::fs::read_to_string(file.clone()).ok().unwrap_or_else(||
         {
             std::fs::create_dir_all(std::path::Path::new(&file).parent().unwrap()).ok();
-            std::fs::File::create(file.clone()).ok().and_then(|mut file| {
+            std::fs::File::create(file.clone()).ok().map(|mut file| {
                 write!(file, "{{\n}}").ok();
-                Some(file)
+                file
             });
             std::fs::read_to_string(file).unwrap()
         }

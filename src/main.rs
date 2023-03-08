@@ -147,7 +147,7 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let url = jellyfin["URL"].as_str().unwrap().to_string();
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
-    let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or_else(|| "1053747938519679018").to_string();
+    let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or("1053747938519679018").to_string();
     let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
     let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
         panic!(
