@@ -7,6 +7,7 @@ pub struct Content {
     pub endtime: Option<i64>,
     pub image_url: String,
     pub item_id: String,
+    pub individual_item_id: String,
     pub external_service_names: Vec<String>,
     pub external_service_urls: Vec<String>,
 }
@@ -53,6 +54,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
             endtime: get_end_timer(now_playing_item, &session).await,
             image_url,
             item_id: main[3].clone(),
+            individual_item_id: main[4].clone(),
             external_service_names: external_services[0].clone(),
             external_service_urls: external_services[1].clone(),
         })
@@ -64,6 +66,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
         endtime: Some(0),
         image_url: "".to_string(),
         item_id: "".to_string(),
+        individual_item_id: "".to_string(),
         external_service_names: vec!["".to_string()],
         external_service_urls: vec!["".to_string()],
     })
@@ -119,10 +122,13 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     let name = now_playing_item["Name"].as_str().unwrap();
     let item_type: String;
     let item_id: String;
+    // ID for the individual media item, i.e. Episode, Song, Movie
+    let individual_item_id: String;
     if now_playing_item["Type"].as_str().unwrap() == "Episode" {
         item_type = "episode".to_owned();
         let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
         item_id = now_playing_item["SeriesId"].as_str().unwrap().to_string();
+        individual_item_id = now_playing_item["Id"].as_str().unwrap().to_string();
 
         let season = now_playing_item["ParentIndexNumber"].to_string();
         let first_episode_number = now_playing_item["IndexNumber"].to_string();
@@ -134,10 +140,11 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
 
         msg += &(" ".to_string() + name);
 
-        vec![item_type, series_name, msg, item_id]
+        vec![item_type, series_name, msg, item_id, individual_item_id]
     } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
         item_type = "movie".to_owned();
         item_id = now_playing_item["Id"].as_str().unwrap().to_string();
+        individual_item_id = now_playing_item["Id"].as_str().unwrap().to_string();
         let mut genres = "".to_string();
         match now_playing_item.get("Genres") {
             None => (),
@@ -150,16 +157,17 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
             }
         };
 
-        vec![item_type, name.to_string(), genres, item_id]
+        vec![item_type, name.to_string(), genres, item_id, individual_item_id]
     } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
         item_type = "music".to_owned();
         item_id = now_playing_item["AlbumId"].as_str().unwrap().to_string();
+        individual_item_id = now_playing_item["Id"].as_str().unwrap().to_string();
         let artist: String = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
 
-        vec![item_type, name.to_string(), artist, item_id]
+        vec![item_type, name.to_string(), artist, item_id, individual_item_id]
     } else {
-        // Return 4 empty strings to make vector equal length
-        vec!["".to_string(), "".to_string(), "".to_string(), "".to_string()]
+        // Return 5 empty strings to make vector equal length
+        vec!["".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string()]
     }
 }
 
