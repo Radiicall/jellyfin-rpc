@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 serde_json = "1.0"
-dotenv = "0.15"
 discord-rich-presence = "0.2"
 colored = "2.0"
 retry = "2.0"
