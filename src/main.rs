@@ -92,9 +92,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     connect(&mut rich_presence_client);
     println!("{}\n{}", "Connected to Discord Rich Presence Socket".bright_green().bold(), "------------------------------------------------------------------".bold());
 
-    // Keeps track of the previous content item to compare later.
-    let mut last_content_id: String = "".to_string();
-
     // Start loop
     loop {
         let mut content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await?;
@@ -102,17 +99,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !content.media_type.is_empty() {
             // Print what we're watching
             if !connected {
+                println!("\n{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
             if config.imgur_images {
                 content.image_url = get_image_imgur(&content.image_url, &content.item_id, &config.imgur_client_id, args.image_urls.clone()).await?;
-            }
-
-            // Compare the current content to the previous one to see if it's different. Dump it to console if it is.
-            if content.individual_item_id != last_content_id{
-                last_content_id = content.individual_item_id;
-                println!("\n{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
             }
             
             // Set the activity
@@ -138,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }).unwrap();
                 println!("{}\n{}", "Reconnected to Discord Rich Presence Socket".bright_green().bold(), "------------------------------------------------------------------".bold());
+                println!("\n{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
             });
 
         } else if connected {
