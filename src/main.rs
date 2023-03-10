@@ -6,6 +6,8 @@ use colored::Colorize;
 use clap::Parser;
 use retry::retry_with_index;
 
+const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
+
 struct Config {
     url: String,
     api_key: String,
@@ -117,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             rich_presence_client.set_activity(
-                setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons)
+                setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons, format!("Jellyfin-RPC v{}", VERSION.unwrap_or_else(|| "0.0.0")).as_str())
             ).unwrap_or_else(|_| {
                 retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
                     println!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to reconnect".bold().truecolor(225, 69, 0));
@@ -202,12 +204,11 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
     }).unwrap();
 }
 
-fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<i64>, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>) -> activity::Activity<'a> {
+fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<i64>, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>, version: &'a str) -> activity::Activity<'a> {
     let mut new_activity = activity::Activity::new()
         .details(details);
 
-    let mut assets = activity::Assets::new();
-
+    let mut assets = activity::Assets::new().large_text(version);
 
     match endtime {
         Some(time) => {
@@ -225,13 +226,11 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<
         new_activity = new_activity.clone().assets(
             assets.clone()
                 .large_image(image_url)
-                .large_text("https://github.com/Radiicall/jellyfin-rpc")
         )
     } else {
         new_activity = new_activity.clone().assets(
             assets.clone()
                 .large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
-                .large_text("https://github.com/Radiicall/jellyfin-rpc")
         )
     }
 
