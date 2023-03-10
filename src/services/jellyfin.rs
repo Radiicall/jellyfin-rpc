@@ -119,6 +119,7 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     let name = now_playing_item["Name"].as_str().unwrap();
     let item_type: String;
     let item_id: String;
+    let mut genres = "".to_string();
     if now_playing_item["Type"].as_str().unwrap() == "Episode" {
         item_type = "episode".to_owned();
         let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
@@ -138,7 +139,6 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
         item_type = "movie".to_owned();
         item_id = now_playing_item["Id"].as_str().unwrap().to_string();
-        let mut genres = "".to_string();
         match now_playing_item.get("Genres") {
             None => (),
             genre_array => {
@@ -154,9 +154,21 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
         item_type = "music".to_owned();
         item_id = now_playing_item["AlbumId"].as_str().unwrap().to_string();
-        let artist: String = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
+        let artist = now_playing_item["AlbumArtist"].as_str().unwrap();
+        match now_playing_item.get("Genres") {
+            None => (),
+            genre_array => {
+                for i in genre_array.unwrap().as_array().unwrap() {
+                    genres.push_str(i.as_str().unwrap());
+                    genres.push_str(", ");
+                }
+                genres = genres[0..genres.len() - 2].to_string();
+            }
+        };
 
-        vec![item_type, name.to_string(), artist, item_id]
+        let msg = format!("By {} - {}", artist, genres);
+
+        vec![item_type, name.to_string(), msg, item_id]
     } else {
         // Return 4 empty strings to make vector equal length
         vec!["".to_string(), "".to_string(), "".to_string(), "".to_string()]
