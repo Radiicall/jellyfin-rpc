@@ -158,6 +158,7 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         match now_playing_item.get("Genres") {
             None => (),
             genre_array => {
+                genres.push_str(" - ");
                 for i in genre_array.unwrap().as_array().unwrap() {
                     genres.push_str(i.as_str().unwrap());
                     genres.push_str(", ");
@@ -166,7 +167,7 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
             }
         };
 
-        let msg = format!("By {} - {}", artist, genres);
+        let msg = format!("By {}{}", artist, genres);
 
         vec![item_type, name.to_string(), msg, item_id]
     } else {
