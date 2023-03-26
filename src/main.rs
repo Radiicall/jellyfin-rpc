@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             rich_presence_client.set_activity(
-                setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons, format!("Jellyfin-RPC v{}", VERSION.unwrap_or_else(|| "0.0.0")).as_str())
+                setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons, format!("Jellyfin-RPC v{}", VERSION.unwrap_or("0.0.0")).as_str())
             ).unwrap_or_else(|_| {
                 retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
                     println!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to reconnect".bold().truecolor(225, 69, 0));
