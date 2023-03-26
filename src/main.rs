@@ -12,6 +12,7 @@ struct Config {
     url: String,
     api_key: String,
     username: String,
+    blacklist: Vec<String>,
     rpc_client_id: String,
     imgur_client_id: String,
     enable_images: bool,
@@ -87,6 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images without Imgur requires port forwarding!".bold().red())
     }
 
+    let mut blacklist_check: bool = false;
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
 
@@ -98,7 +100,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let mut content = get_jellyfin_playing(&config.url, &config.api_key, &config.username, &config.enable_images).await?;
 
-        if !content.media_type.is_empty() {
+        config.blacklist.iter().for_each(|x| blacklist_check = !content.media_type.contains(x));
+
+        if !content.media_type.is_empty() && blacklist_check {
             // Print what we're watching
             if !connected {
                 println!("\n{}\n{}", content.details.bright_cyan().bold(), content.state_message.bright_cyan().bold());
@@ -159,6 +163,24 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let url = jellyfin["URL"].as_str().unwrap().to_string();
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
+    let mut blacklist: Vec<String> = vec!["none".to_string()];
+    if !Option::is_none(&jellyfin.get("BLACKLIST")) {
+        jellyfin["BLACKLIST"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .for_each(|val| {
+                if val != "music" && val != "movie" && val != "episode" {
+                    panic!("Valid media types to blacklist include: 'music', 'movie' and 'episode'")
+                }
+                blacklist.pop();
+                blacklist.push(
+                    val
+                        .as_str()
+                        .expect("Media types to blacklist need to be in quotes \"music\"")
+                        .to_string())
+            });
+    }
     let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or("1053747938519679018").to_string();
     let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
     let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
@@ -183,6 +205,7 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
         url,
         api_key,
         username,
+        blacklist,
         rpc_client_id,
         imgur_client_id,
         enable_images,
