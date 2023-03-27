@@ -109,7 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
-            if config.imgur_images {
+            if config.imgur_images && content.media_type != "livetv" {
                 content.image_url = get_image_imgur(&content.image_url, &content.item_id, &config.imgur_client_id, args.image_urls.clone()).await?;
             }
             
@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             rich_presence_client.set_activity(
-                setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons, format!("Jellyfin-RPC v{}", VERSION.unwrap_or("0.0.0")).as_str())
+                setactivity(&content.state_message, &content.details, content.endtime, &content.image_url, rpcbuttons, format!("Jellyfin-RPC v{}", VERSION.unwrap_or("0.0.0")).as_str(), &content.media_type)
             ).unwrap_or_else(|_| {
                 retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
                     println!("{} {}{}", "Attempt".bold().truecolor(225, 69, 0), current_try.to_string().bold().truecolor(225, 69, 0), ": Trying to reconnect".bold().truecolor(225, 69, 0));
@@ -170,8 +170,8 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
             .unwrap()
             .iter()
             .for_each(|val| {
-                if val != "music" && val != "movie" && val != "episode" {
-                    panic!("Valid media types to blacklist include: 'music', 'movie' and 'episode'")
+                if val != "music" && val != "movie" && val != "episode" && val != "livetv" {
+                    panic!("Valid media types to blacklist include: 'music', 'movie', 'episode' and 'livetv'")
                 }
                 blacklist.pop();
                 blacklist.push(
@@ -227,34 +227,34 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
     }).unwrap();
 }
 
-fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<i64>, image_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>, version: &'a str) -> activity::Activity<'a> {
+fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<i64>, img_url: &'a str, rpcbuttons: Vec<activity::Button<'a>>, version: &'a str, media_type: &'a str) -> activity::Activity<'a> {
     let mut new_activity = activity::Activity::new()
         .details(details);
 
-    let mut assets = activity::Assets::new().large_text(version);
-
-    match endtime {
-        Some(time) => {
-            new_activity = new_activity.clone().timestamps(activity::Timestamps::new()
-                .end(time)
-            );
-        },
-        None => {
-            assets = assets.clone().small_image("https://i.imgur.com/wlHSvYy.png")
-                .small_text("Paused");
-        },
+    let mut image_url = "https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg";
+    
+    if media_type == "livetv" {
+        image_url = "https://i.imgur.com/XxdHOqm.png"
+    } else if !img_url.is_empty() {
+        image_url = img_url;
     }
 
-    if !image_url.is_empty() {
-        new_activity = new_activity.clone().assets(
-            assets.clone()
-                .large_image(image_url)
-        )
-    } else {
-        new_activity = new_activity.clone().assets(
-            assets.clone()
-                .large_image("https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg")
-        )
+    let mut assets = activity::Assets::new()
+        .large_text(version)
+        .large_image(image_url);
+
+    if media_type != "livetv" {
+        match endtime {
+            Some(time) => {
+                new_activity = new_activity.clone().timestamps(activity::Timestamps::new()
+                    .end(time)
+                );
+            },
+            None => {
+                assets = assets.clone().small_image("https://i.imgur.com/wlHSvYy.png")
+                    .small_text("Paused");
+            },
+        }
     }
 
     if !state_message.is_empty() {
@@ -263,5 +263,7 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<
     if !rpcbuttons.is_empty() {
         new_activity = new_activity.clone().buttons(rpcbuttons);
     }
+    new_activity = new_activity.clone().assets(assets);
+
     new_activity
 }

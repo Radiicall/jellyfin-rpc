@@ -170,6 +170,12 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         let msg = format!("By {}{}", artist, genres);
 
         vec![item_type, name.to_string(), msg, item_id]
+    } else if now_playing_item["Type"].as_str().unwrap() == "TvChannel" {
+        item_type = "livetv".to_owned();
+        item_id = now_playing_item["Id"].as_str().unwrap().to_string();
+        let msg = "Live TV".to_string();
+
+        vec![item_type, name.to_string(), msg, item_id]
     } else {
         // Return 4 empty strings to make vector equal length
         vec!["".to_string(), "".to_string(), "".to_string(), "".to_string()]
