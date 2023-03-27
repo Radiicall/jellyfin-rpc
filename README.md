@@ -19,7 +19,7 @@ Example Series:
 
 Example Music:
 
-![image](https://user-images.githubusercontent.com/66682497/222933472-095eb8c6-16f8-4e55-969c-77c6fe528dc4.png)
+![image](https://user-images.githubusercontent.com/66682497/228037565-56991219-2630-4da0-ae5a-b1fa904985de.png)
 
 Example Live TV:
 
