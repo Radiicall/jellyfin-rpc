@@ -2,7 +2,8 @@
     "Jellyfin": {
         "URL": "https://example.com",
         "API_KEY": "sadasodsapasdskd",
-        "USERNAME": "your_username_here"
+        "USERNAME": "your_username_here",
+        "BLOCKLIST": ["remove", "this", "line", "unless you want to block certain media types, valid media types to block includes 'music', 'movie', 'episode' and 'livetv'"]
     },
     "Discord": {
         "APPLICATION_ID": "1053747938519679018"
