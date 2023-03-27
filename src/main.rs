@@ -255,6 +255,9 @@ fn setactivity<'a>(state_message: &'a String, details: &'a str, endtime: Option<
                     .small_text("Paused");
             },
         }
+    } else if endtime.is_none() {
+        assets = assets.clone().small_image("https://i.imgur.com/wlHSvYy.png")
+            .small_text("Paused");
     }
 
     if !state_message.is_empty() {
