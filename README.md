@@ -21,6 +21,10 @@ Example Music:
 
 ![image](https://user-images.githubusercontent.com/66682497/222933472-095eb8c6-16f8-4e55-969c-77c6fe528dc4.png)
 
+Example Live TV:
+
+![image](https://user-images.githubusercontent.com/66682497/228035872-b6cdbf0a-ec6d-49b0-b238-c5ae9298943f.png)
+
 Terminal Output:
 
 ![image](https://user-images.githubusercontent.com/66682497/222933540-aa5f08ed-afb2-4713-8b9a-18cbaa94444b.png)
@@ -37,7 +41,8 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
     "Jellyfin": {
         "URL": "https://example.com",
         "API_KEY": "sadasodsapasdskd",
-        "USERNAME": "your_username_here"
+        "USERNAME": "your_username_here",
+        "BLOCKLIST": ["remove", "this", "line", "unless you want to block certain media types, valid media types to block includes 'music', 'movie', 'episode' and 'livetv'"]
     },
     "Discord": {
         "APPLICATION_ID": "1053747938519679018"
