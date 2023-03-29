@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(||
         if cfg!(not(windows)) {
-            if std::env::var("USER").unwrap() != *"root" {
+            if env!("USER") != "root" {
                 std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
                     {
                         let mut dir = std::env::var("HOME").unwrap();
@@ -87,7 +87,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if config.enable_images && !config.imgur_images {
         println!("{}\n{}", "------------------------------------------------------------------".bold(), "Images without Imgur requires port forwarding!".bold().red())
     }
-
+    if config.blacklist[0] != "none" {
+        println!("{} {}", "These media types won't be shown:".bold().red(), config.blacklist.join(", ").bold().red())
+    }
     let mut blacklist_check: bool = false;
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
@@ -114,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             
             // Set the activity
-            let mut rpcbuttons: Vec<activity::Button> = std::vec::Vec::new();
+            let mut rpcbuttons: Vec<activity::Button> = vec![];
             for i in 0..content.external_service_names.len() {
                 rpcbuttons.push(activity::Button::new(
                     &content.external_service_names[i],
@@ -164,7 +166,8 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
     let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
     let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
     let mut blacklist: Vec<String> = vec!["none".to_string()];
-    if !Option::is_none(&jellyfin.get("BLACKLIST")) {
+    if !Option::is_none(&jellyfin["BLACKLIST"].get(0)) {
+        blacklist.pop();
         jellyfin["BLACKLIST"]
             .as_array()
             .unwrap()
@@ -173,7 +176,6 @@ fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
                 if val != "music" && val != "movie" && val != "episode" && val != "livetv" {
                     panic!("Valid media types to blacklist include: 'music', 'movie', 'episode' and 'livetv'")
                 }
-                blacklist.pop();
                 blacklist.push(
                     val
                         .as_str()
