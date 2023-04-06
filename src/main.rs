@@ -1,42 +1,15 @@
 pub mod services;
 pub use crate::services::jellyfin::*;
 pub use crate::services::imgur::*;
+pub mod config;
+pub use crate::config::*;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use colored::Colorize;
 use clap::Parser;
 use retry::retry_with_index;
 
+
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
-
-struct Config {
-    url: String,
-    api_key: String,
-    username: String,
-    blacklist: Vec<String>,
-    rpc_client_id: String,
-    imgur_client_id: String,
-    enable_images: bool,
-    imgur_images: bool,
-}
-
-#[derive(Debug)]
-enum ConfigError {
-    MissingConfig,
-    Io(std::io::Error),
-    Var(std::env::VarError),
-}
-
-impl From<std::env::VarError> for ConfigError {
-    fn from(value: std::env::VarError) -> Self {
-        Self::Var(value)
-    }
-}
-
-impl From<std::io::Error> for ConfigError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
-    }
-}
 
 #[derive(Parser, Debug)]
 #[command(author = "Radical <Radiicall> <radical@radical.fun>")]
@@ -52,25 +25,12 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let config_path = args.config.unwrap_or_else(||
-        if cfg!(not(windows)) {
-            if std::env::var("USER").unwrap() != *"root" {
-                std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_|
-                    {
-                        let mut dir = std::env::var("HOME").unwrap();
-                        dir.push_str("/.config/jellyfin-rpc/main.json");
-                        dir
-                    }
-                )
-            } else {
-                "/etc/jellyfin-rpc/main.json".to_string()
-            }
-        } else {
-            let mut dir = std::env::var("APPDATA").unwrap();
-            dir.push_str(r"\jellyfin-rpc\main.json");
-            dir
-        }
-    );
+    let config_path = args.config.unwrap_or_else(|| {
+        get_config_path().unwrap_or_else(|err| {
+            eprintln!("Error determining config path: {}", err);
+            std::process::exit(1);
+        })
+    });
 
     std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
 
@@ -78,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("\n{}\n(Example: https://github.com/Radiicall/jellyfin-rpc/blob/main/example.json)\n", "Please update your .env to JSON format.".bold().red())
     }
 
-    let config = load_config(
+    let config = Config::load_config(
         config_path.clone()
     ).unwrap_or_else(|_| panic!("\n\nPlease populate your config file '{}' with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", std::fs::canonicalize(config_path).unwrap().to_string_lossy()));
 
@@ -151,68 +111,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     std::thread::sleep(std::time::Duration::from_millis(750));
     }
-}
-
-fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
-    let data = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path));
-    let res: serde_json::Value = serde_json::from_str(&data).unwrap_or_else(|_| panic!("{}", "\nUnable to parse config file. Is this a json file?\n".red().bold()));
-
-    let jellyfin: serde_json::Value = res["Jellyfin"].clone();
-    let discord: serde_json::Value = res["Discord"].clone();
-    let imgur: serde_json::Value = res["Imgur"].clone();
-    let images: serde_json::Value = res["Images"].clone();
-
-    let url = jellyfin["URL"].as_str().unwrap().to_string();
-    let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
-    let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
-    let mut blacklist: Vec<String> = vec!["none".to_string()];
-    if !Option::is_none(&jellyfin["BLACKLIST"].get(0)) {
-        blacklist.pop();
-        jellyfin["BLACKLIST"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .for_each(|val| {
-                if val != "music" && val != "movie" && val != "episode" && val != "livetv" {
-                    panic!("Valid media types to blacklist include: 'music', 'movie', 'episode' and 'livetv'")
-                }
-                blacklist.push(
-                    val
-                        .as_str()
-                        .expect("Media types to blacklist need to be in quotes \"music\"")
-                        .to_string())
-            });
-    }
-    let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or("1053747938519679018").to_string();
-    let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
-    let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
-        panic!(
-            "\n{}\n{} {} {} {}\n",
-            "ENABLE_IMAGES has to be a bool...".red().bold(),
-            "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
-        )
-    );
-    let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| 
-        panic!(
-            "\n{}\n{} {} {} {}\n",
-            "IMGUR_IMAGES has to be a bool...".red().bold(),
-            "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
-        )
-    );
-
-    if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
-        return Err(Box::new(ConfigError::MissingConfig))
-    }
-    Ok(Config {
-        url,
-        api_key,
-        username,
-        blacklist,
-        rpc_client_id,
-        imgur_client_id,
-        enable_images,
-        imgur_images,
-    })
 }
 
 fn connect(rich_presence_client: &mut DiscordIpcClient) {
