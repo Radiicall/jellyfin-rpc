@@ -18,14 +18,14 @@ pub struct Config {
 
 #[derive(Debug)]
 pub enum ConfigError {
-    MissingConfig(&'static str),
-    Io(std::io::Error),
+    MissingConfig(String),
+    Io(String),
     Json(String),
 }
 
 impl From<&'static str> for ConfigError {
     fn from(value: &'static str) -> Self {
-        Self::MissingConfig(value)
+        Self::MissingConfig(value.to_string())
     }
 }
 
@@ -37,7 +37,7 @@ impl From<serde_json::Error> for ConfigError {
 
 impl From<std::io::Error> for ConfigError {
     fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
+        Self::Io(format!("Unable to read file: {}", value))
     }
 }
 
@@ -94,24 +94,26 @@ impl Config {
             .to_string();
         let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap_or("").to_string();
         let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
-            panic!(
+            eprintln!(
                 "\n{}\n{} {} {} {}\n",
                 "ENABLE_IMAGES has to be a bool...".red().bold(),
                 "EXAMPLE:".bold(),
                 "true".bright_green().bold(),
                 "not".bold(),
                 "'true'".red().bold()
-            )
+            );
+            std::process::exit(2)
         });
         let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| {
-            panic!(
-                "\n{}\n{} {} {} {}\n",
+            eprintln!(
+                "{}\n{} {} {} {}",
                 "IMGUR_IMAGES has to be a bool...".red().bold(),
                 "EXAMPLE:".bold(),
                 "true".bright_green().bold(),
                 "not".bold(),
                 "'true'".red().bold()
-            )
+            );
+            std::process::exit(2)
         });
 
         match (

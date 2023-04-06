@@ -34,17 +34,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
-            panic!("Error determining config path: {}", err);
+            eprintln!("Error determining config path: {}", err);
+            std::process::exit(1)
         })
     });
 
     std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
 
     let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
-        panic!(
+        eprintln!(
             "{}",
             format!("Config can't be loaded: {:?}", e).red().bold()
-        )
+        );
+        std::process::exit(2)
     });
 
     println!(
@@ -153,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             match rich_presence_client.reconnect() {
                                 Ok(result) => retry::OperationResult::Ok(result),
                                 Err(_) => {
-                                    println!(
+                                    eprintln!(
                                         "{}",
                                         "Failed to reconnect, retrying soon".red().bold()
                                     );
@@ -212,7 +214,7 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
             match rich_presence_client.connect() {
                 Ok(result) => retry::OperationResult::Ok(result),
                 Err(_) => {
-                    println!("{}", "Failed to connect, retrying soon".red().bold());
+                    eprintln!("{}", "Failed to connect, retrying soon".red().bold());
                     retry::OperationResult::Retry(())
                 }
             }
