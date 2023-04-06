@@ -17,15 +17,21 @@ pub struct Config {
 }
 
 #[derive(Debug)]
-enum ConfigError {
-    MissingConfig,
+pub enum ConfigError {
+    MissingConfig(&'static str),
     Io(std::io::Error),
-    Var(std::env::VarError),
+    Json(String),
 }
 
-impl From<std::env::VarError> for ConfigError {
-    fn from(value: std::env::VarError) -> Self {
-        Self::Var(value)
+impl From<&'static str> for ConfigError {
+    fn from(value: &'static str) -> Self {
+        Self::MissingConfig(value)
+    }
+}
+
+impl From<serde_json::Error> for ConfigError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Json(format!("Unable to parse config: {}", value))
     }
 }
 
@@ -52,25 +58,18 @@ pub fn get_config_path() -> Result<String, String> {
 }
 
 impl Config {
-    pub fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
-        let data = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path));
-        let res: serde_json::Value = serde_json::from_str(&data).unwrap_or_else(|_| {
-            panic!(
-                "{}",
-                "\nUnable to parse config file. Is this a json file?\n"
-                    .red()
-                    .bold()
-            )
-        });
+    pub fn load_config(path: String) -> Result<Config, ConfigError> {
+        let data = std::fs::read_to_string(path)?;
+        let res: serde_json::Value = serde_json::from_str(&data)?;
 
         let jellyfin: serde_json::Value = res["Jellyfin"].clone();
         let discord: serde_json::Value = res["Discord"].clone();
         let imgur: serde_json::Value = res["Imgur"].clone();
         let images: serde_json::Value = res["Images"].clone();
 
-        let url = jellyfin["URL"].as_str().unwrap().to_string();
-        let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
-        let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
+        let url = jellyfin["URL"].as_str().unwrap_or("").to_string();
+        let api_key = jellyfin["API_KEY"].as_str().unwrap_or("").to_string();
+        let username = jellyfin["USERNAME"].as_str().unwrap_or("").to_string();
         let mut blacklist: Vec<String> = vec!["none".to_string()];
         if !Option::is_none(&jellyfin["BLACKLIST"].get(0)) {
             blacklist.pop();
@@ -93,7 +92,7 @@ impl Config {
             .as_str()
             .unwrap_or("1053747938519679018")
             .to_string();
-        let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
+        let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap_or("").to_string();
         let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
             panic!(
                 "\n{}\n{} {} {} {}\n",
@@ -115,18 +114,30 @@ impl Config {
             )
         });
 
-        if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
-            return Err(Box::new(ConfigError::MissingConfig));
+        match (
+            url.is_empty(),
+            api_key.is_empty(),
+            username.is_empty(),
+            rpc_client_id.is_empty(),
+            (imgur_images, imgur_client_id.is_empty()),
+        ) {
+            (true, _, _, _, _) => Err(ConfigError::from("Jellyfin URL is empty!")),
+            (_, true, _, _, _) => Err(ConfigError::from("Jellyfin API key is empty!")),
+            (_, _, true, _, _) => Err(ConfigError::from("Jellyfin Username is empty!")),
+            (_, _, _, true, _) => Err(ConfigError::from("Discord Application ID is empty!")),
+            (_, _, _, _, (true, true)) => Err(ConfigError::from(
+                "Imgur Client ID is empty but Imgur images are enabled!",
+            )),
+            (false, false, false, false, _) => Ok(Config {
+                url,
+                api_key,
+                username,
+                blacklist,
+                rpc_client_id,
+                imgur_client_id,
+                enable_images,
+                imgur_images,
+            }),
         }
-        Ok(Config {
-            url,
-            api_key,
-            username,
-            blacklist,
-            rpc_client_id,
-            imgur_client_id,
-            enable_images,
-            imgur_images,
-        })
     }
 }

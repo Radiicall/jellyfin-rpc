@@ -34,23 +34,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
-            eprintln!("Error determining config path: {}", err);
-            std::process::exit(1);
+            panic!("Error determining config path: {}", err);
         })
     });
 
     std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
 
-    if config_path.ends_with(".env") {
+    let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
         panic!(
-            "\n{}\n(Example: https://github.com/Radiicall/jellyfin-rpc/blob/main/example.json)\n",
-            "Please update your .env to JSON format.".bold().red()
+            "{}",
+            format!("Config can't be loaded: {:?}", e).red().bold()
         )
-    }
-
-    let config = Config::load_config(
-        config_path.clone()
-    ).unwrap_or_else(|_| panic!("\n\nPlease populate your config file '{}' with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", std::fs::canonicalize(config_path).unwrap().to_string_lossy()));
+    });
 
     println!(
         "{}\n                          {}",
