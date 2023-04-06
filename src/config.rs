@@ -1,5 +1,9 @@
-use std::env;
 use colored::Colorize;
+use std::env;
+
+/*
+    TODO: Comments
+*/
 
 pub struct Config {
     pub url: String,
@@ -50,13 +54,20 @@ pub fn get_config_path() -> Result<String, String> {
 impl Config {
     pub fn load_config(path: String) -> Result<Config, Box<dyn core::fmt::Debug>> {
         let data = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("\n\nPlease make the file '{}' and populate it with the needed variables\n(https://github.com/Radiicall/jellyfin-rpc#setup)\n\n", path));
-        let res: serde_json::Value = serde_json::from_str(&data).unwrap_or_else(|_| panic!("{}", "\nUnable to parse config file. Is this a json file?\n".red().bold()));
-    
+        let res: serde_json::Value = serde_json::from_str(&data).unwrap_or_else(|_| {
+            panic!(
+                "{}",
+                "\nUnable to parse config file. Is this a json file?\n"
+                    .red()
+                    .bold()
+            )
+        });
+
         let jellyfin: serde_json::Value = res["Jellyfin"].clone();
         let discord: serde_json::Value = res["Discord"].clone();
         let imgur: serde_json::Value = res["Imgur"].clone();
         let images: serde_json::Value = res["Images"].clone();
-    
+
         let url = jellyfin["URL"].as_str().unwrap().to_string();
         let api_key = jellyfin["API_KEY"].as_str().unwrap().to_string();
         let username = jellyfin["USERNAME"].as_str().unwrap().to_string();
@@ -78,25 +89,34 @@ impl Config {
                             .to_string())
                 });
         }
-        let rpc_client_id = discord["APPLICATION_ID"].as_str().unwrap_or("1053747938519679018").to_string();
+        let rpc_client_id = discord["APPLICATION_ID"]
+            .as_str()
+            .unwrap_or("1053747938519679018")
+            .to_string();
         let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap().to_string();
-        let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| 
+        let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
             panic!(
                 "\n{}\n{} {} {} {}\n",
                 "ENABLE_IMAGES has to be a bool...".red().bold(),
-                "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
+                "EXAMPLE:".bold(),
+                "true".bright_green().bold(),
+                "not".bold(),
+                "'true'".red().bold()
             )
-        );
-        let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| 
+        });
+        let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| {
             panic!(
                 "\n{}\n{} {} {} {}\n",
                 "IMGUR_IMAGES has to be a bool...".red().bold(),
-                "EXAMPLE:".bold(), "true".bright_green().bold(), "not".bold(), "'true'".red().bold()
+                "EXAMPLE:".bold(),
+                "true".bright_green().bold(),
+                "not".bold(),
+                "'true'".red().bold()
             )
-        );
-    
+        });
+
         if rpc_client_id.is_empty() || url.is_empty() || api_key.is_empty() || username.is_empty() {
-            return Err(Box::new(ConfigError::MissingConfig))
+            return Err(Box::new(ConfigError::MissingConfig));
         }
         Ok(Config {
             url,

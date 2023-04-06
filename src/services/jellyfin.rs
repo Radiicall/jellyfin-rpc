@@ -1,5 +1,9 @@
 use serde_json::Value;
 
+/*
+    TODO: Comments
+*/
+
 pub struct Content {
     pub media_type: String,
     pub details: String,
@@ -11,28 +15,37 @@ pub struct Content {
     pub external_service_urls: Vec<String>,
 }
 
-pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String, enable_images: &bool) -> Result<Content, reqwest::Error> {
+pub async fn get_jellyfin_playing(
+    url: &str,
+    api_key: &String,
+    username: &String,
+    enable_images: &bool,
+) -> Result<Content, reqwest::Error> {
     let sessions: Vec<Value> = serde_json::from_str(
-        &reqwest::get(
-            format!(
-                "{}/Sessions?api_key={}",
-                url.trim_end_matches('/'),
-                api_key
-            )
-        ).await?.text().await?)
-        .unwrap_or_else(|_|
-        panic!("Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
-            url)
-        );
+        &reqwest::get(format!(
+            "{}/Sessions?api_key={}",
+            url.trim_end_matches('/'),
+            api_key
+        ))
+        .await?
+        .text()
+        .await?,
+    )
+    .unwrap_or_else(|_| {
+        panic!(
+            "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
+            url
+        )
+    });
     for session in sessions {
         if Option::is_none(&session.get("UserName")) {
-            continue 
+            continue;
         }
         if session["UserName"].as_str().unwrap() != username {
-            continue
+            continue;
         }
         if Option::is_none(&session.get("NowPlayingItem")) {
-            continue
+            continue;
         }
 
         let now_playing_item = &session["NowPlayingItem"];
@@ -55,7 +68,7 @@ pub async fn get_jellyfin_playing(url: &str, api_key: &String, username: &String
             item_id: main[3].clone(),
             external_service_names: external_services[0].clone(),
             external_service_urls: external_services[1].clone(),
-        })
+        });
     }
     Ok(Content {
         media_type: "".to_string(),
@@ -82,7 +95,7 @@ async fn get_external_services(now_playing_item: &Value) -> Vec<Vec<String>> {
             external_service_urls.push(i["Url"].as_str().unwrap().to_string());
             x += 1;
             if x == 2 {
-                break
+                break;
             }
         }
     }
@@ -95,11 +108,17 @@ async fn get_end_timer(now_playing_item: &Value, session: &Value) -> Option<i64>
 
         let mut position_ticks = session["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
         position_ticks /= ticks_to_seconds;
-    
+
         let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
         runtime_ticks /= ticks_to_seconds;
-    
-        Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 + (runtime_ticks - position_ticks))
+
+        Some(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64
+                + (runtime_ticks - position_ticks),
+        )
     } else {
         None
     }
@@ -107,6 +126,8 @@ async fn get_end_timer(now_playing_item: &Value, session: &Value) -> Option<i64>
 
 async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
     /*
+    FIXME: Update this explanation/remove it.
+
     This is where we actually get the info for the Movie/Series that we're currently watching.
     First we set the name variable because that's not gonna change either way.
     Then we check if its an "Episode" or a "Movie".
@@ -178,7 +199,12 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         vec![item_type, name.to_string(), msg, item_id]
     } else {
         // Return 4 empty strings to make vector equal length
-        vec!["".to_string(), "".to_string(), "".to_string(), "".to_string()]
+        vec![
+            "".to_string(),
+            "".to_string(),
+            "".to_string(),
+            "".to_string(),
+        ]
     }
 }
 

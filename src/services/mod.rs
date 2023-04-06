@@ -1,2 +1,2 @@
-pub mod jellyfin;
 pub mod imgur;
+pub mod jellyfin;
