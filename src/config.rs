@@ -29,15 +29,15 @@ impl From<&'static str> for ConfigError {
     }
 }
 
-impl From<serde_json::Error> for ConfigError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::Json(format!("Unable to parse config: {}", value))
-    }
-}
-
 impl From<std::io::Error> for ConfigError {
     fn from(value: std::io::Error) -> Self {
         Self::Io(format!("Unable to read file: {}", value))
+    }
+}
+
+impl From<serde_json::Error> for ConfigError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Json(format!("Unable to parse config: {}", value))
     }
 }
 
@@ -79,7 +79,8 @@ impl Config {
                 .iter()
                 .for_each(|val| {
                     if val != "music" && val != "movie" && val != "episode" && val != "livetv" {
-                        panic!("Valid media types to blacklist include: 'music', 'movie', 'episode' and 'livetv'")
+                        eprintln!("{} is invalid, valid media types to blacklist include: \"music\", \"movie\", \"episode\" and \"livetv\"", val);
+                        std::process::exit(2)
                     }
                     blacklist.push(
                         val
@@ -95,7 +96,7 @@ impl Config {
         let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap_or("").to_string();
         let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
             eprintln!(
-                "\n{}\n{} {} {} {}\n",
+                "{}\n{} {} {} {}",
                 "ENABLE_IMAGES has to be a bool...".red().bold(),
                 "EXAMPLE:".bold(),
                 "true".bright_green().bold(),

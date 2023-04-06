@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if config.enable_images && !config.imgur_images {
-        println!(
+        eprintln!(
             "{}\n{}",
             "------------------------------------------------------------------".bold(),
             "Images without Imgur requires port forwarding!"
