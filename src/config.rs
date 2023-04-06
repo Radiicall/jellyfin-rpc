@@ -43,7 +43,7 @@ pub fn get_config_path() -> Result<String, String> {
         }
     } else {
         let app_data = env::var("APPDATA").map_err(|e| e.to_string())?;
-        Ok(app_data + "/jellyfin-rpc/main.json")
+        Ok(app_data + r"\jellyfin-rpc\main.json")
     }
 }
 
