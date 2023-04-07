@@ -65,20 +65,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
     }
     if !config.blacklist[0].is_none() {
-        let mut list = "".to_string();
-        config
-            .blacklist
-            .iter()
-            .for_each(|x| list.push_str(&format!("{}, ", x)));
-        list = list[0..list.len() - 2].to_string();
-
         println!(
             "{} {}",
             "These media types won't be shown:".bold().red(),
-            list.bold().red() //.fold(", ".to_string(), |sep, mtype| format!("{}{}", mtype, sep)).red().bold()
+            config
+                .blacklist
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+                .bold()
+                .red()
         )
     }
-    let mut blacklist_check: bool;
+    let mut blacklist_check: bool = true;
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect(
         "Failed to create Discord RPC client, discord is down or the Client ID is invalid.",
@@ -96,23 +96,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start loop
     loop {
-        let mut content = get_jellyfin_playing(
+        let mut content = Content::get(
             &config.url,
             &config.api_key,
             &config.username,
             &config.enable_images,
-        ).await?;
-        blacklist_check = true;
-        config
-            .blacklist
-            .iter()
-            .for_each(|x| if blacklist_check {blacklist_check = &content.media_type != x});
+        )
+        .await?;
+        config.blacklist.iter().for_each(|x| {
+            if blacklist_check {
+                blacklist_check = &content.media_type != x
+            }
+        });
 
         if !content.media_type.is_none() && blacklist_check {
             // Print what we're watching
             if !connected {
                 println!(
-                    "\n{}\n{}",
+                    "{}\n{}",
                     content.details.bright_cyan().bold(),
                     content.state_message.bright_cyan().bold()
                 );
@@ -131,10 +132,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = vec![];
-            for i in 0..content.external_service_names.len() {
+            for i in 0..content.external_services.len() {
                 rpcbuttons.push(activity::Button::new(
-                    &content.external_service_names[i],
-                    &content.external_service_urls[i],
+                    &content.external_services[i].name,
+                    &content.external_services[i].url,
                 ));
             }
 
@@ -191,6 +192,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .expect("Failed to clear activity");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
+            blacklist_check = true;
             println!(
                 "{}\n{}\n{}",
                 "------------------------------------------------------------------".bold(),

@@ -70,95 +70,111 @@ pub struct Content {
     pub endtime: Option<i64>,
     pub image_url: String,
     pub item_id: String,
-    pub external_service_names: Vec<String>,
-    pub external_service_urls: Vec<String>,
+    pub external_services: Vec<ExternalServices>,
 }
 
-pub async fn get_jellyfin_playing(
-    url: &str,
-    api_key: &String,
-    username: &String,
-    enable_images: &bool,
-) -> Result<Content, reqwest::Error> {
-    let sessions: Vec<Value> = serde_json::from_str(
-        &reqwest::get(format!(
-            "{}/Sessions?api_key={}",
-            url.trim_end_matches('/'),
-            api_key
-        ))
-        .await?
-        .text()
-        .await?,
-    )
-    .unwrap_or_else(|_| {
-        panic!(
-            "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
-            url
+impl Content {
+    pub async fn get(
+        url: &str,
+        api_key: &String,
+        username: &String,
+        enable_images: &bool,
+    ) -> Result<Self, reqwest::Error> {
+        let sessions: Vec<Value> = serde_json::from_str(
+            &reqwest::get(format!(
+                "{}/Sessions?api_key={}",
+                url.trim_end_matches('/'),
+                api_key
+            ))
+            .await?
+            .text()
+            .await?,
         )
-    });
-    for session in sessions {
-        if Option::is_none(&session.get("UserName")) {
-            continue;
-        }
-        if session["UserName"].as_str().unwrap() != username {
-            continue;
-        }
-        if Option::is_none(&session.get("NowPlayingItem")) {
-            continue;
-        }
-
-        let now_playing_item = &session["NowPlayingItem"];
-
-        let external_services = get_external_services(now_playing_item).await;
-
-        let main = get_currently_watching(now_playing_item).await;
-
-        let mut image_url: String = "".to_string();
-        if enable_images == &true {
-            image_url = get_image_jf(url, main[3].clone()).await;
-        }
-
-        return Ok(Content {
-            media_type: main[0].clone().into(),
-            details: main[1].clone(),
-            state_message: main[2].clone(),
-            endtime: get_end_timer(now_playing_item, &session).await,
-            image_url,
-            item_id: main[3].clone(),
-            external_service_names: external_services[0].clone(),
-            external_service_urls: external_services[1].clone(),
+        .unwrap_or_else(|_| {
+            panic!(
+                "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
+                url
+            )
         });
+        for session in sessions {
+            if Option::is_none(&session.get("UserName")) {
+                continue;
+            }
+            if session["UserName"].as_str().unwrap() != username {
+                continue;
+            }
+            if Option::is_none(&session.get("NowPlayingItem")) {
+                continue;
+            }
+
+            let now_playing_item = &session["NowPlayingItem"];
+
+            let external_services = ExternalServices::get(now_playing_item).await;
+
+            let main = get_currently_watching(now_playing_item).await;
+
+            let mut image_url: String = "".to_string();
+            if enable_images == &true {
+                image_url = get_image_jf(url, main[3].clone()).await;
+            }
+
+            return Ok(Self {
+                media_type: main[0].clone().into(),
+                details: main[1].clone(),
+                state_message: main[2].clone(),
+                endtime: get_end_timer(now_playing_item, &session).await,
+                image_url,
+                item_id: main[3].clone(),
+                external_services,
+            });
+        }
+        Ok(Self {
+            media_type: MediaType::None,
+            details: "".to_string(),
+            state_message: "".to_string(),
+            endtime: Some(0),
+            image_url: "".to_string(),
+            item_id: "".to_string(),
+            external_services: vec![ExternalServices {
+                name: "".to_string(),
+                url: "".to_string(),
+            }],
+        })
     }
-    Ok(Content {
-        media_type: MediaType::None,
-        details: "".to_string(),
-        state_message: "".to_string(),
-        endtime: Some(0),
-        image_url: "".to_string(),
-        item_id: "".to_string(),
-        external_service_names: vec!["".to_string()],
-        external_service_urls: vec!["".to_string()],
-    })
 }
 
-async fn get_external_services(now_playing_item: &Value) -> Vec<Vec<String>> {
-    let mut external_service_names: Vec<String> = vec![];
-    let mut external_service_urls: Vec<String> = vec![];
+pub struct ExternalServices {
+    pub name: String,
+    pub url: String,
+}
 
-    let external_services = &now_playing_item["ExternalUrls"];
+impl ExternalServices {
+    async fn get(now_playing_item: &Value) -> Vec<Self> {
+        let mut external_services: Vec<Self> = vec![];
 
-    if external_services[0].is_object() {
-        let mut x = 0;
-        for i in external_services.as_array().unwrap() {
-            external_service_names.push(i["Name"].as_str().unwrap().to_string());
-            external_service_urls.push(i["Url"].as_str().unwrap().to_string());
-            x += 1;
-            if x == 2 {
-                break;
+        let _external_services = &now_playing_item["ExternalUrls"];
+
+        if let Some(external_urls) = now_playing_item
+            .get("ExternalUrls")
+            .and_then(Value::as_array)
+        {
+            for i in external_urls {
+                if let (Some(name), Some(url)) = (
+                    i.get("Name").and_then(Value::as_str),
+                    i.get("Url").and_then(Value::as_str),
+                ) {
+                    external_services.push(Self {
+                        name: name.to_string(),
+                        url: url.to_string(),
+                    });
+                    if external_services.len() == 2 {
+                        break;
+                    }
+                }
             }
         }
+        external_services
     }
-    vec![external_service_names, external_service_urls]
 }
 
 async fn get_end_timer(now_playing_item: &Value, session: &Value) -> Option<i64> {
@@ -222,11 +238,14 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
         match now_playing_item.get("Genres") {
             None => (),
             genre_array => {
-                for i in genre_array.unwrap().as_array().unwrap() {
-                    genres.push_str(i.as_str().unwrap());
-                    genres.push_str(", ");
-                }
-                genres = genres[0..genres.len() - 2].to_string();
+                genres = genre_array
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|x| x.as_str().unwrap().to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
             }
         };
 
@@ -239,11 +258,14 @@ async fn get_currently_watching(now_playing_item: &Value) -> Vec<String> {
             None => (),
             genre_array => {
                 genres.push_str(" - ");
-                for i in genre_array.unwrap().as_array().unwrap() {
-                    genres.push_str(i.as_str().unwrap());
-                    genres.push_str(", ");
-                }
-                genres = genres[0..genres.len() - 2].to_string();
+                genres = genre_array
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|x| x.as_str().unwrap().to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
             }
         };
 
