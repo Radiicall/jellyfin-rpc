@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
-            eprintln!("Error determining config path: {}", err);
+            eprintln!("Error determining config path: {:?}", err);
             std::process::exit(1)
         })
     });
@@ -103,8 +103,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.enable_images,
         )
         .await?;
+
         config.blacklist.iter().for_each(|x| {
-            if blacklist_check {
+            if blacklist_check && !content.media_type.is_none() {
                 blacklist_check = &content.media_type != x
             }
         });
@@ -121,13 +122,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 connected = true;
             }
             if config.imgur_images && content.media_type != MediaType::LiveTv {
-                content.image_url = get_image_imgur(
+                content.image_url = Imgur::get(
                     &content.image_url,
                     &content.item_id,
                     &config.imgur_client_id,
                     args.image_urls.clone(),
                 )
-                .await?;
+                .await.unwrap_or_else(|e| {
+                    eprintln!("{}", 
+                        format!("Failed to use Imgur: {:?}", e).red().bold());
+                    Imgur::default()
+                }).url;
             }
 
             // Set the activity

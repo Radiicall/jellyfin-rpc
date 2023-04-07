@@ -22,6 +22,7 @@ pub enum ConfigError {
     MissingConfig(String),
     Io(String),
     Json(String),
+    VarError(String)
 }
 
 impl From<&'static str> for ConfigError {
@@ -32,7 +33,7 @@ impl From<&'static str> for ConfigError {
 
 impl From<std::io::Error> for ConfigError {
     fn from(value: std::io::Error) -> Self {
-        Self::Io(format!("Unable to read file: {}", value))
+        Self::Io(format!("Unable to open file: {}", value))
     }
 }
 
@@ -42,9 +43,15 @@ impl From<serde_json::Error> for ConfigError {
     }
 }
 
-pub fn get_config_path() -> Result<String, String> {
+impl From<env::VarError> for ConfigError {
+    fn from(value: env::VarError) -> Self {
+        Self::VarError(format!("Unable to get environment variables: {}", value))
+    }
+}
+
+pub fn get_config_path() -> Result<String, ConfigError> {
     if cfg!(not(windows)) {
-        let user = env::var("USER").map_err(|e| e.to_string())?;
+        let user = env::var("USER")?;
         if user != "root" {
             let xdg_config_home = env::var("XDG_CONFIG_HOME")
                 .unwrap_or_else(|_| env::var("HOME").unwrap() + "/.config");
@@ -53,7 +60,7 @@ pub fn get_config_path() -> Result<String, String> {
             Ok("/etc/jellyfin-rpc/main.json".to_string())
         }
     } else {
-        let app_data = env::var("APPDATA").map_err(|e| e.to_string())?;
+        let app_data = env::var("APPDATA")?;
         Ok(app_data + r"\jellyfin-rpc\main.json")
     }
 }
