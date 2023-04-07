@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             list.bold().red() //.fold(", ".to_string(), |sep, mtype| format!("{}{}", mtype, sep)).red().bold()
         )
     }
-    let mut blacklist_check: bool = true;
+    let mut blacklist_check: bool;
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect(
         "Failed to create Discord RPC client, discord is down or the Client ID is invalid.",
@@ -101,8 +101,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.api_key,
             &config.username,
             &config.enable_images,
-        )
-        .await?;
+        ).await?;
+        blacklist_check = true;
         config
             .blacklist
             .iter()
