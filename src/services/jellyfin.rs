@@ -4,8 +4,67 @@ use serde_json::Value;
     TODO: Comments
 */
 
+#[derive(PartialEq, Debug)]
+pub enum MediaType {
+    Movie,
+    Episode,
+    LiveTv,
+    Music,
+    None,
+}
+
+impl std::fmt::Display for MediaType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let res = match self {
+            MediaType::Episode => "Episode",
+            MediaType::LiveTv => "LiveTv",
+            MediaType::Movie => "Movie",
+            MediaType::Music => "Music",
+            MediaType::None => "None",
+        };
+        write!(f, "{}", res)
+    }
+}
+
+impl MediaType {
+    pub fn is_none(&self) -> bool {
+        if self == &MediaType::None {
+            return true;
+        }
+        false
+    }
+
+    pub fn equal_to(&self, value: String) -> bool {
+        self == &MediaType::from(value)
+    }
+}
+
+impl From<&'static str> for MediaType {
+    fn from(value: &'static str) -> Self {
+        match value {
+            "episode" => Self::Episode,
+            "movie" => Self::Movie,
+            "music" => Self::Music,
+            "livetv" => Self::LiveTv,
+            _ => Self::None,
+        }
+    }
+}
+
+impl From<String> for MediaType {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "episode" => Self::Episode,
+            "movie" => Self::Movie,
+            "music" => Self::Music,
+            "livetv" => Self::LiveTv,
+            _ => Self::None,
+        }
+    }
+}
+
 pub struct Content {
-    pub media_type: String,
+    pub media_type: MediaType,
     pub details: String,
     pub state_message: String,
     pub endtime: Option<i64>,
@@ -60,7 +119,7 @@ pub async fn get_jellyfin_playing(
         }
 
         return Ok(Content {
-            media_type: main[0].clone(),
+            media_type: main[0].clone().into(),
             details: main[1].clone(),
             state_message: main[2].clone(),
             endtime: get_end_timer(now_playing_item, &session).await,
@@ -71,7 +130,7 @@ pub async fn get_jellyfin_playing(
         });
     }
     Ok(Content {
-        media_type: "".to_string(),
+        media_type: MediaType::None,
         details: "".to_string(),
         state_message: "".to_string(),
         endtime: Some(0),

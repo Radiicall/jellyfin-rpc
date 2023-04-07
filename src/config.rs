@@ -1,3 +1,4 @@
+use crate::services::jellyfin::MediaType;
 use colored::Colorize;
 use std::env;
 
@@ -9,7 +10,7 @@ pub struct Config {
     pub url: String,
     pub api_key: String,
     pub username: String,
-    pub blacklist: Vec<String>,
+    pub blacklist: Vec<MediaType>,
     pub rpc_client_id: String,
     pub imgur_client_id: String,
     pub enable_images: bool,
@@ -70,7 +71,7 @@ impl Config {
         let url = jellyfin["URL"].as_str().unwrap_or("").to_string();
         let api_key = jellyfin["API_KEY"].as_str().unwrap_or("").to_string();
         let username = jellyfin["USERNAME"].as_str().unwrap_or("").to_string();
-        let mut blacklist: Vec<String> = vec!["none".to_string()];
+        let mut blacklist: Vec<MediaType> = vec![MediaType::None];
         if !Option::is_none(&jellyfin["BLACKLIST"].get(0)) {
             blacklist.pop();
             jellyfin["BLACKLIST"]
@@ -83,10 +84,10 @@ impl Config {
                         std::process::exit(2)
                     }
                     blacklist.push(
-                        val
+                        MediaType::from(val
                             .as_str()
                             .expect("Media types to blacklist need to be in quotes \"music\"")
-                            .to_string())
+                            .to_string()))
                 });
         }
         let rpc_client_id = discord["APPLICATION_ID"]

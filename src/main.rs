@@ -64,11 +64,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .red()
         )
     }
-    if config.blacklist[0] != "none" {
+    if !config.blacklist[0].is_none() {
+        let mut list = "".to_string();
+        config
+            .blacklist
+            .iter()
+            .for_each(|x| list.push_str(&format!("{}, ", x)));
+        list = list[0..list.len() - 2].to_string();
+
         println!(
             "{} {}",
             "These media types won't be shown:".bold().red(),
-            config.blacklist.join(", ").bold().red()
+            list.bold().red() //.fold(", ".to_string(), |sep, mtype| format!("{}{}", mtype, sep)).red().bold()
         )
     }
     let mut blacklist_check: bool = false;
@@ -96,13 +103,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.enable_images,
         )
         .await?;
-
         config
             .blacklist
             .iter()
-            .for_each(|x| blacklist_check = !content.media_type.contains(x));
+            .for_each(|x| blacklist_check = !(&content.media_type == x));
 
-        if !content.media_type.is_empty() && blacklist_check {
+        if !content.media_type.is_none() && blacklist_check {
             // Print what we're watching
             if !connected {
                 println!(
@@ -113,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
-            if config.imgur_images && content.media_type != "livetv" {
+            if config.imgur_images && content.media_type != MediaType::LiveTv {
                 content.image_url = get_image_imgur(
                     &content.image_url,
                     &content.item_id,
@@ -230,13 +236,13 @@ fn setactivity<'a>(
     img_url: &'a str,
     rpcbuttons: Vec<activity::Button<'a>>,
     version: &'a str,
-    media_type: &'a str,
+    media_type: &'a MediaType,
 ) -> activity::Activity<'a> {
     let mut new_activity = activity::Activity::new().details(details);
 
     let mut image_url = "https://s1.qwant.com/thumbr/0x380/0/6/aec9d939d464cc4e3b4c9d7879936fbc61901ccd9847d45c68a3ce2dbd86f0/cover.jpg?u=https%3A%2F%2Farchive.org%2Fdownload%2Fgithub.com-jellyfin-jellyfin_-_2020-09-15_17-17-00%2Fcover.jpg";
 
-    if media_type == "livetv" {
+    if media_type == &MediaType::LiveTv {
         image_url = "https://i.imgur.com/XxdHOqm.png"
     } else if !img_url.is_empty() {
         image_url = img_url;
@@ -246,7 +252,7 @@ fn setactivity<'a>(
         .large_text(version)
         .large_image(image_url);
 
-    if media_type != "livetv" {
+    if media_type != &MediaType::LiveTv {
         match endtime {
             Some(time) => {
                 new_activity = new_activity
