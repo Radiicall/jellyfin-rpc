@@ -4,7 +4,7 @@ use serde_json::Value;
     TODO: Comments
 */
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum MediaType {
     Movie,
     Episode,
