@@ -128,11 +128,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &config.imgur_client_id,
                     args.image_urls.clone(),
                 )
-                .await.unwrap_or_else(|e| {
-                    eprintln!("{}", 
-                        format!("Failed to use Imgur: {:?}", e).red().bold());
+                .await
+                .unwrap_or_else(|e| {
+                    eprintln!("{}", format!("Failed to use Imgur: {:?}", e).red().bold());
                     Imgur::default()
-                }).url;
+                })
+                .url;
             }
 
             // Set the activity

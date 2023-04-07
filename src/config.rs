@@ -22,7 +22,7 @@ pub enum ConfigError {
     MissingConfig(String),
     Io(String),
     Json(String),
-    VarError(String)
+    VarError(String),
 }
 
 impl From<&'static str> for ConfigError {

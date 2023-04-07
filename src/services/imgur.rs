@@ -1,6 +1,6 @@
 use serde_json::Value;
-use std::io::Write;
 use std::env;
+use std::io::Write;
 
 /*
     TODO: Comments
@@ -14,7 +14,7 @@ macro_rules! imgur_api (
 
 #[derive(Debug, Default)]
 pub struct Imgur {
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub enum ImgurError {
     Reqwest(String),
     Io(String),
     Json(String),
-    VarError(String)
+    VarError(String),
 }
 
 impl From<reqwest::Error> for ImgurError {
@@ -74,27 +74,32 @@ impl Imgur {
     ) -> Result<Self, ImgurError> {
         let file = image_urls_file.unwrap_or_else(|| get_urls_path().unwrap());
         let mut json = Imgur::read_file(file.clone())?;
-        if let Some(value) = json.get(item_id).map(Value::as_str).flatten() {
-            return Ok(Self { url: value.to_string() });
+        if let Some(value) = json.get(item_id).and_then(Value::as_str) {
+            return Ok(Self {
+                url: value.to_string(),
+            });
         }
 
-        Ok(Self { url: Imgur::write_file(file, image_url, item_id, client_id, &mut json).await? })
+        Ok(Self {
+            url: Imgur::write_file(file, image_url, item_id, client_id, &mut json).await?,
+        })
     }
 
     fn read_file(file: String) -> Result<Value, ImgurError> {
-        let content = std::fs::read_to_string(file.clone())
-            .unwrap_or_else(|_| {
-                std::fs::create_dir_all(std::path::Path::new(&file).parent().unwrap()).ok();
-                std::fs::File::create(file.clone()).map(|mut file| {
+        let content = std::fs::read_to_string(file.clone()).unwrap_or_else(|_| {
+            std::fs::create_dir_all(std::path::Path::new(&file).parent().unwrap()).ok();
+            std::fs::File::create(file.clone())
+                .map(|mut file| {
                     write!(file, "{{\n}}").ok();
                     file
-                }).unwrap();
-                std::fs::read_to_string(file).unwrap()
-            });
+                })
+                .unwrap();
+            std::fs::read_to_string(file).unwrap()
+        });
         let json: Value = serde_json::from_str(&content)?;
         Ok(json)
     }
-    
+
     async fn write_file(
         file: String,
         image_url: &String,
@@ -105,18 +110,14 @@ impl Imgur {
         let mut new_data = serde_json::Map::new();
         let imgur_url = Imgur::upload(image_url, client_id).await?;
         new_data.insert(item_id.to_string(), serde_json::json!(imgur_url));
-    
+
         let data = json.as_object_mut().unwrap();
         data.append(&mut new_data);
-    
-        write!(
-            std::fs::File::create(file)?,
-            "{}",
-            serde_json::json!(data)
-        )?;
+
+        write!(std::fs::File::create(file)?, "{}", serde_json::json!(data))?;
         Ok(imgur_url)
     }
-    
+
     async fn upload(image_url: &String, client_id: &String) -> Result<String, ImgurError> {
         let img = reqwest::get(image_url).await?.bytes().await?;
         let client = reqwest::Client::new();
@@ -130,7 +131,7 @@ impl Imgur {
             .send()
             .await?;
         let val: Value = serde_json::from_str(&response.text().await?)?;
-    
+
         Ok(val["data"]["link"].as_str().unwrap().to_string())
     }
 }
