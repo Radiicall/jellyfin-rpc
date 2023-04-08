@@ -4,7 +4,7 @@ use serde_json::Value;
     TODO: Comments
 */
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Content {
     pub media_type: MediaType,
     pub details: String,
@@ -229,7 +229,7 @@ impl ExternalServices {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum MediaType {
     Movie,
     Episode,

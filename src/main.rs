@@ -14,7 +14,7 @@ use retry::retry_with_index;
 
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(author = "Radical <Radiicall> <radical@radical.fun>")]
 #[command(version)]
 #[command(about = "Rich presence for Jellyfin", long_about = None)]

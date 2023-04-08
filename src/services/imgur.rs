@@ -12,7 +12,7 @@ macro_rules! imgur_api (
     );
 );
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Imgur {
     pub url: String,
 }
