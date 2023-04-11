@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Jellyfin-RPC".bright_blue()
     );
 
-    if config.enable_images && !config.imgur_images {
+    if config.images.enabled && !config.images.imgur {
         eprintln!(
             "{}\n{}",
             "------------------------------------------------------------------".bold(),
@@ -64,12 +64,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .red()
         )
     }
-    if !config.blacklist[0].is_none() {
+    if !config.blacklist.types[0].is_none() {
         println!(
             "{} {}",
             "These media types won't be shown:".bold().red(),
             config
                 .blacklist
+                .types
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
@@ -78,7 +79,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .red()
         )
     }
-    let mut blacklist_check: bool = true;
+
+    if !config.blacklist.libraries[0].is_empty() {
+        println!(
+            "{} {}",
+            "These media libraries won't be shown:".bold().red(),
+            config
+                .blacklist
+                .libraries
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+                .bold()
+                .red()
+        )
+    }
+
     let mut connected: bool = false;
     let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect(
         "Failed to create Discord RPC client, discord is down or the Client ID is invalid.",
@@ -100,15 +117,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.url,
             &config.api_key,
             &config.username,
-            &config.enable_images,
+            &config.images.enabled,
         )
         .await?;
 
-        config.blacklist.iter().for_each(|x| {
+        let mut blacklist_check = true;
+        config.blacklist.types.iter().for_each(|x| {
             if blacklist_check && !content.media_type.is_none() {
                 blacklist_check = &content.media_type != x
             }
         });
+        for library in &config.blacklist.libraries {
+            if blacklist_check && !content.media_type.is_none() {
+                blacklist_check = library_check(&config.url, &config.api_key, &content.item_id, &library).await;
+            }
+        }
 
         if !content.media_type.is_none() && blacklist_check {
             // Print what we're watching
@@ -121,7 +144,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
-            if config.imgur_images && content.media_type != MediaType::LiveTv {
+            if config.images.imgur && content.media_type != MediaType::LiveTv {
                 content.image_url = Imgur::get(
                     &content.image_url,
                     &content.item_id,
@@ -198,7 +221,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .expect("Failed to clear activity");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
-            blacklist_check = true;
             println!(
                 "{}\n{}\n{}",
                 "------------------------------------------------------------------".bold(),

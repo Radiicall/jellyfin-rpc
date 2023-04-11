@@ -293,3 +293,33 @@ impl From<String> for MediaType {
         }
     }
 }
+
+pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &str) -> bool {
+    let parents: Vec<Value> = serde_json::from_str(
+        &reqwest::get(format!(
+            "{}/Items/{}/Ancestors?api_key={}",
+            url.trim_end_matches('/'),
+            item_id,
+            api_key
+        ))
+        .await.unwrap()
+        .text()
+        .await.unwrap(),
+    )
+    .unwrap_or_else(|_| {
+        panic!(
+            "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
+            url
+        )
+    });
+
+    for i in parents {
+        if let Some(name) = i.get("Name").and_then(Value::as_str) {
+            if name.to_lowercase() == library {
+                return false;
+            }
+        }
+    }
+
+    true
+}

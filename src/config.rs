@@ -10,11 +10,20 @@ pub struct Config {
     pub url: String,
     pub api_key: String,
     pub username: String,
-    pub blacklist: Vec<MediaType>,
+    pub blacklist: Blacklist,
     pub rpc_client_id: String,
     pub imgur_client_id: String,
-    pub enable_images: bool,
-    pub imgur_images: bool,
+    pub images: Images
+}
+
+pub struct Blacklist {
+    pub types: Vec<MediaType>,
+    pub libraries: Vec<String>
+}
+
+pub struct Images {
+    pub enabled: bool,
+    pub imgur: bool,
 }
 
 #[derive(Debug)]
@@ -78,10 +87,10 @@ impl Config {
         let url = jellyfin["URL"].as_str().unwrap_or("").to_string();
         let api_key = jellyfin["API_KEY"].as_str().unwrap_or("").to_string();
         let username = jellyfin["USERNAME"].as_str().unwrap_or("").to_string();
-        let mut blacklist: Vec<MediaType> = vec![MediaType::None];
-        if !Option::is_none(&jellyfin["BLACKLIST"].get(0)) {
-            blacklist.pop();
-            jellyfin["BLACKLIST"]
+        let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
+        if !Option::is_none(&jellyfin["TYPE_BLACKLIST"].get(0)) {
+            type_blacklist.pop();
+            jellyfin["TYPE_BLACKLIST"]
                 .as_array()
                 .unwrap()
                 .iter()
@@ -90,18 +99,35 @@ impl Config {
                         eprintln!("{} is invalid, valid media types to blacklist include: \"music\", \"movie\", \"episode\" and \"livetv\"", val);
                         std::process::exit(2)
                     }
-                    blacklist.push(
+                    type_blacklist.push(
                         MediaType::from(val
                             .as_str()
                             .expect("Media types to blacklist need to be in quotes \"music\"")
                             .to_string()))
                 });
         }
+        let mut library_blacklist: Vec<String> = vec!["none".to_string()];
+        if !Option::is_none(&jellyfin["LIBRARY_BLACKLIST"].get(0)) {
+            library_blacklist.pop();
+            jellyfin["LIBRARY_BLACKLIST"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .for_each(|val| {
+                    library_blacklist.push(
+                        val
+                            .as_str()
+                            .expect("Media types to blacklist need to be in quotes \"music\"")
+                            .to_lowercase())
+                });
+        }
         let rpc_client_id = discord["APPLICATION_ID"]
             .as_str()
             .unwrap_or("1053747938519679018")
             .to_string();
+
         let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap_or("").to_string();
+
         let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
             eprintln!(
                 "{}\n{} {} {} {}",
@@ -143,11 +169,16 @@ impl Config {
                 url,
                 api_key,
                 username,
-                blacklist,
+                blacklist: Blacklist {
+                    types: type_blacklist,
+                    libraries: library_blacklist
+                },
                 rpc_client_id,
                 imgur_client_id,
-                enable_images,
-                imgur_images,
+                images: Images {
+                    enabled: enable_images,
+                    imgur: imgur_images
+                }
             }),
         }
     }
