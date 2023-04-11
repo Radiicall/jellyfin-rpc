@@ -117,7 +117,7 @@ impl Config {
                     library_blacklist.push(
                         val
                             .as_str()
-                            .expect("Media types to blacklist need to be in quotes \"music\"")
+                            .expect("Libraries to blacklist need to be in quotes \"music\"")
                             .to_lowercase())
                 });
         }
