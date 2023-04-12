@@ -13,12 +13,12 @@ pub struct Config {
     pub blacklist: Blacklist,
     pub rpc_client_id: String,
     pub imgur_client_id: String,
-    pub images: Images
+    pub images: Images,
 }
 
 pub struct Blacklist {
     pub types: Vec<MediaType>,
-    pub libraries: Vec<String>
+    pub libraries: Vec<String>,
 }
 
 pub struct Images {
@@ -115,10 +115,10 @@ impl Config {
                 .iter()
                 .for_each(|val| {
                     library_blacklist.push(
-                        val
-                            .as_str()
+                        val.as_str()
                             .expect("Libraries to blacklist need to be in quotes \"music\"")
-                            .to_lowercase())
+                            .to_lowercase(),
+                    )
                 });
         }
         let rpc_client_id = discord["APPLICATION_ID"]
@@ -171,14 +171,14 @@ impl Config {
                 username,
                 blacklist: Blacklist {
                     types: type_blacklist,
-                    libraries: library_blacklist
+                    libraries: library_blacklist,
                 },
                 rpc_client_id,
                 imgur_client_id,
                 images: Images {
                     enabled: enable_images,
-                    imgur: imgur_images
-                }
+                    imgur: imgur_images,
+                },
             }),
         }
     }

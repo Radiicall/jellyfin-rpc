@@ -129,7 +129,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
         for library in &config.blacklist.libraries {
             if blacklist_check && !content.media_type.is_none() {
-                blacklist_check = library_check(&config.url, &config.api_key, &content.item_id, &library).await;
+                blacklist_check =
+                    library_check(&config.url, &config.api_key, &content.item_id, library).await;
             }
         }
 

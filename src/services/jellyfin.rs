@@ -302,9 +302,11 @@ pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &st
             item_id,
             api_key
         ))
-        .await.unwrap()
+        .await
+        .unwrap()
         .text()
-        .await.unwrap(),
+        .await
+        .unwrap(),
     )
     .unwrap_or_else(|_| {
         panic!(
