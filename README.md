@@ -42,7 +42,9 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
         "URL": "https://example.com",
         "API_KEY": "sadasodsapasdskd",
         "USERNAME": "your_username_here",
-        "BLOCKLIST": ["remove", "this", "line", "unless you want to block certain media types, valid media types to block includes 'music', 'movie', 'episode' and 'livetv'"]
+        "_comment": "the 2 lines below and this line arent needed and should be removed, by default nothing will display if these are present"
+        "TYPE_BLACKLIST": ["music", "movie", "episode", "livetv"]
+        "LIBRARY_BLACKLIST": ["Anime", "Anime Movies"]
     },
     "Discord": {
         "APPLICATION_ID": "1053747938519679018"
