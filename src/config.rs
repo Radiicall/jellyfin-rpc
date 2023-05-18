@@ -106,7 +106,7 @@ impl Config {
                             .to_string()))
                 });
         }
-        let mut library_blacklist: Vec<String> = vec!["none".to_string()];
+        let mut library_blacklist: Vec<String> = vec!["".to_string()];
         if !Option::is_none(&jellyfin["LIBRARY_BLACKLIST"].get(0)) {
             library_blacklist.pop();
             jellyfin["LIBRARY_BLACKLIST"]

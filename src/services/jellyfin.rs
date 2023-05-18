@@ -132,7 +132,7 @@ impl Content {
                 None => (),
                 genre_array => {
                     genres.push_str(" - ");
-                    genres = genre_array
+                    genres += &genre_array
                         .unwrap()
                         .as_array()
                         .unwrap()
