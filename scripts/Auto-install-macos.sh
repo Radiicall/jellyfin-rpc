@@ -6,6 +6,7 @@ clear
 vared -p "Jellyfin Server URL (include http/https): " -c jellyfinurl
 vared -p "Jellyfin API Key (you can find this at ${jellyfinurl}/web/#!/apikeys.html): " -c jellyfinkey
 vared -p "Jellyfin Username: " -c jellyfinuser
+echo ""
 
 # Prompt the user for what libraries should be included/blocked
 responses=()
@@ -32,36 +33,64 @@ fi
 
 # Build the blocklist string
 if [[ ${#responses} -eq 0 ]]; then
-  blocklistString='["movie", "episode", "music", "livetv"]'
+  typeBlocklistString=''
 else
-  blocklistString='['
+  typeBlocklistString='['
   for i in ${responses[@]}; do
-    blocklistString+="\"$i\", "
+    typeBlocklistString+="\"$i\", "
   done
-  blocklistString=${blocklistString%?}
-  blocklistString=${blocklistString%?}
-  blocklistString+=']'
+  typeBlocklistString=${typeBlocklistString%?}
+  typeBlocklistString=${typeBlocklistString%?}
+  typeBlocklistString+=']'
 fi
+echo ""
 
-#get discord application ID, or use default if left blank
+# Prompt for libraries to block
+echo "Separated by only commas, type the names of any libraries to be excluded from Jellyfin RPC. Press return when finished."
+echo "For example, typing 'Anime,Anime Movies' will filter out media from libraries named 'Anime' and 'Anime Movies'."
+vared -p "Leave blank to enable all libraries. This will not disable filtering by media type. " -c libBlocklist
+
+# Build the blocklist string
+libBlocklistArray=(${(@s:,:)libBlocklist})
+if [[ ${#libBlocklistArray} -eq 0 ]]; then
+  libBlocklistString=''
+else
+  libBlocklistString='['
+  for i in ${libBlocklistArray[@]}; do
+    libBlocklistString+="\"$i\", "
+  done
+  libBlocklistString=${libBlocklistString%?}
+  libBlocklistString=${libBlocklistString%?}
+  libBlocklistString+=']'
+fi
+echo ""
+
+# Get discord application ID, or use default if left blank
 vared -p "Discord Application ID (leave blank if you're unsure): " -c discordAppId
 if [ -z $discordAppId ]; then
   discordAppId="1053747938519679018"
 fi
 
-# Get Imgur client ID & enable/disable image uploading
+# Enable or disable image uploading
+configImagesEnabled="false"
 configImgurEnabled="false"
-vared -p "Upload album artwork to Imgur to be displayed in discord? (y/n) " -c artworkEnabled
+vared -p "Display media images in discord? (y/n) " -c artworkEnabled
 if [[ $artworkEnabled == [Yy]* ]]; then
-  configImgurEnabled="true"
-  echo "To get an Imgur client ID, go to https://api.imgur.com/oauth2/addclient"
-  echo "Name can be anything, authorization type must be 'OAuth 2 authorization without a callback URL'"
-  echo "Press submit to get your client ID"
-  echo "NOTE: Port formwarding must be enabled on your server to send images"
-  vared -p "Imgur client ID (): " -c imgurId
+  configImagesEnabled="true"
+
+  # Get Imgur client ID & enable Imgur uploading
+  echo "If the server is not port-forwarded, you must enable uploading artwork to Imgur or images will not work."
+  vared -p "Upload media images to Imgur to be displayed in discord? Selecting \"n\" suggests that your server is port-forwarded! (y/n) " -c imgurEnabled
+  if [[ $imgurEnabled == [Yy]* ]]; then
+    configImgurEnabled="true"
+    echo "To get an Imgur client ID, go to https://api.imgur.com/oauth2/addclient"
+    echo "Name can be anything, authorization type must be 'OAuth 2 authorization without a callback URL'"
+    echo "Press submit to get your client ID"
+    vared -p "Imgur client ID (): " -c imgurId
+  fi
 fi
 
-#put together the config file
+# Put together the config file
 
 configFileContents=""
 configFileContents+="$(cat <<EOF
@@ -75,7 +104,14 @@ EOF
 if [[ ${#responses} -ne 0 ]]; then # only add this line if there are items in the blocklist
   configFileContents+="$(cat <<EOF
 ,
-        "BLOCKLIST": ${blocklistString}
+        "TYPE_BLACKLIST": ${typeBlocklistString}
+EOF
+)"
+fi
+if [[ ${#libBlocklistArray} -ne 0 ]]; then # only add this line if there are items in the library blocklist
+  configFileContents+="$(cat <<EOF
+,
+        "LIBRARY_BLACKLIST": ${libBlocklistString}
 EOF
 )"
 fi
@@ -89,7 +125,7 @@ configFileContents+="$(cat <<EOF
         "CLIENT_ID": "${imgurId}"
     },
     "Images": {
-        "ENABLE_IMAGES": ${configImgurEnabled},
+        "ENABLE_IMAGES": ${configImagesEnabled},
         "IMGUR_IMAGES": ${configImgurEnabled}
     }
 }
@@ -104,7 +140,7 @@ if [[ $proceed == [Nn]* ]]; then
   exit
 fi
 
-#Save config to file
+# Save config to file
 if [ ! -d ~/.config/jellyfin-rpc ]; then
   mkdir ~/.config/jellyfin-rpc
 fi
@@ -120,8 +156,16 @@ if [[ $downloadlatest == [Yy]* ]]; then
   # Prompt user to enabled Jellyfin RPC running at login
   vared -p "Set Jellyfin-RPC to run at login? (y/n) " -c runAtLogin
   if [[ $runAtLogin == [Yy]* ]]; then
-    # Create launch agent file, give it proper permissions, then load it.
-    cat >> ~/Library/LaunchAgents/jellyfinrpc.local.plist<< EOF
+
+    if pgrep -xq -- "jellyfin-rpc"; then
+        killall jellyfin-rpc # Kill jellyfin-rpc if it is running
+    fi
+    if launchctl list | grep Jellyfin-RPC  &> /dev/null; then
+        launchctl remove Jellyfin-RPC # Unload Jellyfin-RPC LaunchAgent if it is loaded
+    fi
+
+    # Create LaunchAgent file
+    cat > ~/Library/LaunchAgents/jellyfinrpc.local.plist<< EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -139,11 +183,11 @@ if [[ $downloadlatest == [Yy]* ]]; then
 </dict>
 </plist>
 EOF
-    chmod 644 ~/Library/LaunchAgents/jellyfinrpc.local.plist
-    launchctl unload ~/Library/LaunchAgents/jellyfinrpc.local.plist #It seems that the OS tries to load the launch agent on creation, so it needs unloaded first.
-    launchctl load ~/Library/LaunchAgents/jellyfinrpc.local.plist
+    chmod 644 ~/Library/LaunchAgents/jellyfinrpc.local.plist # Give LaunchAgent proper permissions
+    launchctl load ~/Library/LaunchAgents/jellyfinrpc.local.plist # Load LaunchAgent
   fi
-  echo "If needed, you can run Jellyfin RPC at any time by running 'jellyfin-rpc' in a terminal"
+  echo "Jellyfin RPC is now set up to start at login."
+  echo "If needed, you can run Jellyfin RPC at any time by running 'jellyfin-rpc' in a terminal."
 fi
 
 exit
