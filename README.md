@@ -30,7 +30,9 @@ Terminal Output:
 ![image](https://user-images.githubusercontent.com/66682497/222933540-aa5f08ed-afb2-4713-8b9a-18cbaa94444b.png)
 
 ## Setup
-If you're using Windows then there's an install script that you can download <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-Install-win.bat">here</a>! (if anyone wants to make something similar for linux then make a PR!)
+- Installers
+  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-Install-win.bat">Windows</a>
+  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-install-macos.sh">macOS</a>
 
 Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `%APPDATA%\jellyfin-rpc\main.json` on Windows.
 
