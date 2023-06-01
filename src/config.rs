@@ -7,6 +7,79 @@ use std::env;
     TODO: Comments
 */
 
+#[derive(Default)]
+struct ConfigBuilder {
+    url: String,
+    api_key: String,
+    username: String,
+    blacklist: Blacklist,
+    rpc_client_id: String,
+    imgur_client_id: String,
+    images: Images,
+}
+
+impl ConfigBuilder {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn url(&mut self, url: String) {
+        self.url = url;
+    }
+
+    fn api_key(&mut self, api_key: String) {
+        self.api_key = api_key;
+    }
+
+    fn username(&mut self, username: String) {
+        self.username = username;
+    }
+
+    fn blacklist(&mut self, types: Vec<MediaType>, libraries: Vec<String>) {
+        self.blacklist = Blacklist { types, libraries };
+    }
+
+    fn rpc_client_id(&mut self, rpc_client_id: String) {
+        self.rpc_client_id = rpc_client_id;
+    }
+
+    fn imgur_client_id(&mut self, imgur_client_id: String) {
+        self.imgur_client_id = imgur_client_id;
+    }
+
+    fn images(&mut self, enabled: bool, imgur: bool) {
+        self.images = Images { enabled, imgur };
+    }
+
+    fn build(self) -> Result<Config, ConfigError> {
+        match (
+            self.url.is_empty(),
+            self.api_key.is_empty(),
+            self.username.is_empty(),
+            self.rpc_client_id.is_empty(),
+            (self.images.imgur, self.imgur_client_id.is_empty()),
+        ) {
+            (true, _, _, _, _) => Err(ConfigError::from("Jellyfin URL is empty!")),
+            (_, true, _, _, _) => Err(ConfigError::from("Jellyfin API key is empty!")),
+            (_, _, true, _, _) => Err(ConfigError::from("Jellyfin Username is empty!")),
+            (_, _, _, true, _) => Err(ConfigError::from("Discord Application ID is empty!")),
+            (_, _, _, _, (true, true)) => Err(ConfigError::from(
+                "Imgur Client ID is empty but Imgur images are enabled!",
+            )),
+            (false, false, false, false, _) => Ok(Config {
+                    url: self.url,
+                    api_key: self.api_key,
+                    username: self.username,
+                    blacklist: self.blacklist,
+                    rpc_client_id: self.rpc_client_id,
+                    imgur_client_id: self.imgur_client_id,
+                    images: self.images
+                },
+            ),
+        }
+    }
+}
+
 pub struct Config {
     pub url: String,
     pub api_key: String,
@@ -17,11 +90,13 @@ pub struct Config {
     pub images: Images,
 }
 
+#[derive(Default)]
 pub struct Blacklist {
     pub types: Vec<MediaType>,
     pub libraries: Vec<String>,
 }
 
+#[derive(Default)]
 pub struct Images {
     pub enabled: bool,
     pub imgur: bool,
@@ -45,6 +120,7 @@ pub fn get_config_path() -> Result<String, ConfigError> {
 
 impl Config {
     pub fn load_config(path: String) -> Result<Config, ConfigError> {
+        let mut config = ConfigBuilder::new();
         let data = std::fs::read_to_string(path)?;
         let res: serde_json::Value = serde_json::from_str(&data)?;
 
@@ -53,9 +129,9 @@ impl Config {
         let imgur: serde_json::Value = res["Imgur"].clone();
         let images: serde_json::Value = res["Images"].clone();
 
-        let url = jellyfin["URL"].as_str().unwrap_or("").to_string();
-        let api_key = jellyfin["API_KEY"].as_str().unwrap_or("").to_string();
-        let username = jellyfin["USERNAME"].as_str().unwrap_or("").to_string();
+        config.url(jellyfin["URL"].as_str().unwrap_or("").to_string());
+        config.api_key(jellyfin["API_KEY"].as_str().unwrap_or("").to_string());
+        config.username(jellyfin["USERNAME"].as_str().unwrap_or("").to_string());
         let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
         if !Option::is_none(&jellyfin["TYPE_BLACKLIST"].get(0)) {
             type_blacklist.pop();
@@ -90,65 +166,39 @@ impl Config {
                     )
                 });
         }
-        let rpc_client_id = discord["APPLICATION_ID"]
+        config.blacklist(type_blacklist, library_blacklist);
+        config.rpc_client_id(discord["APPLICATION_ID"]
             .as_str()
             .unwrap_or("1053747938519679018")
-            .to_string();
+            .to_string());
 
-        let imgur_client_id = imgur["CLIENT_ID"].as_str().unwrap_or("").to_string();
+        config.imgur_client_id(imgur["CLIENT_ID"].as_str().unwrap_or("").to_string());
 
-        let enable_images = images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
-            eprintln!(
-                "{}\n{} {} {} {}",
-                "ENABLE_IMAGES has to be a bool...".red().bold(),
-                "EXAMPLE:".bold(),
-                "true".bright_green().bold(),
-                "not".bold(),
-                "'true'".red().bold()
-            );
-            std::process::exit(2)
-        });
-        let imgur_images = images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| {
-            eprintln!(
-                "{}\n{} {} {} {}",
-                "IMGUR_IMAGES has to be a bool...".red().bold(),
-                "EXAMPLE:".bold(),
-                "true".bright_green().bold(),
-                "not".bold(),
-                "'true'".red().bold()
-            );
-            std::process::exit(2)
-        });
-
-        match (
-            url.is_empty(),
-            api_key.is_empty(),
-            username.is_empty(),
-            rpc_client_id.is_empty(),
-            (imgur_images, imgur_client_id.is_empty()),
-        ) {
-            (true, _, _, _, _) => Err(ConfigError::from("Jellyfin URL is empty!")),
-            (_, true, _, _, _) => Err(ConfigError::from("Jellyfin API key is empty!")),
-            (_, _, true, _, _) => Err(ConfigError::from("Jellyfin Username is empty!")),
-            (_, _, _, true, _) => Err(ConfigError::from("Discord Application ID is empty!")),
-            (_, _, _, _, (true, true)) => Err(ConfigError::from(
-                "Imgur Client ID is empty but Imgur images are enabled!",
-            )),
-            (false, false, false, false, _) => Ok(Config {
-                url,
-                api_key,
-                username,
-                blacklist: Blacklist {
-                    types: type_blacklist,
-                    libraries: library_blacklist,
-                },
-                rpc_client_id,
-                imgur_client_id,
-                images: Images {
-                    enabled: enable_images,
-                    imgur: imgur_images,
-                },
+        config.images(
+            images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
+                eprintln!(
+                    "{}\n{} {} {} {}",
+                    "ENABLE_IMAGES has to be a bool...".red().bold(),
+                    "EXAMPLE:".bold(),
+                    "true".bright_green().bold(),
+                    "not".bold(),
+                    "'true'".red().bold()
+                );
+                std::process::exit(2)
             }),
-        }
+            images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| {
+                eprintln!(
+                    "{}\n{} {} {} {}",
+                    "IMGUR_IMAGES has to be a bool...".red().bold(),
+                    "EXAMPLE:".bold(),
+                    "true".bright_green().bold(),
+                    "not".bold(),
+                    "'true'".red().bold()
+                );
+                std::process::exit(2)
+            })
+        );
+
+        config.build()
     }
 }
