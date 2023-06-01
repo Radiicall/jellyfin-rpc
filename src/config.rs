@@ -1,3 +1,4 @@
+use crate::error::ConfigError;
 use crate::services::jellyfin::MediaType;
 use colored::Colorize;
 use std::env;
@@ -24,38 +25,6 @@ pub struct Blacklist {
 pub struct Images {
     pub enabled: bool,
     pub imgur: bool,
-}
-
-#[derive(Debug)]
-pub enum ConfigError {
-    MissingConfig(String),
-    Io(String),
-    Json(String),
-    VarError(String),
-}
-
-impl From<&'static str> for ConfigError {
-    fn from(value: &'static str) -> Self {
-        Self::MissingConfig(value.to_string())
-    }
-}
-
-impl From<std::io::Error> for ConfigError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(format!("Unable to open file: {}", value))
-    }
-}
-
-impl From<serde_json::Error> for ConfigError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::Json(format!("Unable to parse config: {}", value))
-    }
-}
-
-impl From<env::VarError> for ConfigError {
-    fn from(value: env::VarError) -> Self {
-        Self::VarError(format!("Unable to get environment variables: {}", value))
-    }
 }
 
 pub fn get_config_path() -> Result<String, ConfigError> {

@@ -1,3 +1,4 @@
+use crate::error::ImgurError;
 use serde_json::Value;
 use std::env;
 use std::io::Write;
@@ -15,38 +16,6 @@ macro_rules! imgur_api (
 #[derive(Default)]
 pub struct Imgur {
     pub url: String,
-}
-
-#[derive(Debug)]
-pub enum ImgurError {
-    Reqwest(String),
-    Io(String),
-    Json(String),
-    VarError(String),
-}
-
-impl From<reqwest::Error> for ImgurError {
-    fn from(value: reqwest::Error) -> Self {
-        Self::Reqwest(format!("Error uploading image: {}", value))
-    }
-}
-
-impl From<std::io::Error> for ImgurError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(format!("Unable to open file: {}", value))
-    }
-}
-
-impl From<serde_json::Error> for ImgurError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::Json(format!("Unable to parse urls: {}", value))
-    }
-}
-
-impl From<env::VarError> for ImgurError {
-    fn from(value: env::VarError) -> Self {
-        Self::VarError(format!("Unable to get environment variables: {}", value))
-    }
 }
 
 pub fn get_urls_path() -> Result<String, ImgurError> {
@@ -67,9 +36,9 @@ pub fn get_urls_path() -> Result<String, ImgurError> {
 
 impl Imgur {
     pub async fn get(
-        image_url: &String,
-        item_id: &String,
-        client_id: &String,
+        image_url: &str,
+        item_id: &str,
+        client_id: &str,
         image_urls_file: Option<String>,
     ) -> Result<Self, ImgurError> {
         let file = image_urls_file.unwrap_or_else(|| get_urls_path().unwrap());
@@ -102,9 +71,9 @@ impl Imgur {
 
     async fn write_file(
         file: String,
-        image_url: &String,
-        item_id: &String,
-        client_id: &String,
+        image_url: &str,
+        item_id: &str,
+        client_id: &str,
         json: &mut Value,
     ) -> Result<String, ImgurError> {
         let mut new_data = serde_json::Map::new();
@@ -118,7 +87,7 @@ impl Imgur {
         Ok(imgur_url)
     }
 
-    async fn upload(image_url: &String, client_id: &String) -> Result<String, ImgurError> {
+    async fn upload(image_url: &str, client_id: &str) -> Result<String, ImgurError> {
         let img = reqwest::get(image_url).await?.bytes().await?;
         let client = reqwest::Client::new();
         let response = client

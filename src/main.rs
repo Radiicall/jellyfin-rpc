@@ -3,6 +3,7 @@ pub use crate::services::imgur::*;
 pub use crate::services::jellyfin::*;
 pub mod config;
 pub use crate::config::*;
+pub mod error;
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};

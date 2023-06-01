@@ -18,8 +18,8 @@ pub struct Content {
 impl Content {
     pub async fn get(
         url: &str,
-        api_key: &String,
-        username: &String,
+        api_key: &str,
+        username: &str,
         enable_images: &bool,
     ) -> Result<Self, reqwest::Error> {
         let sessions: Vec<Value> = serde_json::from_str(
@@ -51,29 +51,24 @@ impl Content {
 
             let now_playing_item = &session["NowPlayingItem"];
 
-            let external_services = ExternalServices::get(now_playing_item).await;
+            let mut content = Content::watching(now_playing_item).await;
 
-            let main = Content::watching(now_playing_item).await;
+            content.external_services = ExternalServices::get(now_playing_item).await;
+
+            content.endtime = Content::time_left(now_playing_item, &session).await;
 
             let mut image_url: String = "".to_string();
             if enable_images == &true {
-                image_url = Content::image(url, main[3].clone()).await;
+                image_url = Content::image(url, content.item_id.clone()).await;
             }
+            content.image_url = image_url;
 
-            return Ok(Self {
-                media_type: main[0].clone().into(),
-                details: main[1].clone(),
-                state_message: main[2].clone(),
-                endtime: Content::time_left(now_playing_item, &session).await,
-                image_url,
-                item_id: main[3].clone(),
-                external_services,
-            });
+            return Ok(content);
         }
         Ok(Self::default())
     }
 
-    async fn watching(now_playing_item: &Value) -> Vec<String> {
+    async fn watching(now_playing_item: &Value) -> Self {
         /*
         FIXME: Update this explanation/remove it.
 
@@ -87,11 +82,11 @@ impl Content {
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
         let name = now_playing_item["Name"].as_str().unwrap();
-        let item_type: String;
+        let media_type: MediaType;
         let item_id: String;
         let mut genres = "".to_string();
         if now_playing_item["Type"].as_str().unwrap() == "Episode" {
-            item_type = "episode".to_owned();
+            media_type = MediaType::Episode;
             let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
             item_id = now_playing_item["SeriesId"].as_str().unwrap().to_string();
 
@@ -105,9 +100,15 @@ impl Content {
 
             msg += &(" ".to_string() + name);
 
-            vec![item_type, series_name, msg, item_id]
+            Self {
+                media_type, 
+                details: series_name, 
+                state_message: msg, 
+                item_id,
+                ..Default::default()
+            }
         } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
-            item_type = "movie".to_owned();
+            media_type = MediaType::Movie;
             item_id = now_playing_item["Id"].as_str().unwrap().to_string();
             match now_playing_item.get("Genres") {
                 None => (),
@@ -123,43 +124,57 @@ impl Content {
                 }
             };
 
-            vec![item_type, name.to_string(), genres, item_id]
+            Self {
+                media_type, 
+                details: name.into(), 
+                state_message: genres, 
+                item_id,
+                ..Default::default()
+            }
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
-            item_type = "music".to_owned();
+            media_type = MediaType::Music;
             item_id = now_playing_item["AlbumId"].as_str().unwrap().to_string();
             let artist = now_playing_item["AlbumArtist"].as_str().unwrap();
-            match now_playing_item.get("Genres") {
-                None => (),
+            let msg = match now_playing_item.get("Genres") {
+                None => format!("By {}", artist),
                 genre_array => {
-                    genres.push_str(" - ");
-                    genres += &genre_array
-                        .unwrap()
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .map(|x| x.as_str().unwrap().to_string())
-                        .collect::<Vec<String>>()
-                        .join(", ");
+                    format!(
+                        "{} - {}",
+                        artist,
+                        &genre_array
+                            .unwrap()
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|x| x.as_str().unwrap().to_string())
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    )
                 }
             };
 
-            let msg = format!("By {}{}", artist, genres);
-
-            vec![item_type, name.to_string(), msg, item_id]
+            Self {
+                media_type,
+                details: name.into(),
+                state_message: msg,
+                item_id,
+                ..Default::default()
+            }
         } else if now_playing_item["Type"].as_str().unwrap() == "TvChannel" {
-            item_type = "livetv".to_owned();
+            media_type = MediaType::LiveTv;
             item_id = now_playing_item["Id"].as_str().unwrap().to_string();
             let msg = "Live TV".to_string();
 
-            vec![item_type, name.to_string(), msg, item_id]
+            Self {
+                media_type,
+                details: name.into(),
+                state_message: msg,
+                item_id,
+                ..Default::default()
+            }
         } else {
-            // Return 4 empty strings to make vector equal length
-            vec![
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-            ]
+            // Return empty struct
+            Self::default()
         }
     }
 
@@ -216,8 +231,8 @@ impl ExternalServices {
                     i.get("Url").and_then(Value::as_str),
                 ) {
                     external_services.push(Self {
-                        name: name.to_string(),
-                        url: url.to_string(),
+                        name: name.into(),
+                        url: url.into(),
                     });
                     if external_services.len() == 2 {
                         break;
@@ -259,14 +274,14 @@ impl Default for MediaType {
 
 impl MediaType {
     pub fn is_none(&self) -> bool {
-        if self == &MediaType::None {
+        if self == &Self::None {
             return true;
         }
         false
     }
 
     pub fn equal_to(&self, value: String) -> bool {
-        self == &MediaType::from(value)
+        self == &Self::from(value)
     }
 }
 
