@@ -4,6 +4,63 @@ use serde_json::Value;
     TODO: Comments
 */
 
+#[derive(Default, Clone)]
+struct ContentBuilder {
+    media_type: MediaType,
+    details: String,
+    state_message: String,
+    endtime: Option<i64>,
+    image_url: String,
+    item_id: String,
+    external_services: Vec<ExternalServices>
+}
+
+impl ContentBuilder {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn media_type(&mut self, media_type: MediaType) {
+        self.media_type = media_type;
+    }
+
+    fn details(&mut self, details: String) {
+        self.details = details;
+    }
+
+    fn state_message(&mut self, state_message: String) {
+        self.state_message = state_message;
+    }
+
+    fn endtime(&mut self, endtime: Option<i64>) {
+        self.endtime = endtime;
+    }
+
+    fn image_url(&mut self, image_url: String) {
+        self.image_url = image_url;
+    }
+    
+    fn item_id(&mut self, item_id: String) {
+        self.item_id = item_id;
+    }
+    
+    fn external_services(&mut self, external_services: Vec<ExternalServices>) {
+        self.external_services = external_services;
+    }
+
+    pub fn build(self) -> Content {
+        Content {
+            media_type: self.media_type,
+            details: self.details,
+            state_message: self.state_message,
+            endtime: self.endtime,
+            image_url: self.image_url,
+            item_id: self.item_id,
+            external_services: self.external_services,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Content {
     pub media_type: MediaType,
@@ -49,26 +106,26 @@ impl Content {
                 continue;
             }
 
+            let mut content = ContentBuilder::new();
+
             let now_playing_item = &session["NowPlayingItem"];
 
-            let mut content = Content::watching(now_playing_item).await;
-
-            content.external_services = ExternalServices::get(now_playing_item).await;
-
-            content.endtime = Content::time_left(now_playing_item, &session).await;
+            Content::watching(&mut content, now_playing_item).await;
 
             let mut image_url: String = "".to_string();
             if enable_images == &true {
                 image_url = Content::image(url, content.item_id.clone()).await;
             }
-            content.image_url = image_url;
+            content.external_services(ExternalServices::get(now_playing_item).await);
+            content.endtime(Content::time_left(now_playing_item, &session).await);
+            content.image_url(image_url);
 
-            return Ok(content);
+            return Ok(content.build());
         }
         Ok(Self::default())
     }
 
-    async fn watching(now_playing_item: &Value) -> Self {
+    async fn watching(content: &mut ContentBuilder, now_playing_item: &Value) {
         /*
         FIXME: Update this explanation/remove it.
 
@@ -82,14 +139,8 @@ impl Content {
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
         let name = now_playing_item["Name"].as_str().unwrap();
-        let media_type: MediaType;
-        let item_id: String;
         let mut genres = "".to_string();
         if now_playing_item["Type"].as_str().unwrap() == "Episode" {
-            media_type = MediaType::Episode;
-            let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
-            item_id = now_playing_item["SeriesId"].as_str().unwrap().to_string();
-
             let season = now_playing_item["ParentIndexNumber"].to_string();
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
             let mut msg = "S".to_owned() + &season + "E" + &first_episode_number;
@@ -99,17 +150,11 @@ impl Content {
             }
 
             msg += &(" ".to_string() + name);
-
-            Self {
-                media_type, 
-                details: series_name, 
-                state_message: msg, 
-                item_id,
-                ..Default::default()
-            }
+            content.media_type(MediaType::Episode);
+            content.details(now_playing_item["SeriesName"].as_str().unwrap().to_string());
+            content.state_message(msg);
+            content.item_id(now_playing_item["SeriesId"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
-            media_type = MediaType::Movie;
-            item_id = now_playing_item["Id"].as_str().unwrap().to_string();
             match now_playing_item.get("Genres") {
                 None => (),
                 genre_array => {
@@ -124,16 +169,11 @@ impl Content {
                 }
             };
 
-            Self {
-                media_type, 
-                details: name.into(), 
-                state_message: genres, 
-                item_id,
-                ..Default::default()
-            }
+            content.media_type(MediaType::Movie);
+            content.details(name.into());
+            content.state_message(genres);
+            content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
-            media_type = MediaType::Music;
-            item_id = now_playing_item["AlbumId"].as_str().unwrap().to_string();
             let artist = now_playing_item["AlbumArtist"].as_str().unwrap();
             let msg = match now_playing_item.get("Genres") {
                 None => format!("By {}", artist),
@@ -153,28 +193,15 @@ impl Content {
                 }
             };
 
-            Self {
-                media_type,
-                details: name.into(),
-                state_message: msg,
-                item_id,
-                ..Default::default()
-            }
+            content.media_type(MediaType::Music);
+            content.details(name.into());
+            content.state_message(msg);
+            content.item_id(now_playing_item["AlbumId"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "TvChannel" {
-            media_type = MediaType::LiveTv;
-            item_id = now_playing_item["Id"].as_str().unwrap().to_string();
-            let msg = "Live TV".to_string();
-
-            Self {
-                media_type,
-                details: name.into(),
-                state_message: msg,
-                item_id,
-                ..Default::default()
-            }
-        } else {
-            // Return empty struct
-            Self::default()
+            content.media_type(MediaType::LiveTv);
+            content.details(name.into());
+            content.state_message("Live TV".into());
+            content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         }
     }
 
@@ -209,7 +236,7 @@ impl Content {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExternalServices {
     pub name: String,
     pub url: String,
