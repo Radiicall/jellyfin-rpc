@@ -115,10 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start loop
     loop {
         let mut content = Content::get(
-            &config.url,
-            &config.api_key,
-            &config.username,
-            &config.images.enabled,
+            &config
         )
         .await?;
 

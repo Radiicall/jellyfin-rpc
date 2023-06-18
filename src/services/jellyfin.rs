@@ -1,5 +1,7 @@
 use serde_json::Value;
 
+use crate::config::Config;
+
 /*
     TODO: Comments
 */
@@ -74,16 +76,13 @@ pub struct Content {
 
 impl Content {
     pub async fn get(
-        url: &str,
-        api_key: &str,
-        username: &str,
-        enable_images: &bool,
+        config: &Config
     ) -> Result<Self, reqwest::Error> {
         let sessions: Vec<Value> = serde_json::from_str(
             &reqwest::get(format!(
                 "{}/Sessions?api_key={}",
-                url.trim_end_matches('/'),
-                api_key
+                config.url.trim_end_matches('/'),
+                config.api_key
             ))
             .await?
             .text()
@@ -92,14 +91,14 @@ impl Content {
         .unwrap_or_else(|_| {
             panic!(
                 "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
-                url
+                config.url
             )
         });
         for session in sessions {
             if session.get("UserName").is_none() {
                 continue;
             }
-            if session["UserName"].as_str().unwrap() != username {
+            if session["UserName"].as_str().unwrap() != config.username {
                 continue;
             }
             if session.get("NowPlayingItem").is_none() {
@@ -113,8 +112,8 @@ impl Content {
             Content::watching(&mut content, now_playing_item).await;
 
             let mut image_url: String = "".to_string();
-            if enable_images == &true {
-                image_url = Content::image(url, content.item_id.clone()).await;
+            if config.images.enabled == true {
+                image_url = Content::image(&config.url, content.item_id.clone()).await;
             }
             content.external_services(ExternalServices::get(now_playing_item).await);
             content.endtime(Content::time_left(now_playing_item, &session).await);

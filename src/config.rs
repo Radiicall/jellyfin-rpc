@@ -13,6 +13,7 @@ struct ConfigBuilder {
     api_key: String,
     username: String,
     blacklist: Blacklist,
+    music: String,
     rpc_client_id: String,
     imgur_client_id: String,
     images: Images,
@@ -37,6 +38,10 @@ impl ConfigBuilder {
 
     fn blacklist(&mut self, types: Vec<MediaType>, libraries: Vec<String>) {
         self.blacklist = Blacklist { types, libraries };
+    }
+
+    fn music(&mut self, music: String) {
+        self.music = music
     }
 
     fn rpc_client_id(&mut self, rpc_client_id: String) {
@@ -71,6 +76,7 @@ impl ConfigBuilder {
                     api_key: self.api_key,
                     username: self.username,
                     blacklist: self.blacklist,
+                    music: self.music,
                     rpc_client_id: self.rpc_client_id,
                     imgur_client_id: self.imgur_client_id,
                     images: self.images
@@ -85,6 +91,7 @@ pub struct Config {
     pub api_key: String,
     pub username: String,
     pub blacklist: Blacklist,
+    pub music: String,
     pub rpc_client_id: String,
     pub imgur_client_id: String,
     pub images: Images,
@@ -167,7 +174,7 @@ impl Config {
                 });
         }
 
-        
+        config.music(jellyfin["Music"].as_str().unwrap_or("genres").to_string());
 
         config.blacklist(type_blacklist, library_blacklist);
         config.rpc_client_id(discord["APPLICATION_ID"]
