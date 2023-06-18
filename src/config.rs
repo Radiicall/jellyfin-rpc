@@ -133,7 +133,7 @@ impl Config {
         config.api_key(jellyfin["API_KEY"].as_str().unwrap_or("").to_string());
         config.username(jellyfin["USERNAME"].as_str().unwrap_or("").to_string());
         let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
-        if !Option::is_none(&jellyfin["TYPE_BLACKLIST"].get(0)) {
+        if jellyfin["TYPE_BLACKLIST"].get(0).is_some() {
             type_blacklist.pop();
             jellyfin["TYPE_BLACKLIST"]
                 .as_array()
@@ -152,7 +152,7 @@ impl Config {
                 });
         }
         let mut library_blacklist: Vec<String> = vec!["".to_string()];
-        if !Option::is_none(&jellyfin["LIBRARY_BLACKLIST"].get(0)) {
+        if jellyfin["LIBRARY_BLACKLIST"].get(0).is_some() {
             library_blacklist.pop();
             jellyfin["LIBRARY_BLACKLIST"]
                 .as_array()
@@ -166,6 +166,9 @@ impl Config {
                     )
                 });
         }
+
+        
+
         config.blacklist(type_blacklist, library_blacklist);
         config.rpc_client_id(discord["APPLICATION_ID"]
             .as_str()

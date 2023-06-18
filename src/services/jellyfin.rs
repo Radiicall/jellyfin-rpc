@@ -96,13 +96,13 @@ impl Content {
             )
         });
         for session in sessions {
-            if Option::is_none(&session.get("UserName")) {
+            if session.get("UserName").is_none() {
                 continue;
             }
             if session["UserName"].as_str().unwrap() != username {
                 continue;
             }
-            if Option::is_none(&session.get("NowPlayingItem")) {
+            if session.get("NowPlayingItem").is_none() {
                 continue;
             }
 
@@ -145,7 +145,7 @@ impl Content {
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
             let mut msg = "S".to_owned() + &season + "E" + &first_episode_number;
 
-            if !Option::is_none(&now_playing_item.get("IndexNumberEnd")) {
+            if now_playing_item.get("IndexNumberEnd").is_none() {
                 msg += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
             }
 
