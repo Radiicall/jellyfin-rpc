@@ -174,7 +174,7 @@ impl Config {
                 });
         }
 
-        config.music(jellyfin["Music"].as_str().unwrap_or("genres").to_string());
+        config.music(jellyfin["Music"]["Display"].as_str().unwrap_or("genres").to_string());
 
         config.blacklist(type_blacklist, library_blacklist);
         config.rpc_client_id(discord["APPLICATION_ID"]

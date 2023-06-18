@@ -109,7 +109,7 @@ impl Content {
 
             let now_playing_item = &session["NowPlayingItem"];
 
-            Content::watching(&mut content, now_playing_item).await;
+            Content::watching(&mut content, now_playing_item, config).await;
 
             let mut image_url: String = "".to_string();
             if config.images.enabled == true {
@@ -124,7 +124,7 @@ impl Content {
         Ok(Self::default())
     }
 
-    async fn watching(content: &mut ContentBuilder, now_playing_item: &Value) {
+    async fn watching(content: &mut ContentBuilder, now_playing_item: &Value, config: &Config) {
         /*
         FIXME: Update this explanation/remove it.
 
@@ -173,28 +173,45 @@ impl Content {
             content.state_message(genres);
             content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
-            let artist = now_playing_item["AlbumArtist"].as_str().unwrap();
-            let msg = match now_playing_item.get("Genres") {
-                None => format!("By {}", artist),
-                genre_array => {
-                    format!(
-                        "{} - {}",
-                        artist,
-                        &genre_array
-                            .unwrap()
-                            .as_array()
-                            .unwrap()
-                            .iter()
-                            .map(|x| x.as_str().unwrap().to_string())
-                            .collect::<Vec<String>>()
-                            .join(", ")
-                    )
+            let artist = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
+            let mut state = format!("By {} - ", artist);
+            config.music.split(',').for_each(|mut x| {
+                x = x.trim();
+                let old_state = state.clone();
+                match x {
+                    "genres" => match now_playing_item.get("Genres") {
+                            None => (),
+                            genre_array => {
+                                state.push_str(
+                                    &genre_array
+                                        .unwrap()
+                                        .as_array()
+                                        .unwrap()
+                                        .iter()
+                                        .map(|x| x.as_str().unwrap().to_string())
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                )
+                            }
+                        },
+                    "album" => state.push_str(now_playing_item["Album"].as_str().unwrap_or("")),
+                    "year" => {
+                        let mut year = now_playing_item["ProductionYear"].as_u64().unwrap_or(0).to_string();
+                        if year == "0" {
+                            year = String::from("");
+                        }
+                        state.push_str(&year)
+                    },
+                    _ => state = format!("By {}", artist),
                 }
-            };
+                if state != old_state {
+                    state.push(' ')
+                }
+            });
 
             content.media_type(MediaType::Music);
             content.details(name.into());
-            content.state_message(msg);
+            content.state_message(state);
             content.item_id(now_playing_item["AlbumId"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "TvChannel" {
             content.media_type(MediaType::LiveTv);
