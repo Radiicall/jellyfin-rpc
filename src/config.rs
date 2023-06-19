@@ -11,7 +11,7 @@ use std::env;
 struct ConfigBuilder {
     url: String,
     api_key: String,
-    username: String,
+    username: Vec<String>,
     blacklist: Blacklist,
     music: String,
     rpc_client_id: String,
@@ -32,7 +32,7 @@ impl ConfigBuilder {
         self.api_key = api_key;
     }
 
-    fn username(&mut self, username: String) {
+    fn username(&mut self, username: Vec<String>) {
         self.username = username;
     }
 
@@ -89,7 +89,7 @@ impl ConfigBuilder {
 pub struct Config {
     pub url: String,
     pub api_key: String,
-    pub username: String,
+    pub username: Vec<String>,
     pub blacklist: Blacklist,
     pub music: String,
     pub rpc_client_id: String,
@@ -138,7 +138,20 @@ impl Config {
 
         config.url(jellyfin["URL"].as_str().unwrap_or("").to_string());
         config.api_key(jellyfin["API_KEY"].as_str().unwrap_or("").to_string());
-        config.username(jellyfin["USERNAME"].as_str().unwrap_or("").to_string());
+        if jellyfin["USERNAME"].as_str().is_some() {
+            config.username(vec![
+                jellyfin["USERNAME"].as_str().unwrap_or("").to_string()
+            ]);
+        } else {
+            let mut usernames: Vec<String> = Vec::new();
+            jellyfin["USERNAME"].as_array()
+                .unwrap()
+                .iter()
+                .for_each(|username|
+                    usernames.push(username.as_str().unwrap().to_string())
+                );
+            config.username(usernames)
+        }
         let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
         if jellyfin["TYPE_BLACKLIST"].get(0).is_some() {
             type_blacklist.pop();

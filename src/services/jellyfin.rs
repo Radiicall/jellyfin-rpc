@@ -98,9 +98,11 @@ impl Content {
             if session.get("UserName").is_none() {
                 continue;
             }
-            if session["UserName"].as_str().unwrap() != config.username {
+            
+            if config.username.iter().all(|username| session["UserName"].as_str().unwrap() != username) {
                 continue;
             }
+
             if session.get("NowPlayingItem").is_none() {
                 continue;
             }
