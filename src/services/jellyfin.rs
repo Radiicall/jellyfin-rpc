@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::config::Config;
+use crate::core::config::Config;
 
 /*
     TODO: Comments

@@ -1,4 +1,4 @@
-use crate::error::ConfigError;
+use crate::core::error::ConfigError;
 use crate::services::jellyfin::MediaType;
 use colored::Colorize;
 use std::env;

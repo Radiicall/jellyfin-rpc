@@ -1,4 +1,4 @@
-use crate::error::ImgurError;
+use crate::core::error::ImgurError;
 use serde_json::Value;
 use std::env;
 use std::io::Write;
