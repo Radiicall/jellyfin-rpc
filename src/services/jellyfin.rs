@@ -114,7 +114,7 @@ impl Content {
             Content::watching(&mut content, now_playing_item, config).await;
 
             let mut image_url: String = "".to_string();
-            if config.images.enabled == true {
+            if config.images.enabled {
                 image_url = Content::image(&config.url, content.item_id.clone()).await;
             }
             content.external_services(ExternalServices::get(now_playing_item).await);
