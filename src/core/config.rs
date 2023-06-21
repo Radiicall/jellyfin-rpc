@@ -143,14 +143,13 @@ impl Config {
                 jellyfin["USERNAME"].as_str().unwrap_or("").to_string()
             ]);
         } else {
-            let mut usernames: Vec<String> = Vec::new();
-            jellyfin["USERNAME"].as_array()
-                .unwrap()
-                .iter()
-                .for_each(|username|
-                    usernames.push(username.as_str().unwrap().to_string())
-                );
-            config.username(usernames)
+            config.username(
+                jellyfin["USERNAME"].as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|username| username.as_str().unwrap().to_string())
+                    .collect::<Vec<String>>()
+            );
         }
         let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
         if jellyfin["TYPE_BLACKLIST"].get(0).is_some() {
