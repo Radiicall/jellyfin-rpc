@@ -13,7 +13,7 @@ struct ConfigBuilder {
     api_key: String,
     username: Vec<String>,
     blacklist: Blacklist,
-    music: String,
+    music: Music,
     rpc_client_id: String,
     imgur_client_id: String,
     images: Images,
@@ -40,8 +40,12 @@ impl ConfigBuilder {
         self.blacklist = Blacklist { types, libraries };
     }
 
-    fn music(&mut self, music: String) {
-        self.music = music
+    fn music_display(&mut self, display: Vec<String>) {
+        self.music.display = display
+    }
+
+    fn music_seperator(&mut self, separator: Option<char>) {
+        self.music.separator = separator
     }
 
     fn rpc_client_id(&mut self, rpc_client_id: String) {
@@ -76,7 +80,10 @@ impl ConfigBuilder {
                     api_key: self.api_key,
                     username: self.username,
                     blacklist: self.blacklist,
-                    music: self.music,
+                    music: Music {
+                        display: self.music.display,
+                        separator: self.music.separator
+                    },
                     rpc_client_id: self.rpc_client_id,
                     imgur_client_id: self.imgur_client_id,
                     images: self.images
@@ -91,7 +98,7 @@ pub struct Config {
     pub api_key: String,
     pub username: Vec<String>,
     pub blacklist: Blacklist,
-    pub music: String,
+    pub music: Music,
     pub rpc_client_id: String,
     pub imgur_client_id: String,
     pub images: Images,
@@ -107,6 +114,12 @@ pub struct Blacklist {
 pub struct Images {
     pub enabled: bool,
     pub imgur: bool,
+}
+
+#[derive(Default)]
+pub struct Music {
+    pub display: Vec<String>,
+    pub separator: Option<char>
 }
 
 pub fn get_config_path() -> Result<String, ConfigError> {
@@ -132,13 +145,15 @@ impl Config {
         let res: serde_json::Value = serde_json::from_str(&data)?;
 
         let jellyfin: serde_json::Value = res["Jellyfin"].clone();
+        let music: serde_json::Value = jellyfin["Music"].clone();
+
         let discord: serde_json::Value = res["Discord"].clone();
         let imgur: serde_json::Value = res["Imgur"].clone();
         let images: serde_json::Value = res["Images"].clone();
 
         config.url(jellyfin["URL"].as_str().unwrap_or("").to_string());
         config.api_key(jellyfin["API_KEY"].as_str().unwrap_or("").to_string());
-        if jellyfin["USERNAME"].as_str().is_some() {
+        if jellyfin["USERNAME"].is_string() {
             config.username(vec![
                 jellyfin["USERNAME"].as_str().unwrap_or("").to_string()
             ]);
@@ -186,7 +201,33 @@ impl Config {
                 });
         }
 
-        config.music(jellyfin["Music"]["Display"].as_str().unwrap_or("genres").to_string());
+        if music["DISPLAY"].is_string() {
+            config.music_display(
+                music["DISPLAY"]
+                    .as_str()
+                    .unwrap()
+                    .split(',')
+                    .map(|username| 
+                        username.trim().to_string()
+                    )
+                    .collect::<Vec<String>>()
+            )
+        } else if music["Display"].is_array() {
+            config.music_display(
+                music["DISPLAY"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|username| 
+                        username.as_str().unwrap().trim().to_string()
+                    )
+                    .collect::<Vec<String>>()
+            )
+        } else {
+            config.music_display(vec![String::from("genres")])
+        }
+
+        config.music_seperator(music["SEPARATOR"].as_str().unwrap_or("-").chars().next());
 
         config.blacklist(type_blacklist, library_blacklist);
         config.rpc_client_id(discord["APPLICATION_ID"]
