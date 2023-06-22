@@ -31,8 +31,8 @@ Terminal Output:
 
 ## Setup
 - Installers
-  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-Install-win.bat">Windows</a>
-  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-install-macos.sh">macOS</a>
+  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/install-win.bat">Windows</a>
+  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/install-macos.sh">macOS</a>
 
 Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `%APPDATA%\jellyfin-rpc\main.json` on Windows.
 
