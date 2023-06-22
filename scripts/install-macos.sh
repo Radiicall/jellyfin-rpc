@@ -95,38 +95,38 @@ fi
 configFileContents=""
 configFileContents+="$(cat <<EOF
 {
-    "Jellyfin": {
-        "URL": "${jellyfinurl}",
-        "API_KEY": "${jellyfinkey}",
-        "USERNAME": "${jellyfinuser}"
+    "jellyfin": {
+        "url": "${jellyfinurl}",
+        "api_key": "${jellyfinkey}",
+        "username": "${jellyfinuser}"
 EOF
 )"
 if [[ ${#responses} -ne 0 ]]; then # only add this line if there are items in the blocklist
   configFileContents+="$(cat <<EOF
 ,
-        "TYPE_BLACKLIST": ${typeBlocklistString}
+        "type_blacklist": ${typeBlocklistString}
 EOF
 )"
 fi
 if [[ ${#libBlocklistArray} -ne 0 ]]; then # only add this line if there are items in the library blocklist
   configFileContents+="$(cat <<EOF
 ,
-        "LIBRARY_BLACKLIST": ${libBlocklistString}
+        "library_blacklist": ${libBlocklistString}
 EOF
 )"
 fi
 configFileContents+="$(cat <<EOF
 
     },
-    "Discord": {
-        "APPLICATION_ID": "${discordAppId}"
+    "discord": {
+        "application_id": "${discordAppId}"
     },
-    "Imgur": {
-        "CLIENT_ID": "${imgurId}"
+    "imgur": {
+        "client_id": "${imgurId}"
     },
-    "Images": {
-        "ENABLE_IMAGES": ${configImagesEnabled},
-        "IMGUR_IMAGES": ${configImgurEnabled}
+    "images": {
+        "enable_images": ${configImagesEnabled},
+        "imgur_images": ${configImgurEnabled}
     }
 }
 EOF
