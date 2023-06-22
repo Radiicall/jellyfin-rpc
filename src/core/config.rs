@@ -144,22 +144,22 @@ impl Config {
         let data = std::fs::read_to_string(path)?;
         let res: serde_json::Value = serde_json::from_str(&data)?;
 
-        let jellyfin: serde_json::Value = res["Jellyfin"].clone();
-        let music: serde_json::Value = jellyfin["Music"].clone();
+        let jellyfin: serde_json::Value = res["jellyfin"].clone();
+        let music: serde_json::Value = jellyfin["music"].clone();
 
-        let discord: serde_json::Value = res["Discord"].clone();
-        let imgur: serde_json::Value = res["Imgur"].clone();
-        let images: serde_json::Value = res["Images"].clone();
+        let discord: serde_json::Value = res["discord"].clone();
+        let imgur: serde_json::Value = res["imgur"].clone();
+        let images: serde_json::Value = res["images"].clone();
 
-        config.url(jellyfin["URL"].as_str().unwrap_or("").to_string());
-        config.api_key(jellyfin["API_KEY"].as_str().unwrap_or("").to_string());
-        if jellyfin["USERNAME"].is_string() {
+        config.url(jellyfin["url"].as_str().unwrap_or("").to_string());
+        config.api_key(jellyfin["api_key"].as_str().unwrap_or("").to_string());
+        if jellyfin["username"].is_string() {
             config.username(vec![
-                jellyfin["USERNAME"].as_str().unwrap_or("").to_string()
+                jellyfin["username"].as_str().unwrap_or("").to_string()
             ]);
         } else {
             config.username(
-                jellyfin["USERNAME"].as_array()
+                jellyfin["username"].as_array()
                     .unwrap()
                     .iter()
                     .map(|username| username.as_str().unwrap().to_string())
@@ -167,9 +167,9 @@ impl Config {
             );
         }
         let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
-        if jellyfin["TYPE_BLACKLIST"].get(0).is_some() {
+        if jellyfin["type_blacklist"].get(0).is_some() {
             type_blacklist.pop();
-            jellyfin["TYPE_BLACKLIST"]
+            jellyfin["type_blacklist"]
                 .as_array()
                 .unwrap()
                 .iter()
@@ -186,9 +186,9 @@ impl Config {
                 });
         }
         let mut library_blacklist: Vec<String> = vec!["".to_string()];
-        if jellyfin["LIBRARY_BLACKLIST"].get(0).is_some() {
+        if jellyfin["library_blacklist"].get(0).is_some() {
             library_blacklist.pop();
-            jellyfin["LIBRARY_BLACKLIST"]
+            jellyfin["library_blacklist"]
                 .as_array()
                 .unwrap()
                 .iter()
@@ -201,9 +201,9 @@ impl Config {
                 });
         }
 
-        if music["DISPLAY"].is_string() {
+        if music["display"].is_string() {
             config.music_display(
-                music["DISPLAY"]
+                music["display"]
                     .as_str()
                     .unwrap()
                     .split(',')
@@ -212,9 +212,9 @@ impl Config {
                     )
                     .collect::<Vec<String>>()
             )
-        } else if music["Display"].is_array() {
+        } else if music["display"].is_array() {
             config.music_display(
-                music["DISPLAY"]
+                music["display"]
                     .as_array()
                     .unwrap()
                     .iter()
@@ -227,21 +227,21 @@ impl Config {
             config.music_display(vec![String::from("genres")])
         }
 
-        config.music_seperator(music["SEPARATOR"].as_str().unwrap_or("-").chars().next());
+        config.music_seperator(music["separator"].as_str().unwrap_or("-").chars().next());
 
         config.blacklist(type_blacklist, library_blacklist);
-        config.rpc_client_id(discord["APPLICATION_ID"]
+        config.rpc_client_id(discord["application_id"]
             .as_str()
             .unwrap_or("1053747938519679018")
             .to_string());
 
-        config.imgur_client_id(imgur["CLIENT_ID"].as_str().unwrap_or("").to_string());
+        config.imgur_client_id(imgur["client_id"].as_str().unwrap_or("").to_string());
 
         config.images(
-            images["ENABLE_IMAGES"].as_bool().unwrap_or_else(|| {
+            images["enable_images"].as_bool().unwrap_or_else(|| {
                 eprintln!(
                     "{}\n{} {} {} {}",
-                    "ENABLE_IMAGES has to be a bool...".red().bold(),
+                    "enable_images has to be a bool...".red().bold(),
                     "EXAMPLE:".bold(),
                     "true".bright_green().bold(),
                     "not".bold(),
@@ -249,10 +249,10 @@ impl Config {
                 );
                 std::process::exit(2)
             }),
-            images["IMGUR_IMAGES"].as_bool().unwrap_or_else(|| {
+            images["imgur_images"].as_bool().unwrap_or_else(|| {
                 eprintln!(
                     "{}\n{} {} {} {}",
-                    "IMGUR_IMAGES has to be a bool...".red().bold(),
+                    "imgur_images has to be a bool...".red().bold(),
                     "EXAMPLE:".bold(),
                     "true".bright_green().bold(),
                     "not".bold(),
