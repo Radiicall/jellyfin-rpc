@@ -177,10 +177,12 @@ impl Content {
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
             let artist = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
             let mut state = format!("By {} - ", artist);
-            config.music.split(',').for_each(|mut x| {
-                x = x.trim();
+            let mut index = 0;
+            config.music.display.iter().for_each(|data| {
+                index += 1;
+                let data = data.as_str();
                 let old_state = state.clone();
-                match x {
+                match data {
                     "genres" => match now_playing_item.get("Genres") {
                             None => (),
                             genre_array => {
@@ -206,9 +208,14 @@ impl Content {
                     },
                     _ => state = format!("By {}", artist),
                 }
-                if state != old_state {
-                    state.push(' ')
+                if state != old_state && config.music.display.len() != index {
+                    if config.music.separator.is_some() {
+                        state.push_str(&format!(" {} ", config.music.separator.unwrap()))
+                    } else {
+                        state.push(' ')
+                    }
                 }
+                
             });
 
             content.media_type(MediaType::Music);
