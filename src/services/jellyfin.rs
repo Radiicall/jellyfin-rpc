@@ -326,10 +326,7 @@ impl Default for MediaType {
 
 impl MediaType {
     pub fn is_none(&self) -> bool {
-        if self == &Self::None {
-            return true;
-        }
-        false
+        self == &Self::None
     }
 }
 
