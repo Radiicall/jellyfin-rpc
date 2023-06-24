@@ -8,6 +8,9 @@ vared -p "Jellyfin API Key (you can find this at ${jellyfinurl}/web/#!/apikeys.h
 vared -p "Jellyfin Username: " -c jellyfinuser
 echo ""
 
+echo "The blacklist creation in this script is currently broken"
+echo "Check the README for details on how to set it up in the config "
+
 # Prompt the user for what libraries should be included/blocked
 responses=()
 
