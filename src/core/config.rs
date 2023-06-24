@@ -146,6 +146,7 @@ impl Config {
 
         let jellyfin: serde_json::Value = res["jellyfin"].clone();
         let music: serde_json::Value = jellyfin["music"].clone();
+        let blacklist: serde_json::Value = jellyfin["blacklist"].clone();
 
         let discord: serde_json::Value = res["discord"].clone();
         let imgur: serde_json::Value = res["imgur"].clone();
@@ -166,40 +167,44 @@ impl Config {
                     .collect::<Vec<String>>()
             );
         }
-        let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
-        if jellyfin["type_blacklist"].get(0).is_some() {
-            type_blacklist.pop();
-            jellyfin["type_blacklist"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .for_each(|val| {
-                    if val != "music" && val != "movie" && val != "episode" && val != "livetv" {
-                        eprintln!("{} is invalid, valid media types to blacklist include: \"music\", \"movie\", \"episode\" and \"livetv\"", val);
-                        std::process::exit(2)
-                    }
-                    type_blacklist.push(
-                        MediaType::from(val
-                            .as_str()
-                            .expect("Media types to blacklist need to be in quotes \"music\"")
-                            .to_string()))
-                });
-        }
         let mut library_blacklist: Vec<String> = vec!["".to_string()];
-        if jellyfin["library_blacklist"].get(0).is_some() {
-            library_blacklist.pop();
-            jellyfin["library_blacklist"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .for_each(|val| {
-                    library_blacklist.push(
-                        val.as_str()
-                            .expect("Libraries to blacklist need to be in quotes \"music\"")
-                            .to_lowercase(),
-                    )
-                });
+        let mut type_blacklist: Vec<MediaType> = vec![MediaType::None];
+        if blacklist.is_object() {
+            if blacklist["media_types"].get(0).is_some() {
+                type_blacklist.pop();
+                blacklist["media_types"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .for_each(|val| {
+                        if val != "music" && val != "movie" && val != "episode" && val != "livetv" {
+                            eprintln!("{} is invalid, valid media types to blacklist include: \"music\", \"movie\", \"episode\" and \"livetv\"", val);
+                            std::process::exit(2)
+                        }
+                        type_blacklist.push(
+                            MediaType::from(val
+                                .as_str()
+                                .expect("Media types to blacklist need to be in quotes \"music\"")
+                                .to_string()))
+                    });
+            }
+
+            if blacklist["libraries"].get(0).is_some() {
+                library_blacklist.pop();
+                blacklist["libraries"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .for_each(|val| {
+                        library_blacklist.push(
+                            val.as_str()
+                                .expect("Libraries to blacklist need to be in quotes \"music\"")
+                                .to_lowercase(),
+                        )
+                    });
+            }
         }
+        config.blacklist(type_blacklist, library_blacklist);
 
         if music["display"].is_string() {
             config.music_display(
@@ -229,7 +234,6 @@ impl Config {
 
         config.music_seperator(music["separator"].as_str().unwrap_or("-").chars().next());
 
-        config.blacklist(type_blacklist, library_blacklist);
         config.rpc_client_id(discord["application_id"]
             .as_str()
             .unwrap_or("1053747938519679018")
