@@ -144,16 +144,16 @@ impl Content {
         if now_playing_item["Type"].as_str().unwrap() == "Episode" {
             let season = now_playing_item["ParentIndexNumber"].to_string();
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
-            let mut msg = "S".to_owned() + &season + "E" + &first_episode_number;
+            let mut state = "S".to_owned() + &season + "E" + &first_episode_number;
 
             if now_playing_item.get("IndexNumberEnd").is_none() {
-                msg += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
+                state += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
             }
 
-            msg += &(" ".to_string() + name);
+            state += &(" ".to_string() + name);
             content.media_type(MediaType::Episode);
             content.details(now_playing_item["SeriesName"].as_str().unwrap().to_string());
-            content.state_message(msg);
+            content.state_message(state);
             content.item_id(now_playing_item["SeriesId"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
             match now_playing_item.get("Genres") {
@@ -192,7 +192,7 @@ impl Content {
                                         .as_array()
                                         .unwrap()
                                         .iter()
-                                        .map(|x| x.as_str().unwrap().to_string())
+                                        .map(|genre| genre.as_str().unwrap().to_string())
                                         .collect::<Vec<String>>()
                                         .join(", ")
                                 )
@@ -208,6 +208,7 @@ impl Content {
                     },
                     _ => state = format!("By {}", artist),
                 }
+                
                 if state != old_state && config.music.display.len() != index {
                     if config.music.separator.is_some() {
                         state.push_str(&format!(" {} ", config.music.separator.unwrap()))
@@ -215,7 +216,6 @@ impl Content {
                         state.push(' ')
                     }
                 }
-                
             });
 
             content.media_type(MediaType::Music);
@@ -330,10 +330,6 @@ impl MediaType {
             return true;
         }
         false
-    }
-
-    pub fn equal_to(&self, value: String) -> bool {
-        self == &Self::from(value)
     }
 }
 
