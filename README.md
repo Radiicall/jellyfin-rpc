@@ -44,6 +44,10 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
         "url": "https://example.com",
         "api_key": "sadasodsapasdskd",
         "username": "your_username_here",
+        "music": {
+            "display": "genres",
+            "separator": "-"
+        },
         "_comment": "the 4 lines below and this line arent needed and should be removed, by default nothing will display if these are present",
         "blacklist": {
             "media_types": ["music", "movie", "episode", "livetv"],
