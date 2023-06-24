@@ -1,8 +1,67 @@
 use serde_json::Value;
 
+use crate::core::config::Config;
+
 /*
     TODO: Comments
 */
+
+#[derive(Default, Clone)]
+struct ContentBuilder {
+    media_type: MediaType,
+    details: String,
+    state_message: String,
+    endtime: Option<i64>,
+    image_url: String,
+    item_id: String,
+    external_services: Vec<ExternalServices>
+}
+
+impl ContentBuilder {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn media_type(&mut self, media_type: MediaType) {
+        self.media_type = media_type;
+    }
+
+    fn details(&mut self, details: String) {
+        self.details = details;
+    }
+
+    fn state_message(&mut self, state_message: String) {
+        self.state_message = state_message;
+    }
+
+    fn endtime(&mut self, endtime: Option<i64>) {
+        self.endtime = endtime;
+    }
+
+    fn image_url(&mut self, image_url: String) {
+        self.image_url = image_url;
+    }
+    
+    fn item_id(&mut self, item_id: String) {
+        self.item_id = item_id;
+    }
+    
+    fn external_services(&mut self, external_services: Vec<ExternalServices>) {
+        self.external_services = external_services;
+    }
+
+    pub fn build(self) -> Content {
+        Content {
+            media_type: self.media_type,
+            details: self.details,
+            state_message: self.state_message,
+            endtime: self.endtime,
+            image_url: self.image_url,
+            item_id: self.item_id,
+            external_services: self.external_services,
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct Content {
@@ -17,16 +76,13 @@ pub struct Content {
 
 impl Content {
     pub async fn get(
-        url: &str,
-        api_key: &String,
-        username: &String,
-        enable_images: &bool,
+        config: &Config
     ) -> Result<Self, reqwest::Error> {
         let sessions: Vec<Value> = serde_json::from_str(
             &reqwest::get(format!(
                 "{}/Sessions?api_key={}",
-                url.trim_end_matches('/'),
-                api_key
+                config.url.trim_end_matches('/'),
+                config.api_key
             ))
             .await?
             .text()
@@ -35,45 +91,42 @@ impl Content {
         .unwrap_or_else(|_| {
             panic!(
                 "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
-                url
+                config.url
             )
         });
         for session in sessions {
-            if Option::is_none(&session.get("UserName")) {
+            if session.get("UserName").is_none() {
                 continue;
             }
-            if session["UserName"].as_str().unwrap() != username {
+            
+            if config.username.iter().all(|username| session["UserName"].as_str().unwrap() != username) {
                 continue;
             }
-            if Option::is_none(&session.get("NowPlayingItem")) {
+
+            if session.get("NowPlayingItem").is_none() {
                 continue;
             }
+
+            let mut content = ContentBuilder::new();
 
             let now_playing_item = &session["NowPlayingItem"];
 
-            let external_services = ExternalServices::get(now_playing_item).await;
-
-            let main = Content::watching(now_playing_item).await;
+            Content::watching(&mut content, now_playing_item, config).await;
 
             let mut image_url: String = "".to_string();
-            if enable_images == &true {
-                image_url = Content::image(url, main[3].clone()).await;
+            if config.images.enabled {
+                image_url = Content::image(&config.url, content.item_id.clone()).await;
             }
+            content.external_services(ExternalServices::get(now_playing_item).await);
+            content.endtime(Content::time_left(now_playing_item, &session).await);
+            content.image_url(image_url);
 
-            return Ok(Self {
-                media_type: main[0].clone().into(),
-                details: main[1].clone(),
-                state_message: main[2].clone(),
-                endtime: Content::time_left(now_playing_item, &session).await,
-                image_url,
-                item_id: main[3].clone(),
-                external_services,
-            });
+            return Ok(content.build());
         }
         Ok(Self::default())
     }
 
-    async fn watching(now_playing_item: &Value) -> Vec<String> {
+    async fn watching(content: &mut ContentBuilder, now_playing_item: &Value, config: &Config) {
         /*
         FIXME: Update this explanation/remove it.
 
@@ -87,28 +140,22 @@ impl Content {
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
         let name = now_playing_item["Name"].as_str().unwrap();
-        let item_type: String;
-        let item_id: String;
         let mut genres = "".to_string();
         if now_playing_item["Type"].as_str().unwrap() == "Episode" {
-            item_type = "episode".to_owned();
-            let series_name = now_playing_item["SeriesName"].as_str().unwrap().to_string();
-            item_id = now_playing_item["SeriesId"].as_str().unwrap().to_string();
-
             let season = now_playing_item["ParentIndexNumber"].to_string();
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
-            let mut msg = "S".to_owned() + &season + "E" + &first_episode_number;
+            let mut state = "S".to_owned() + &season + "E" + &first_episode_number;
 
-            if !Option::is_none(&now_playing_item.get("IndexNumberEnd")) {
-                msg += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
+            if now_playing_item.get("IndexNumberEnd").is_some() {
+                state += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
             }
 
-            msg += &(" ".to_string() + name);
-
-            vec![item_type, series_name, msg, item_id]
+            state += &(" ".to_string() + name);
+            content.media_type(MediaType::Episode);
+            content.details(now_playing_item["SeriesName"].as_str().unwrap().to_string());
+            content.state_message(state);
+            content.item_id(now_playing_item["SeriesId"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
-            item_type = "movie".to_owned();
-            item_id = now_playing_item["Id"].as_str().unwrap().to_string();
             match now_playing_item.get("Genres") {
                 None => (),
                 genre_array => {
@@ -123,43 +170,63 @@ impl Content {
                 }
             };
 
-            vec![item_type, name.to_string(), genres, item_id]
+            content.media_type(MediaType::Movie);
+            content.details(name.into());
+            content.state_message(genres);
+            content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
-            item_type = "music".to_owned();
-            item_id = now_playing_item["AlbumId"].as_str().unwrap().to_string();
-            let artist = now_playing_item["AlbumArtist"].as_str().unwrap();
-            match now_playing_item.get("Genres") {
-                None => (),
-                genre_array => {
-                    genres.push_str(" - ");
-                    genres += &genre_array
-                        .unwrap()
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .map(|x| x.as_str().unwrap().to_string())
-                        .collect::<Vec<String>>()
-                        .join(", ");
+            let artist = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
+            let mut state = format!("By {} - ", artist);
+            let mut index = 0;
+            config.music.display.iter().for_each(|data| {
+                index += 1;
+                let data = data.as_str();
+                let old_state = state.clone();
+                match data {
+                    "genres" => match now_playing_item.get("Genres") {
+                            None => (),
+                            genre_array => {
+                                state.push_str(
+                                    &genre_array
+                                        .unwrap()
+                                        .as_array()
+                                        .unwrap()
+                                        .iter()
+                                        .map(|genre| genre.as_str().unwrap().to_string())
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                )
+                            }
+                        },
+                    "album" => state.push_str(now_playing_item["Album"].as_str().unwrap_or("")),
+                    "year" => {
+                        let mut year = now_playing_item["ProductionYear"].as_u64().unwrap_or(0).to_string();
+                        if year == "0" {
+                            year = String::from("");
+                        }
+                        state.push_str(&year)
+                    },
+                    _ => state = format!("By {}", artist),
                 }
-            };
+                
+                if state != old_state && config.music.display.len() != index {
+                    if config.music.separator.is_some() {
+                        state.push_str(&format!(" {} ", config.music.separator.unwrap()))
+                    } else {
+                        state.push(' ')
+                    }
+                }
+            });
 
-            let msg = format!("By {}{}", artist, genres);
-
-            vec![item_type, name.to_string(), msg, item_id]
+            content.media_type(MediaType::Music);
+            content.details(name.into());
+            content.state_message(state);
+            content.item_id(now_playing_item["AlbumId"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "TvChannel" {
-            item_type = "livetv".to_owned();
-            item_id = now_playing_item["Id"].as_str().unwrap().to_string();
-            let msg = "Live TV".to_string();
-
-            vec![item_type, name.to_string(), msg, item_id]
-        } else {
-            // Return 4 empty strings to make vector equal length
-            vec![
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-            ]
+            content.media_type(MediaType::LiveTv);
+            content.details(name.into());
+            content.state_message("Live TV".into());
+            content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         }
     }
 
@@ -194,7 +261,7 @@ impl Content {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExternalServices {
     pub name: String,
     pub url: String,
@@ -216,8 +283,8 @@ impl ExternalServices {
                     i.get("Url").and_then(Value::as_str),
                 ) {
                     external_services.push(Self {
-                        name: name.to_string(),
-                        url: url.to_string(),
+                        name: name.into(),
+                        url: url.into(),
                     });
                     if external_services.len() == 2 {
                         break;
@@ -259,14 +326,7 @@ impl Default for MediaType {
 
 impl MediaType {
     pub fn is_none(&self) -> bool {
-        if self == &MediaType::None {
-            return true;
-        }
-        false
-    }
-
-    pub fn equal_to(&self, value: String) -> bool {
-        self == &MediaType::from(value)
+        self == &Self::None
     }
 }
 

@@ -43,20 +43,20 @@ set /p IMAGES_IMGUR_IMAGES=Enable images from Imgur (true/false) [%IMAGES_IMGUR_
 
 rem Output the JSON data to the file
 echo { > main.json
-echo     "Jellyfin": { >> main.json
-echo         "URL": "%JELLYFIN_URL%", >> main.json
-echo         "API_KEY": "%JELLYFIN_API_KEY%", >> main.json
-echo         "USERNAME": "%JELLYFIN_USERNAME%" >> main.json
+echo     "jellyfin": { >> main.json
+echo         "url": "%JELLYFIN_URL%", >> main.json
+echo         "api_key": "%JELLYFIN_API_KEY%", >> main.json
+echo         "username": "%JELLYFIN_USERNAME%" >> main.json
 echo     }, >> main.json
-echo     "Discord": { >> main.json
-echo         "APPLICATION_ID": "%DISCORD_APPLICATION_ID%" >> main.json
+echo     "discord": { >> main.json
+echo         "application_id": "%DISCORD_APPLICATION_ID%" >> main.json
 echo     }, >> main.json
-echo     "Imgur": { >> main.json
-echo         "CLIENT_ID": "%IMGUR_CLIENT_ID%" >> main.json
+echo     "imgur": { >> main.json
+echo         "client_id": "%IMGUR_CLIENT_ID%" >> main.json
 echo     }, >> main.json
-echo     "Images": { >> main.json
-echo         "ENABLE_IMAGES": %IMAGES_ENABLE_IMAGES%, >> main.json
-echo         "IMGUR_IMAGES": %IMAGES_IMGUR_IMAGES% >> main.json
+echo     "images": { >> main.json
+echo         "enable_images": %IMAGES_ENABLE_IMAGES%, >> main.json
+echo         "imgur_images": %IMAGES_IMGUR_IMAGES% >> main.json
 echo     } >> main.json
 echo } >> main.json
 

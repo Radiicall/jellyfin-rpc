@@ -1,8 +1,9 @@
 pub mod services;
+use crate::core::updates;
 pub use crate::services::imgur::*;
 pub use crate::services::jellyfin::*;
-pub mod config;
-pub use crate::config::*;
+pub mod core;
+pub use crate::core::config::*;
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
@@ -31,6 +32,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    updates::checker().await;
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
@@ -38,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::process::exit(1)
         })
     });
-
+    
     std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
 
     let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
@@ -114,10 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start loop
     loop {
         let mut content = Content::get(
-            &config.url,
-            &config.api_key,
-            &config.username,
-            &config.images.enabled,
+            &config
         )
         .await?;
 

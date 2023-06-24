@@ -31,8 +31,8 @@ Terminal Output:
 
 ## Setup
 - Installers
-  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-Install-win.bat">Windows</a>
-  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/Auto-install-macos.sh">macOS</a>
+  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/install-win.bat">Windows</a>
+  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/install-macos.sh">macOS</a>
 
 Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `%APPDATA%\jellyfin-rpc\main.json` on Windows.
 
@@ -40,23 +40,29 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
 
 ```
 {
-    "Jellyfin": {
-        "URL": "https://example.com",
-        "API_KEY": "sadasodsapasdskd",
-        "USERNAME": "your_username_here",
-        "_comment": "the 2 lines below and this line arent needed and should be removed, by default nothing will display if these are present"
-        "TYPE_BLACKLIST": ["music", "movie", "episode", "livetv"]
-        "LIBRARY_BLACKLIST": ["Anime", "Anime Movies"]
+    "jellyfin": {
+        "url": "https://example.com",
+        "api_key": "sadasodsapasdskd",
+        "username": "your_username_here",
+        "music": {
+            "display": "genres",
+            "separator": "-"
+        },
+        "_comment": "the 4 lines below and this line arent needed and should be removed, by default nothing will display if these are present",
+        "blacklist": {
+            "media_types": ["music", "movie", "episode", "livetv"],
+            "libraries": ["Anime", "Anime Movies"]
+        }
     },
-    "Discord": {
-        "APPLICATION_ID": "1053747938519679018"
+    "discord": {
+        "application_id": "1053747938519679018"
     },
-    "Imgur": {
-        "CLIENT_ID": "asdjdjdg394209fdjs093"
+    "imgur": {
+        "client_id": "asdjdjdg394209fdjs093"
     },
-    "Images": {
-        "ENABLE_IMAGES": true,
-        "IMGUR_IMAGES": true
+    "images": {
+        "enable_images": true,
+        "imgur_images": true
     }
 }
 ```
