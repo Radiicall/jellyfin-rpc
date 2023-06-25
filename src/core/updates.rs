@@ -1,6 +1,6 @@
 use colored::Colorize;
-
 use crate::VERSION;
+
 pub async fn checker() {
     let current = VERSION.unwrap_or("0.0.0").to_string();
     let latest = get_latest_github()
