@@ -14,6 +14,7 @@ struct ConfigBuilder {
     username: Vec<String>,
     blacklist: Blacklist,
     music: Music,
+    button: Vec<Button>,
     rpc_client_id: String,
     imgur_client_id: String,
     images: Images,
@@ -46,6 +47,10 @@ impl ConfigBuilder {
 
     fn music_seperator(&mut self, separator: Option<char>) {
         self.music.separator = separator
+    }
+
+    fn button(&mut self, name: String, url: String) {
+        self.button.push(Button {name, url})
     }
 
     fn rpc_client_id(&mut self, rpc_client_id: String) {
@@ -84,6 +89,7 @@ impl ConfigBuilder {
                         display: self.music.display,
                         separator: self.music.separator
                     },
+                    button: self.button,
                     rpc_client_id: self.rpc_client_id,
                     imgur_client_id: self.imgur_client_id,
                     images: self.images
@@ -99,6 +105,7 @@ pub struct Config {
     pub username: Vec<String>,
     pub blacklist: Blacklist,
     pub music: Music,
+    pub button: Vec<Button>,
     pub rpc_client_id: String,
     pub imgur_client_id: String,
     pub images: Images,
@@ -120,6 +127,12 @@ pub struct Images {
 pub struct Music {
     pub display: Vec<String>,
     pub separator: Option<char>
+}
+
+#[derive(Default, Clone)]
+pub struct Button {
+    pub name: String,
+    pub url: String
 }
 
 pub fn get_config_path() -> Result<String, ConfigError> {
@@ -147,6 +160,7 @@ impl Config {
         let jellyfin: serde_json::Value = res["jellyfin"].clone();
         let music: serde_json::Value = jellyfin["music"].clone();
         let blacklist: serde_json::Value = jellyfin["blacklist"].clone();
+        let buttons: serde_json::Value = jellyfin["buttons"].clone();
 
         let discord: serde_json::Value = res["discord"].clone();
         let imgur: serde_json::Value = res["imgur"].clone();
@@ -233,6 +247,27 @@ impl Config {
         }
 
         config.music_seperator(music["separator"].as_str().unwrap_or("-").chars().next());
+
+        if buttons.is_array() {
+            let buttons = buttons.as_array().unwrap();
+            for button in buttons {
+                if let (Some(name), Some(url)) = (
+                    button.get("name").and_then(serde_json::Value::as_str),
+                    button.get("url").and_then(serde_json::Value::as_str),
+                ) {
+                    config.button(
+                        name.into(),
+                        url.into()
+                    );
+                }
+                if config.button.len() == 2 {
+                    break
+                }
+            }
+        } else {
+            config.button("dynamic".into(), "dynamic".into());
+            config.button("dynamic".into(), "dynamic".into());
+        }
 
         config.rpc_client_id(discord["application_id"]
             .as_str()
