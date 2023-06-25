@@ -164,11 +164,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = vec![];
-            for i in 0..content.external_services.len() {
-                rpcbuttons.push(activity::Button::new(
-                    &content.external_services[i].name,
-                    &content.external_services[i].url,
-                ));
+            let mut x = 0;
+            for i in 0..config.button.len() {
+                if config.button[i].name == "dynamic" && config.button[i].url == "dynamic" && content.external_services.len() != x {
+                    rpcbuttons.push(activity::Button::new(
+                        &content.external_services[x].name,
+                        &content.external_services[x].url,
+                    ));
+                    x+=1
+                } else if config.button[i].name != "dynamic" || config.button[i].url != "dynamic" {
+                    rpcbuttons.push(activity::Button::new(
+                        &config.button[i].name,
+                        &config.button[i].url,
+                    ))
+                }
             }
 
             rich_presence_client
