@@ -160,9 +160,10 @@ impl Config {
         let jellyfin: serde_json::Value = res["jellyfin"].clone();
         let music: serde_json::Value = jellyfin["music"].clone();
         let blacklist: serde_json::Value = jellyfin["blacklist"].clone();
-        let buttons: serde_json::Value = jellyfin["buttons"].clone();
 
         let discord: serde_json::Value = res["discord"].clone();
+        let buttons: serde_json::Value = discord["buttons"].clone();
+
         let imgur: serde_json::Value = res["imgur"].clone();
         let images: serde_json::Value = res["images"].clone();
 
