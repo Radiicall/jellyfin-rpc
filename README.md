@@ -55,7 +55,17 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
         }
     },
     "discord": {
-        "application_id": "1053747938519679018"
+        "application_id": "1053747938519679018",
+        "buttons": [
+            {
+                "name": "dynamic",
+                "url": "dynamic"
+            },
+            {
+                "name": "dynamic",
+                "url": "dynamic"
+            }
+        ]
     },
     "imgur": {
         "client_id": "asdjdjdg394209fdjs093"
