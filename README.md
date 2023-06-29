@@ -8,7 +8,8 @@ Program used to display what you're currently watching on discord.
 
 Jellyfin-RPC uses the API to check what you're currently watching, this means that the program can be ran from a server or your computer. The only requirement is that discord is open and logged in.
 
-
+<details>
+  <summary>Pictures of Jellyfin-RPC in action</summary>
 Example Movie:
 
 ![image](https://user-images.githubusercontent.com/66682497/213467832-5eb6b0a0-1b83-47db-bf00-48c0e739aec4.png)
@@ -29,26 +30,28 @@ Terminal Output:
 
 ![image](https://user-images.githubusercontent.com/66682497/222933540-aa5f08ed-afb2-4713-8b9a-18cbaa94444b.png)
 
+</details>
+
 ## Setup
-- Installers
-  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/install-win.bat">Windows</a>
-  - <a href="https://github.com/Radiicall/jellyfin-rpc/raw/main/scripts/install-macos.sh">macOS</a>
+#### Prerequisites
+- A Jellyfin server
+	- Account on said server
+	- Jellyfin API key on said server
+- Discord
+- Imgur API key (image support without port forwarding)
 
-Make a `main.json` file with the following items in `$XDG_CONFIG_HOME/jellyfin-rpc` on Linux/macOS and `%APPDATA%\jellyfin-rpc\main.json` on Windows.
-
-If you're unsure about the directory then run jellyfin-rpc and it will tell you where to place it.
+A fully filled out config would look something like this
 
 ```
 {
     "jellyfin": {
         "url": "https://example.com",
         "api_key": "sadasodsapasdskd",
-        "username": "your_username_here",
+        "username": ["my_first_user", "my_second_user"],
         "music": {
-            "display": "genres",
+            "display": ["year", "album", "genres"],
             "separator": "-"
         },
-        "_comment": "the 4 lines below and this line arent needed and should be removed, by default nothing will display if these are present",
         "blacklist": {
             "media_types": ["music", "movie", "episode", "livetv"],
             "libraries": ["Anime", "Anime Movies"]
@@ -77,35 +80,76 @@ If you're unsure about the directory then run jellyfin-rpc and it will tell you 
 }
 ```
 
-### Jellyfin
-#### URL
-This will be the URL to your jellyfin instance, remember to include http/https in the url.
 
-If you want to know more about jellyfin you can check it out <a href="https://jellyfin.org/">here</a>.
+but all of that isn't needed to make the code work, for that you'd only need this.
 
-#### API Key
-This is the API key used for checking what you're currently watching on Jellyfin.
+```
+{
+	"jellyfin": {
+        "url": "https://example.com",
+        "api_key": "sadasodsapasdskd",
+        "username": "your_username_here",
+    }
+}
+```
 
-You can get one by going to \<YOUR INSTANCE URL HERE>/web/#!/apikeys.html
+Not that much right? That's because there are defaults for most of these options, with this barebones config you wouldn't get any images but apart from that it's fully functional.
 
-#### Username
-This is the username you use to log into Jellyfin.
+Now then, lets continue on with the setup
 
-The username is needed because if you have multiple accounts (friends, family) then the program will just grab the first person it sees in the list.
+### Jellyfin server URL
+The first thing you need is the url to your server, it will look something like one of these
+- `http://192.168.1.2:8096`
+- `http://[2001:4647:aa09:0:b62e:99ff:fe15:984d]:8096`
+- `https://jf.radical.fun`
+###### NOTE: The http/https part is important, without it the script will crash
+
+![URL shown in browser with red arrow pointed at it](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/d3c11318-1b24-4f50-b36b-119d60ea59ed)
+
+### Jellyfin API key
+The next thing you'll need is an API key, you can get one at
+http(s)://your_jellyfin_url/web/#!/apikeys.html
+
+1. Click the plus here
+
+![API Key page with arrow pointed to plus button](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/6dc2492f-4c95-487a-96e2-dd11ce89f520)
+
+2. Choose a name
+
+![Picture of API Key creation UI](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/fed20047-d285-4d6a-912e-abcfc2a1991c)
+
+3. Copy the key
+
+![Arrow pointed at newly created API key](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/da494f07-7414-4683-8a2b-00cc02cb2930)
+
+### Jellyfin username
+You also need your username, this is the one you use to log in
+![Username entered into login screen of Jellyfin](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/8cefb179-4ed4-418c-9ea0-b60702aede17)
+
+### OPTIONAL
 
 ### Discord Application ID
-This step is optional as I have included my own.
-
-If this variable is empty it will use the default one
-
 You can make a discord application by going <a href="https://discord.com/developers/applications">here</a>.
 
-### Imgur API
+1. Click "New Application"
 
+![Arrow pointing to "New Application" button](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/b3cbce7e-0eca-4a8a-98f2-a0f9f3e25c8d)
+
+2. then click "Create"
+
+![Creation screen](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/f784fb96-0ff6-410d-a041-76c614a1ce08)
+
+3. then click "Copy" on the Application ID
+
+![Red box around newly created application id](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/2d1733eb-738b-4494-b3e7-35d991b49c2e)
+
+### Imgur API
 For the imgur api to work you have to do this in the config
 ```
-"ENABLE_IMAGES": true,
-"IMGUR_IMAGES": true
+"images": {
+    "enable_images": true,
+    "imgur_images": true
+}
 ```
 
 1. Go to Imgur's [application registration page](https://api.imgur.com/oauth2/addclient).
