@@ -49,7 +49,7 @@ impl ConfigBuilder {
     }
 
     fn button(&mut self, name: String, url: String) {
-        self.button.push(Button {name, url})
+        self.button.push(Button { name, url })
     }
 
     fn rpc_client_id(&mut self, rpc_client_id: String) {
@@ -80,20 +80,19 @@ impl ConfigBuilder {
                 "Imgur Client ID is empty but Imgur images are enabled!",
             )),
             (false, false, false, false, _) => Ok(Config {
-                    url: self.url,
-                    api_key: self.api_key,
-                    username: self.username,
-                    blacklist: self.blacklist,
-                    music: Music {
-                        display: self.music.display,
-                        separator: self.music.separator
-                    },
-                    button: self.button,
-                    rpc_client_id: self.rpc_client_id,
-                    imgur_client_id: self.imgur_client_id,
-                    images: self.images
+                url: self.url,
+                api_key: self.api_key,
+                username: self.username,
+                blacklist: self.blacklist,
+                music: Music {
+                    display: self.music.display,
+                    separator: self.music.separator,
                 },
-            ),
+                button: self.button,
+                rpc_client_id: self.rpc_client_id,
+                imgur_client_id: self.imgur_client_id,
+                images: self.images,
+            }),
         }
     }
 }
@@ -125,13 +124,13 @@ pub struct Images {
 #[derive(Default)]
 pub struct Music {
     pub display: Vec<String>,
-    pub separator: Option<char>
+    pub separator: Option<char>,
 }
 
 #[derive(Default, Clone)]
 pub struct Button {
     pub name: String,
-    pub url: String
+    pub url: String,
 }
 
 pub fn get_config_path() -> Result<String, ConfigError> {
@@ -169,16 +168,18 @@ impl Config {
         config.url(jellyfin["url"].as_str().unwrap_or("").to_string());
         config.api_key(jellyfin["api_key"].as_str().unwrap_or("").to_string());
         if jellyfin["username"].is_string() {
-            config.username(vec![
-                jellyfin["username"].as_str().unwrap_or("").to_string()
-            ]);
+            config.username(vec![jellyfin["username"]
+                .as_str()
+                .unwrap_or("")
+                .to_string()]);
         } else {
             config.username(
-                jellyfin["username"].as_array()
+                jellyfin["username"]
+                    .as_array()
                     .unwrap()
                     .iter()
                     .map(|username| username.as_str().unwrap().to_string())
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<String>>(),
             );
         }
         let mut library_blacklist: Vec<String> = vec!["".to_string()];
@@ -226,10 +227,8 @@ impl Config {
                     .as_str()
                     .unwrap()
                     .split(',')
-                    .map(|username| 
-                        username.trim().to_string()
-                    )
-                    .collect::<Vec<String>>()
+                    .map(|username| username.trim().to_string())
+                    .collect::<Vec<String>>(),
             )
         } else if music["display"].is_array() {
             config.music_display(
@@ -237,10 +236,8 @@ impl Config {
                     .as_array()
                     .unwrap()
                     .iter()
-                    .map(|username| 
-                        username.as_str().unwrap().trim().to_string()
-                    )
-                    .collect::<Vec<String>>()
+                    .map(|username| username.as_str().unwrap().trim().to_string())
+                    .collect::<Vec<String>>(),
             )
         } else {
             config.music_display(vec![String::from("genres")])
@@ -255,13 +252,10 @@ impl Config {
                     button.get("name").and_then(serde_json::Value::as_str),
                     button.get("url").and_then(serde_json::Value::as_str),
                 ) {
-                    config.button(
-                        name.into(),
-                        url.into()
-                    );
+                    config.button(name.into(), url.into());
                 }
                 if config.button.len() == 2 {
-                    break
+                    break;
                 }
             }
         } else {
@@ -269,16 +263,18 @@ impl Config {
             config.button("dynamic".into(), "dynamic".into());
         }
 
-        config.rpc_client_id(discord["application_id"]
-            .as_str()
-            .unwrap_or("1053747938519679018")
-            .to_string());
+        config.rpc_client_id(
+            discord["application_id"]
+                .as_str()
+                .unwrap_or("1053747938519679018")
+                .to_string(),
+        );
 
         config.imgur_client_id(imgur["client_id"].as_str().unwrap_or("").to_string());
 
         config.images(
             images["enable_images"].as_bool().unwrap_or(false),
-            images["imgur_images"].as_bool().unwrap_or(false)
+            images["imgur_images"].as_bool().unwrap_or(false),
         );
 
         config.build()
