@@ -40,6 +40,8 @@ Terminal Output:
 - Discord
 - Imgur API key (image support without port forwarding)
 
+Installers for <a href="https://github.com/Radiicall/jellyfin-rpc/blob/main/scripts/install-win.bat">Windows</a> and <a href="https://github.com/Radiicall/jellyfin-rpc/blob/main/scripts/install-macos.sh">macOS</a> are available.
+
 A fully filled out config would look something like this
 
 ```
