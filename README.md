@@ -91,10 +91,6 @@ but all of that isn't needed to make the code work, for that you'd only need thi
         "url": "https://example.com",
         "api_key": "sadasodsapasdskd",
         "username": "your_username_here"
-    },
-    "images": {
-        "enable_images": false,
-        "imgur_images": false
     }
 }
 ```
