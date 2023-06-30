@@ -45,8 +45,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
         eprintln!(
-            "{}",
-            format!("Config can't be loaded: {:?}", e).red().bold()
+            "{} {}",
+            format!("Config can't be loaded: {:?}.\nConfig file should be located at:", e).red().bold(),
+            config_path
         );
         std::process::exit(2)
     });
