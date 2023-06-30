@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 
 
 import os
+import subprocess
 from time import sleep
 
 print("""
@@ -20,7 +21,7 @@ content += f' "jellyfin": {{ "url": "{url}", "api_key": "{api_key}",  "username"
 print("If you dont want anything else you can just press enter through all of these")
 
 while True:
-    val = input("Do you want to customize music display? (y/N): ")
+    val = input("Do you want to customize music display? (y/N): ").lower()
 
     if val == "n" or val == "":
         break
@@ -46,7 +47,7 @@ while True:
     break
 
 while True:
-    val = input("Do you want to blacklist media types or libraries? (y/N): ")
+    val = input("Do you want to blacklist media types or libraries? (y/N): ").lower()
 
     if val == "n" or val == "":
         content += " }"
@@ -90,7 +91,7 @@ if appid != "":
     content += f' "application_id": "{appid}"'
 
 while True:
-    val = input("Do you want custom buttons? (y/N): ")
+    val = input("Do you want custom buttons? (y/N): ").lower()
 
     if val == "n" or val == "":
         content += " }"
@@ -131,7 +132,7 @@ while True:
 print("----------Images----------")
 
 while True:
-    val = input("Do you want images? (y/N): ")
+    val = input("Do you want images? (y/N): ").lower()
 
     if val == "n" or val == "":
         break
@@ -139,12 +140,12 @@ while True:
         print("Invalid input, please type y or n")
         continue
 
-    val2 = input("Do you want imgur images? (y/N): ")
+    val2 = input("Do you want imgur images? (y/N): ").lower()
     client_id = ""
 
     if val2 == "y":
         client_id = input("Enter your imgur client id: ")
-    elif val2 != "n" or val2 != "":
+    elif val2 != "n" and val2 != "":
         print("Invalid input, please type y or n")
         continue
 
@@ -164,8 +165,44 @@ if os.environ.get("XDG_CONFIG_HOME"):
 else:
     path = os.environ["HOME"].removesuffix("/") + "/.config/jellyfin-rpc/main.json"
 
-print(f"Placing config in '{path}'")
+print(f"\nPlacing config in '{path}'")
+
+subprocess.run(["mkdir", "-p", path.removesuffix("main.json")])
 
 file = open(path, "w")
 file.write(content)
 file.close()
+
+print("\nDownloading Jellyfin-RPC")
+
+subprocess.run(["mkdir", "-p", os.environ["HOME"].removesuffix("/") + "/.local/bin"])
+subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
+
+if os.environ.get("XDG_CONFIG_HOME"):
+    path = os.environ["XDG_CONFIG_HOME"].removesuffix("/") + "/systemd/user/jellyfin-rpc.service"
+else:
+    path = os.environ["HOME"].removesuffix("/") + "/.config/systemd/user/jellyfin-rpc.service"
+
+print(f"\nSetting up service file in {path}")
+
+subprocess.run(["mkdir", "-p", path.removesuffix("jellyfin-rpc.service")])
+
+content = f"""[Unit]
+Description=Jellyfin-RPC Service
+Documentation=https://github.com/Radiicall/jellyfin-rpc
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc"}
+Restart=on-failure
+
+[Install]
+WantedBy=default.target"""
+
+file = open(path, "w")
+file.write(content)
+file.close()
+
+subprocess.run(["systemctl", "--user", "daemon-reload"])
+subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])
