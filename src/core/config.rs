@@ -1,6 +1,5 @@
 use crate::core::error::ConfigError;
 use crate::services::jellyfin::MediaType;
-use colored::Colorize;
 use std::env;
 
 /*
@@ -278,28 +277,8 @@ impl Config {
         config.imgur_client_id(imgur["client_id"].as_str().unwrap_or("").to_string());
 
         config.images(
-            images["enable_images"].as_bool().unwrap_or_else(|| {
-                eprintln!(
-                    "{}\n{} {} {} {}",
-                    "enable_images has to be a bool...".red().bold(),
-                    "EXAMPLE:".bold(),
-                    "true".bright_green().bold(),
-                    "not".bold(),
-                    "'true'".red().bold()
-                );
-                std::process::exit(2)
-            }),
-            images["imgur_images"].as_bool().unwrap_or_else(|| {
-                eprintln!(
-                    "{}\n{} {} {} {}",
-                    "imgur_images has to be a bool...".red().bold(),
-                    "EXAMPLE:".bold(),
-                    "true".bright_green().bold(),
-                    "not".bold(),
-                    "'true'".red().bold()
-                );
-                std::process::exit(2)
-            })
+            images["enable_images"].as_bool().unwrap_or(false),
+            images["imgur_images"].as_bool().unwrap_or(false)
         );
 
         config.build()
