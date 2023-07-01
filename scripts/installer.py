@@ -236,6 +236,8 @@ if platform.system() == "Windows":
 
         print("Autostart has been set up, jellyfin-rpc should now launch at login\nas long as there are no issues with the configuration")
 
+        break
+
 elif platform.system() == "Darwin":
     subprocess.run(["curl", "-o", "/usr/local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
     subprocess.run(["chmod", "+x", "/usr/local/bin/jellyfin-rpc"])
@@ -326,3 +328,6 @@ WantedBy=default.target"""
 
         subprocess.run(["systemctl", "--user", "daemon-reload"])
         subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])
+
+        break
+
