@@ -189,6 +189,9 @@ if current == "n" or current == "":
     file.write(content)
     file.close()
 
+if platform.system() == "Windows":
+    print("Downloading NSSM")
+
 print("\nDownloading Jellyfin-RPC")
 
 if platform.system() == "Windows":
@@ -251,11 +254,20 @@ else:
     else:
         path = os.environ["HOME"].removesuffix("/") + "/.config/systemd/user/jellyfin-rpc.service"
 
-    print(f"\nSetting up service file in {path}")
+    while True:
+        val = input("Do you want to autostart Jellyfin-RPC at login? (y/N): ").lower()
 
-    subprocess.run(["mkdir", "-p", path.removesuffix("jellyfin-rpc.service")])
+        if val == "n" or val == "":
+            break
+        if val != "y":
+            print("Invalid input, please type y or n")
+            continue
 
-    content = f"""[Unit]
+        print(f"\nSetting up service file in {path}")
+
+        subprocess.run(["mkdir", "-p", path.removesuffix("jellyfin-rpc.service")])
+
+        content = f"""[Unit]
 Description=Jellyfin-RPC Service
 Documentation=https://github.com/Radiicall/jellyfin-rpc
 After=network.target
@@ -268,9 +280,9 @@ Restart=on-failure
 [Install]
 WantedBy=default.target"""
 
-    file = open(path, "w")
-    file.write(content)
-    file.close()
+        file = open(path, "w")
+        file.write(content)
+        file.close()
 
-    subprocess.run(["systemctl", "--user", "daemon-reload"])
-    subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])
+        subprocess.run(["systemctl", "--user", "daemon-reload"])
+        subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])
