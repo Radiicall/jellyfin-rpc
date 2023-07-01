@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# Thanks to https://github.com/pogmommy for making the original macOS installer
+# Thanks to https://github.com/xenoncolt for making the original Windows installer
+# Their contributions made this universal script a lot easier to produce.
+
 import os
 import subprocess
 import platform
