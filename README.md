@@ -40,7 +40,10 @@ Terminal Output:
 - Discord
 - Imgur API key (image support without port forwarding)
 
-Installers for <a href="https://github.com/Radiicall/jellyfin-rpc/blob/main/scripts/install-win.bat">Windows</a> and <a href="https://github.com/Radiicall/jellyfin-rpc/blob/main/scripts/install-macos.sh">macOS</a> are available.
+Windows users will also need <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">vcredist</a>.
+
+**A cross-platform installer written in Python can be found <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/installer.py">here</a>, press ctrl+s on the page to download.**
+**There's also a cross-platform uninstaller that can be found <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/uninstaller.py">here</a>.**
 
 A fully filled out config would look something like this
 
