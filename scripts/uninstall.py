@@ -49,3 +49,4 @@ else:
     subprocess.run(["rm", execpath])
 
 print("Uninstall complete!")
+sleep(5)
