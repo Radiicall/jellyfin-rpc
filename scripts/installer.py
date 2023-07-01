@@ -329,5 +329,9 @@ WantedBy=default.target"""
         subprocess.run(["systemctl", "--user", "daemon-reload"])
         subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])
 
+        print("Jellyfin-RPC is now set up to start at login.")
+
         break
+
+print("Installation complete!")
 
