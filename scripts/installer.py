@@ -188,14 +188,17 @@ if current == "n" or current == "":
     file = open(path, "w")
     file.write(content)
     file.close()
-
-if platform.system() == "Windows":
-    print("Downloading NSSM")
+    
 
 print("\nDownloading Jellyfin-RPC")
 
 if platform.system() == "Windows":
-    print("")
+    subprocess.run(["curl", "-o", path.removesuffix("main.json") + "jellyfin-rpc.exe", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe"])
+    subprocess.run(["powershell", "-Command", f'"New-Service -Name \'Jellyfin-RPC\' -BinaryPathName \'{path.removesuffix("main.json")}jellyfin-rpc.exe -c {path} -i {path.removesuffix("main.json")}urls.json\' -StartupType \'Auto\'"'])
+
+    
+
+
 elif platform.system() == "Darwin":
     subprocess.run(["curl", "-o", "/usr/local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
     subprocess.run(["chmod", "+x", "/usr/local/bin/jellyfin-rpc"])
