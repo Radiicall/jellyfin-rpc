@@ -19,7 +19,7 @@ if platform.system() == "Windows":
         print("The script will ask for admin rights to remove the autostart service")
         print("waiting 5 seconds")
         sleep(5)
-        subprocess.run[path + "winsw.exe", "uninstall"]
+        subprocess.run([path + "winsw.exe", "uninstall"])
 
     subprocess.run(["rd", "/s", "/q", path])
 elif platform.system() == "Darwin":
@@ -37,7 +37,7 @@ elif platform.system() == "Darwin":
 else:
     if "jellyfin-rpc.service" in subprocess.Popen("systemctl --user list-units", shell=True, stdout=subprocess.PIPE).stdout.read().decode():
         subprocess.run(["systemctl", "--user", "disable", "--now", "jellyfin-rpc.service"])
-    
+
     if subprocess.run(["pgrep", "-xq", "--", "'jellyfin-rpc'"]).returncode == 0:
         subprocess.run(["killall", "jellyfin-rpc"])
 
