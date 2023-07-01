@@ -4,6 +4,9 @@ import subprocess
 from time import sleep
 import shutil
 
+# Thanks to https://github.com/pogmommy for making the original macOS uninstaller
+# Thanks to https://github.com/xenoncolt for making the original Windows uninstaller
+
 print("Welcome to the Jellyfin-RPC uninstaller")
 input("Hit enter to continue...")
 
