@@ -1,11 +1,12 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 import os
 import subprocess
+import platform
 from time import sleep
 
 print("""
-Welcome to the Jellyfin-RPC linux installer
+Welcome to the Jellyfin-RPC installer
 [https://github.com/Radiicall/jellyfin-rpc#Setup]
 """)
 
@@ -160,14 +161,18 @@ content += " }"
 
 path = ""
 
-if os.environ.get("XDG_CONFIG_HOME"):
-    path = os.environ["XDG_CONFIG_HOME"].removesuffix("/") + "/jellyfin-rpc/main.json"
+if platform.system() != "Windows":
+    if os.environ.get("XDG_CONFIG_HOME"):
+        path = os.environ["XDG_CONFIG_HOME"].removesuffix("/") + "/jellyfin-rpc/main.json"
+    else:
+        path = os.environ["HOME"].removesuffix("/") + "/.config/jellyfin-rpc/main.json"
+
+    subprocess.run(["mkdir", "-p", path.removesuffix("main.json")])
 else:
-    path = os.environ["HOME"].removesuffix("/") + "/.config/jellyfin-rpc/main.json"
+    path = os.environ["APPDATA"].removesuffix("\\") + "\jellyfin-rpc\main.json"
+    subprocess.run(["mkdir", path.removesuffix("main.json")])
 
 print(f"\nPlacing config in '{path}'")
-
-subprocess.run(["mkdir", "-p", path.removesuffix("main.json")])
 
 file = open(path, "w")
 file.write(content)
@@ -175,19 +180,73 @@ file.close()
 
 print("\nDownloading Jellyfin-RPC")
 
-subprocess.run(["mkdir", "-p", os.environ["HOME"].removesuffix("/") + "/.local/bin"])
-subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
+if platform.system() == "Windows":
+    print("")
+elif platform.system() == "Darwin":
+    subprocess.run(["curl", "-o", "/usr/local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
+    subprocess.run(["chmod", "+x", "/usr/local/bin/jellyfin-rpc"])
 
-if os.environ.get("XDG_CONFIG_HOME"):
-    path = os.environ["XDG_CONFIG_HOME"].removesuffix("/") + "/systemd/user/jellyfin-rpc.service"
+    while True:
+        val = input("Do you want to autostart Jellyfin-RPC at login? (y/N): ")
+
+        if val == "n" or val == "":
+            break
+        if val != "y":
+            print("Invalid input, please type y or n")
+            continue
+
+        if subprocess.run(["pgrep", "-xq", "--", "'jellyfin-rpc'"]).returncode == 0:
+            subprocess.run(["killall", "jellyfin-rpc"])
+
+        launchctl = subprocess.run(["launchctl", "list"])
+        
+        if "Jellyfin-RPC" in launchctl.stdout:
+            subprocess.run(["launchctl", "remove", "Jellyfin-RPC"])
+
+        content = """<?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+        <key>Label</key>
+        <string>Jellyfin-RPC</string>
+        <key>Program</key>
+        <string>/usr/local/bin/jellyfin-rpc</string>
+        <key>RunAtLoad</key>
+        <true/>
+        <key>StandardErrorPath</key>
+        <string>/tmp/jellyfinrpc.local.stderr.txt</string>
+        <key>StandardOutPath</key>
+        <string>/tmp/jellyfinrpc.local.stdout.txt</string>
+    </dict>
+    </plist>"""
+
+        path = os.environ["HOME"] + "/Library/LaunchAgents/jellyfinrpc.local.plist"
+
+        file = open(path, "w")
+        file.write(content)
+        file.close()
+
+        subprocess.run(["chmod", "644", path])
+        subprocess.run(["launchctl", "load", path])
+
+        print("Jellyfin RPC is now set up to start at login.")
+        print("If needed, you can run Jellyfin RPC at any time by running 'jellyfin-rpc' in a terminal.")
+        break
 else:
-    path = os.environ["HOME"].removesuffix("/") + "/.config/systemd/user/jellyfin-rpc.service"
+    subprocess.run(["mkdir", "-p", os.environ["HOME"].removesuffix("/") + "/.local/bin"])
+    subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
+    subprocess.run(["chmod", "+x", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc"])
 
-print(f"\nSetting up service file in {path}")
+    if os.environ.get("XDG_CONFIG_HOME"):
+        path = os.environ["XDG_CONFIG_HOME"].removesuffix("/") + "/systemd/user/jellyfin-rpc.service"
+    else:
+        path = os.environ["HOME"].removesuffix("/") + "/.config/systemd/user/jellyfin-rpc.service"
 
-subprocess.run(["mkdir", "-p", path.removesuffix("jellyfin-rpc.service")])
+    print(f"\nSetting up service file in {path}")
 
-content = f"""[Unit]
+    subprocess.run(["mkdir", "-p", path.removesuffix("jellyfin-rpc.service")])
+
+    content = f"""[Unit]
 Description=Jellyfin-RPC Service
 Documentation=https://github.com/Radiicall/jellyfin-rpc
 After=network.target
@@ -200,9 +259,9 @@ Restart=on-failure
 [Install]
 WantedBy=default.target"""
 
-file = open(path, "w")
-file.write(content)
-file.close()
+    file = open(path, "w")
+    file.write(content)
+    file.close()
 
-subprocess.run(["systemctl", "--user", "daemon-reload"])
-subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])
+    subprocess.run(["systemctl", "--user", "daemon-reload"])
+    subprocess.run(["systemctl", "--user", "enable", "--now", "jellyfin-rpc.service"])

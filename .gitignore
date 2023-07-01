@@ -2,3 +2,4 @@
 Cargo.lock
 main.json
 /pkg
+.DS_Store
