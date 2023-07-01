@@ -204,7 +204,7 @@ if platform.system() == "Windows":
             print("Invalid input, please type y or n")
             continue
 
-        subprocess.run(["curl", "-o", path + "winsw.exe", "-L", "https://github.com/winsw/winsw/releases/latest/download/WinSW-x68.exe"])
+        subprocess.run(["curl", "-o", path + "winsw.exe", "-L", "https://github.com/winsw/winsw/releases/latest/download/WinSW-x64.exe"])
 
         content = f"""<service>
     <id>jellyfin-rpc</id>
@@ -218,8 +218,14 @@ if platform.system() == "Windows":
         file.write(content)
         file.close()
 
+        print("The program will now ask you for administrator rights twice, this is so the service can be installed!")
+        print("waiting 5 seconds")
+        sleep(5)
+
         subprocess.run([path + "winsw.exe", "install"])
         subprocess.run([path + "winsw.exe", "start"])
+
+        print("Autostart has been set up, jellyfin-rpc should now launch at login\nas long as there are no issues with the configuration")
 
 elif platform.system() == "Darwin":
     subprocess.run(["curl", "-o", "/usr/local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
@@ -280,7 +286,7 @@ else:
         path = os.environ["HOME"].removesuffix("/") + "/.config/systemd/user/jellyfin-rpc.service"
 
     while True:
-        val = input("Do you want to autostart Jellyfin-RPC at login? (y/N): ").lower()
+        val = input("Do you want to autostart Jellyfin-RPC at login using Systemd? (y/N): ").lower()
 
         if val == "n" or val == "":
             break
