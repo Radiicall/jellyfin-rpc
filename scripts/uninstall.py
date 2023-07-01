@@ -2,6 +2,7 @@ import platform
 import os
 import subprocess
 from time import sleep
+import shutil
 
 print("Welcome to the Jellyfin-RPC uninstaller")
 input("Hit enter to continue...")
@@ -21,7 +22,7 @@ if platform.system() == "Windows":
         sleep(5)
         subprocess.run([path + "winsw.exe", "uninstall"])
 
-    subprocess.run(["rd", "/s", "/q", path])
+    shutil.rmtree(path)
 elif platform.system() == "Darwin":
     if subprocess.run(["pgrep", "-xq", "--", "'jellyfin-rpc'"]).returncode == 0:
         subprocess.run(["killall", "jellyfin-rpc"])
@@ -31,9 +32,9 @@ elif platform.system() == "Darwin":
 
     servicepath = os.environ["HOME"].removesuffix("/") + "/Library/LaunchAgents/jellyfinrpc.local.plist"
     if os.path.isfile(servicepath):
-        subprocess.run(["rm", servicepath])
-    subprocess.run(["rm", "-rf", path])
-    subprocess.run(["rm", "/usr/local/bin/jellyfin-rpc"])
+        os.remove(servicepath)
+    shutil.rmtree(path)
+    os.remove("/usr/local/bin/jellyfin-rpc")
 else:
     if "jellyfin-rpc.service" in subprocess.Popen("systemctl --user list-units", shell=True, stdout=subprocess.PIPE).stdout.read().decode():
         subprocess.run(["systemctl", "--user", "disable", "--now", "jellyfin-rpc.service"])
@@ -44,9 +45,8 @@ else:
     servicepath = path.removesuffix("jellyfin-rpc/") + "systemd/user/jellyfin-rpc.service"
     if os.path.isfile(servicepath):
         subprocess.run(["rm", servicepath])
-    subprocess.run(["rm", "-rf", path])
-    execpath = os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc"
-    subprocess.run(["rm", execpath])
+    shutil.rmtree(path)
+    os.remove(os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc")
 
 print("Uninstall complete!")
 sleep(5)
