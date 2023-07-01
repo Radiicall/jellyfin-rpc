@@ -200,25 +200,25 @@ elif platform.system() == "Darwin":
 
         launchctl = subprocess.run(["launchctl", "list"])
         
-        if "Jellyfin-RPC" in launchctl.stdout:
+        if "Jellyfin-RPC" in launchctl.stdout.decode():
             subprocess.run(["launchctl", "remove", "Jellyfin-RPC"])
 
         content = """<?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-        <key>Label</key>
-        <string>Jellyfin-RPC</string>
-        <key>Program</key>
-        <string>/usr/local/bin/jellyfin-rpc</string>
-        <key>RunAtLoad</key>
-        <true/>
-        <key>StandardErrorPath</key>
-        <string>/tmp/jellyfinrpc.local.stderr.txt</string>
-        <key>StandardOutPath</key>
-        <string>/tmp/jellyfinrpc.local.stdout.txt</string>
-    </dict>
-    </plist>"""
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>Jellyfin-RPC</string>
+    <key>Program</key>
+    <string>/usr/local/bin/jellyfin-rpc</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/tmp/jellyfinrpc.local.stderr.txt</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/jellyfinrpc.local.stdout.txt</string>
+</dict>
+</plist>"""
 
         path = os.environ["HOME"] + "/Library/LaunchAgents/jellyfinrpc.local.plist"
 
