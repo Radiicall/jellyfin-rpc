@@ -40,10 +40,9 @@ Terminal Output:
 - Discord
 - Imgur API key (image support without port forwarding)
 
-#### Windows
 Windows users will also need <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">vcredist</a>.
 
-A cross platform installer written in Python can be found <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/cross-platform-installer/scripts/installer.py">here</a>, press ctrl+s on the page to download.
+#### A cross platform installer written in Python can be found <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/cross-platform-installer/scripts/installer.py">here</a>, press ctrl+s on the page to download.
 
 A fully filled out config would look something like this
 
