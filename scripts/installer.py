@@ -16,7 +16,7 @@ if platform.system() != "Windows":
     subprocess.run(["mkdir", "-p", path.removesuffix("main.json")])
 else:
     path = os.environ["APPDATA"].removesuffix("\\") + "\jellyfin-rpc\main.json"
-    subprocess.run(["mkdir", path.removesuffix("main.json")])
+    subprocess.run(["powershell", "-Command", f'mkdir "{path.removesuffix("main.json")}"'], stdout=subprocess.DEVNULL)
 
 print("""
 Welcome to the Jellyfin-RPC installer
@@ -193,11 +193,33 @@ if current == "n" or current == "":
 print("\nDownloading Jellyfin-RPC")
 
 if platform.system() == "Windows":
-    subprocess.run(["curl", "-o", path.removesuffix("main.json") + "jellyfin-rpc.exe", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe"])
-    subprocess.run(["powershell", "-Command", f'"New-Service -Name \'Jellyfin-RPC\' -BinaryPathName \'{path.removesuffix("main.json")}jellyfin-rpc.exe -c {path} -i {path.removesuffix("main.json")}urls.json\' -StartupType \'Auto\'"'])
+    path = path.removesuffix("main.json")
+    subprocess.run(["curl", "-o", path + "jellyfin-rpc.exe", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc.exe"])
+    while True:
+        val = input("Do you want to autostart Jellyfin-RPC at login? (y/N): ").lower()
 
-    
+        if val == "n" or val == "":
+            break
+        if val != "y":
+            print("Invalid input, please type y or n")
+            continue
 
+        subprocess.run(["curl", "-o", path + "winsw.exe", "-L", "https://github.com/winsw/winsw/releases/latest/download/WinSW-x68.exe"])
+
+        content = f"""<service>
+    <id>jellyfin-rpc</id>
+    <name>Jellyfin-RPC</name>
+    <description>This service is running Jellyfin-RPC for rich presence support</description>
+    <executable>{path}jellyfin-rpc.exe</executable>
+    <arguments>-c {path}main.json -i {path}urls.json</arguments>
+</service>"""
+
+        file = open(path + "winsw.xml", "w")
+        file.write(content)
+        file.close()
+
+        subprocess.run([path + "winsw.exe", "install"])
+        subprocess.run([path + "winsw.exe", "start"])
 
 elif platform.system() == "Darwin":
     subprocess.run(["curl", "-o", "/usr/local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
