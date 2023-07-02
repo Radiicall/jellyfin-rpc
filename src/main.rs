@@ -3,7 +3,7 @@ use crate::core::updates;
 pub use crate::services::imgur::*;
 pub use crate::services::jellyfin::*;
 pub mod core;
-pub use crate::core::config::{Config, get_config_path};
+pub use crate::core::config::{get_config_path, Button, Config};
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
@@ -169,7 +169,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .iter()
             .for_each(|x| {
                 if blacklist_check && !content.media_type.is_none() {
-                    blacklist_check = content.media_type != x.to_owned().try_into().unwrap_or(MediaType::None)
+                    blacklist_check =
+                        content.media_type != x.to_owned().try_into().unwrap_or(MediaType::None)
                 }
             });
         if config
@@ -209,11 +210,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
-            if config.clone().images.and_then(|images| images.imgur_images).unwrap_or(false) && content.media_type != MediaType::LiveTv {
+            if config
+                .clone()
+                .images
+                .and_then(|images| images.imgur_images)
+                .unwrap_or(false)
+                && content.media_type != MediaType::LiveTv
+            {
                 content.image_url = Imgur::get(
                     &content.image_url,
                     &content.item_id,
-                    &config.clone().imgur.and_then(|imgur| imgur.client_id).expect("Imgur client ID cant be loaded."),
+                    &config
+                        .clone()
+                        .imgur
+                        .and_then(|imgur| imgur.client_id)
+                        .expect("Imgur client ID cant be loaded."),
                     args.image_urls.clone(),
                 )
                 .await
@@ -227,10 +238,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = vec![];
             let mut x = 0;
-            /*
-            for i in 0..config.button.len() {
-                if config.button[i].name == "dynamic"
-                    && config.button[i].url == "dynamic"
+            let default_button = Button {
+                name: String::from("dynamic"),
+                url: String::from("dynamic"),
+            };
+            let buttons = config
+                .clone()
+                .discord
+                .and_then(|discord| discord.buttons)
+                .unwrap_or(vec![default_button.clone(), default_button]);
+
+            for i in 0..buttons.len() {
+                if buttons[i].name == "dynamic"
+                    && buttons[i].url == "dynamic"
                     && content.external_services.len() != x
                 {
                     rpcbuttons.push(activity::Button::new(
@@ -238,14 +258,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &content.external_services[x].url,
                     ));
                     x += 1
-                } else if config.button[i].name != "dynamic" || config.button[i].url != "dynamic" {
-                    rpcbuttons.push(activity::Button::new(
-                        &config.button[i].name,
-                        &config.button[i].url,
-                    ))
+                } else if buttons[i].name != "dynamic" || buttons[i].url != "dynamic" {
+                    rpcbuttons.push(activity::Button::new(&buttons[i].name, &buttons[i].url))
                 }
             }
-            */
 
             rich_presence_client
                 .set_activity(setactivity(
