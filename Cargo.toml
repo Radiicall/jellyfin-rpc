@@ -1,12 +1,13 @@
 [package]
 name = "jellyfin-rpc"
-version = "0.13.2"
+version = "0.14.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 discord-rich-presence = "0.2"
 colored = "2.0"
 retry = "2.0"

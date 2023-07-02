@@ -3,7 +3,7 @@ use crate::core::updates;
 pub use crate::services::imgur::*;
 pub use crate::services::jellyfin::*;
 pub mod core;
-pub use crate::core::config::*;
+pub use crate::core::config::{Config, get_config_path};
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
@@ -40,13 +40,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::process::exit(1)
         })
     });
-    
+
     std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
 
     let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
         eprintln!(
             "{} {}",
-            format!("Config can't be loaded: {:?}.\nConfig file should be located at:", e).red().bold(),
+            format!(
+                "Config can't be loaded: {:?}.\nConfig file should be located at:",
+                e
+            )
+            .red()
+            .bold(),
             config_path
         );
         std::process::exit(2)
@@ -58,7 +63,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Jellyfin-RPC".bright_blue()
     );
 
-    if config.images.enabled && !config.images.imgur {
+    if config
+        .clone()
+        .images
+        .and_then(|images| images.enable_images)
+        .unwrap_or(false)
+        && !config
+            .clone()
+            .images
+            .and_then(|images| images.imgur_images)
+            .unwrap_or(false)
+    {
         eprintln!(
             "{}\n{}",
             "------------------------------------------------------------------".bold(),
@@ -67,13 +82,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .red()
         )
     }
-    if !config.blacklist.types[0].is_none() {
+    if config
+        .clone()
+        .jellyfin
+        .blacklist
+        .and_then(|blacklist| blacklist.media_types)
+        .is_some()
+    {
         println!(
             "{} {}",
             "These media types won't be shown:".bold().red(),
             config
+                .clone()
+                .jellyfin
                 .blacklist
-                .types
+                .unwrap()
+                .media_types
+                .unwrap()
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
@@ -83,13 +108,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
     }
 
-    if !config.blacklist.libraries[0].is_empty() {
+    if config
+        .clone()
+        .jellyfin
+        .blacklist
+        .and_then(|blacklist| blacklist.libraries)
+        .is_some()
+    {
         println!(
             "{} {}",
             "These media libraries won't be shown:".bold().red(),
             config
+                .clone()
+                .jellyfin
                 .blacklist
+                .unwrap()
                 .libraries
+                .unwrap()
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
@@ -100,9 +135,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let mut connected: bool = false;
-    let mut rich_presence_client = DiscordIpcClient::new(config.rpc_client_id.as_str()).expect(
-        "Failed to create Discord RPC client, discord is down or the Client ID is invalid.",
-    );
+    let mut rich_presence_client = DiscordIpcClient::new(
+        config
+            .discord
+            .clone()
+            .and_then(|discord| discord.application_id)
+            .unwrap_or(String::from("1053747938519679018"))
+            .as_str(),
+    )
+    .expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
 
     // Start up the client connection, so that we can actually send and receive stuff
     connect(&mut rich_presence_client);
@@ -116,23 +157,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start loop
     loop {
-        let mut content = Content::get(
-            &config
-        )
-        .await?;
+        let mut content = Content::get(&config).await?;
 
         let mut blacklist_check = true;
-        config.blacklist.types.iter().for_each(|x| {
-            if blacklist_check && !content.media_type.is_none() {
-                blacklist_check = &content.media_type != x
-            }
-        });
-        if !config.blacklist.libraries[0].is_empty() {
-            for library in &config.blacklist.libraries {
+        config
+            .clone()
+            .jellyfin
+            .blacklist
+            .and_then(|blacklist| blacklist.media_types)
+            .unwrap_or(vec![String::from("none")])
+            .iter()
+            .for_each(|x| {
                 if blacklist_check && !content.media_type.is_none() {
-                    blacklist_check =
-                        library_check(&config.url, &config.api_key, &content.item_id, library)
-                            .await;
+                    blacklist_check = content.media_type != x.to_owned().try_into().unwrap_or(MediaType::None)
+                }
+            });
+        if config
+            .clone()
+            .jellyfin
+            .blacklist
+            .and_then(|blacklist| blacklist.libraries)
+            .is_some()
+        {
+            for library in &config
+                .clone()
+                .jellyfin
+                .blacklist
+                .and_then(|blacklist| blacklist.libraries)
+                .unwrap()
+            {
+                if blacklist_check && !content.media_type.is_none() {
+                    blacklist_check = library_check(
+                        &config.jellyfin.url,
+                        &config.jellyfin.api_key,
+                        &content.item_id,
+                        library,
+                    )
+                    .await;
                 }
             }
         }
@@ -148,11 +209,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
-            if config.images.imgur && content.media_type != MediaType::LiveTv {
+            if config.clone().images.and_then(|images| images.imgur_images).unwrap_or(false) && content.media_type != MediaType::LiveTv {
                 content.image_url = Imgur::get(
                     &content.image_url,
                     &content.item_id,
-                    &config.imgur_client_id,
+                    &config.clone().imgur.and_then(|imgur| imgur.client_id).expect("Imgur client ID cant be loaded."),
                     args.image_urls.clone(),
                 )
                 .await
@@ -166,13 +227,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = vec![];
             let mut x = 0;
+            /*
             for i in 0..config.button.len() {
-                if config.button[i].name == "dynamic" && config.button[i].url == "dynamic" && content.external_services.len() != x {
+                if config.button[i].name == "dynamic"
+                    && config.button[i].url == "dynamic"
+                    && content.external_services.len() != x
+                {
                     rpcbuttons.push(activity::Button::new(
                         &content.external_services[x].name,
                         &content.external_services[x].url,
                     ));
-                    x+=1
+                    x += 1
                 } else if config.button[i].name != "dynamic" || config.button[i].url != "dynamic" {
                     rpcbuttons.push(activity::Button::new(
                         &config.button[i].name,
@@ -180,6 +245,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ))
                 }
             }
+            */
 
             rich_presence_client
                 .set_activity(setactivity(
