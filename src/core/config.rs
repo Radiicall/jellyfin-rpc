@@ -1,5 +1,3 @@
-use crate::MediaType;
-
 use super::error::ConfigError;
 use serde::{Deserialize, Serialize};
 use serde_json;
