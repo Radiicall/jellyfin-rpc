@@ -82,56 +82,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .red()
         )
     }
-    if config
-        .clone()
-        .jellyfin
-        .blacklist
-        .and_then(|blacklist| blacklist.media_types)
-        .is_some()
-    {
-        println!(
-            "{} {}",
-            "These media types won't be shown:".bold().red(),
-            config
-                .clone()
-                .jellyfin
-                .blacklist
-                .unwrap()
-                .media_types
-                .unwrap()
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-                .bold()
-                .red()
-        )
-    }
+    if config.jellyfin.blacklist.is_some() {
+        let blacklist = config.jellyfin.blacklist.clone().unwrap();
+        blacklist.media_types.and_then(|media_types| {
+            println!(
+                "{} {}",
+                "These media types won't be shown:".bold().red(),
+                media_types
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+                    .bold()
+                    .red()
+            );
+            Some(media_types)
+        });
 
-    if config
-        .clone()
-        .jellyfin
-        .blacklist
-        .and_then(|blacklist| blacklist.libraries)
-        .is_some()
-    {
-        println!(
-            "{} {}",
-            "These media libraries won't be shown:".bold().red(),
-            config
-                .clone()
-                .jellyfin
-                .blacklist
-                .unwrap()
-                .libraries
-                .unwrap()
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-                .bold()
-                .red()
-        )
+        blacklist.libraries.and_then(|libraries| {
+            println!(
+                "{} {}",
+                "These media libraries won't be shown:".bold().red(),
+                libraries.join(", ").bold().red()
+            );
+            Some(libraries)
+        });
     }
 
     let mut connected: bool = false;
@@ -165,12 +140,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .jellyfin
             .blacklist
             .and_then(|blacklist| blacklist.media_types)
-            .unwrap_or(vec![String::from("none")])
+            .unwrap_or(vec![MediaType::None])
             .iter()
             .for_each(|x| {
                 if blacklist_check && !content.media_type.is_none() {
-                    blacklist_check =
-                        content.media_type != x.to_owned().try_into().unwrap_or(MediaType::None)
+                    blacklist_check = content.media_type != x.to_owned()
                 }
             });
         if config
