@@ -1,3 +1,4 @@
+use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::core::config::{Config, Username};
@@ -330,6 +331,73 @@ pub enum MediaType {
     None,
 }
 
+impl Serialize for MediaType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match *self {
+            MediaType::Movie => serializer.serialize_unit_variant("MediaType", 0, "Movie"),
+            MediaType::Episode => serializer.serialize_unit_variant("MediaType", 1, "Episode"),
+            MediaType::LiveTv => serializer.serialize_unit_variant("MediaType", 2, "LiveTv"),
+            MediaType::Music => serializer.serialize_unit_variant("MediaType", 3, "Music"),
+            MediaType::None => serializer.serialize_unit_variant("MediaType", 4, "None"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for MediaType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_string(MediaTypeVisitor)
+    }
+}
+
+struct MediaTypeVisitor;
+
+impl<'de> Visitor<'de> for MediaTypeVisitor {
+    type Value = MediaType;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a string")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(MediaType::from(v))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match v.to_lowercase().as_str() {
+            "movie" => Ok(MediaType::Movie),
+            "episode" => Ok(MediaType::Episode),
+            "livetv" => Ok(MediaType::LiveTv),
+            "music" => Ok(MediaType::Music),
+            _ => Ok(MediaType::None),
+        }
+    }
+
+    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match v.to_lowercase().as_str() {
+            "movie" => Ok(MediaType::Movie),
+            "episode" => Ok(MediaType::Episode),
+            "livetv" => Ok(MediaType::LiveTv),
+            "music" => Ok(MediaType::Music),
+            _ => Ok(MediaType::None),
+        }
+    }
+}
+
 impl std::fmt::Display for MediaType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let res = match self {
@@ -402,7 +470,7 @@ pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &st
 
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {
-            if name.to_lowercase() == library {
+            if name.to_lowercase() == library.to_lowercase() {
                 return false;
             }
         }

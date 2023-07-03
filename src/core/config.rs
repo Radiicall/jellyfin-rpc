@@ -1,4 +1,5 @@
 use super::error::ConfigError;
+use crate::MediaType;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
@@ -36,7 +37,7 @@ pub struct Music {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Blacklist {
-    pub media_types: Option<Vec<String>>,
+    pub media_types: Option<Vec<MediaType>>,
     pub libraries: Option<Vec<String>>,
 }
 
