@@ -31,9 +31,17 @@ pub enum Username {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Music {
-    pub display: Option<Vec<String>>,
+    pub display: Option<Display>,
     pub separator: Option<char>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum Display {
+    Vec(Vec<String>),
+    String(String),
+}
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Blacklist {

@@ -1,7 +1,7 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::core::config::{Config, Username};
+use crate::core::config::{Config, Username, Display};
 
 /*
     TODO: Comments
@@ -193,17 +193,20 @@ impl Content {
                 .as_str()
                 .unwrap()
                 .to_string();
+
+            let display = match config.jellyfin.music.clone().and_then(|music| music.display) {
+                Some(Display::Vec(music)) => music,
+                Some(Display::String(music)) => music.split(",").map(|d| d.trim().to_string()).collect::<Vec<String>>(),
+                _ => vec![String::from("genres")]
+            };
+
+            let separator = config.jellyfin.music.clone().and_then(|music| music.separator).unwrap_or('-');
+
             let mut state = format!("By {} - ", artist);
             let mut index = 0;
-            config
-                .jellyfin
-                .music
-                .clone()
-                .and_then(|music| music.display)
-                .unwrap_or(vec![String::from("genres")])
+            display
                 .iter()
                 .for_each(|data| {
-                    let music = config.jellyfin.music.clone().unwrap();
                     index += 1;
                     let data = data.as_str();
                     let old_state = state.clone();
@@ -235,12 +238,8 @@ impl Content {
                         _ => state = format!("By {}", artist),
                     }
 
-                    if state != old_state && music.display.unwrap().len() != index {
-                        if music.separator.is_some() {
-                            state.push_str(&format!(" {} ", music.separator.unwrap()))
-                        } else {
-                            state.push(' ')
-                        }
+                    if state != old_state && display.len() != index {
+                        state.push_str(&format!(" {} ", separator))
                     }
                 });
 
