@@ -42,7 +42,6 @@ pub enum Display {
     String(String),
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Blacklist {
     pub media_types: Option<Vec<MediaType>>,

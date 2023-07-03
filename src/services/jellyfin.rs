@@ -1,7 +1,6 @@
+use crate::core::config::{Config, Display, Username};
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::core::config::{Config, Username, Display};
 
 /*
     TODO: Comments
@@ -194,54 +193,65 @@ impl Content {
                 .unwrap()
                 .to_string();
 
-            let display = match config.jellyfin.music.clone().and_then(|music| music.display) {
+            let display = match config
+                .jellyfin
+                .music
+                .clone()
+                .and_then(|music| music.display)
+            {
                 Some(Display::Vec(music)) => music,
-                Some(Display::String(music)) => music.split(",").map(|d| d.trim().to_string()).collect::<Vec<String>>(),
-                _ => vec![String::from("genres")]
+                Some(Display::String(music)) => music
+                    .split(",")
+                    .map(|d| d.trim().to_string())
+                    .collect::<Vec<String>>(),
+                _ => vec![String::from("genres")],
             };
 
-            let separator = config.jellyfin.music.clone().and_then(|music| music.separator).unwrap_or('-');
+            let separator = config
+                .jellyfin
+                .music
+                .clone()
+                .and_then(|music| music.separator)
+                .unwrap_or('-');
 
             let mut state = format!("By {} - ", artist);
             let mut index = 0;
-            display
-                .iter()
-                .for_each(|data| {
-                    index += 1;
-                    let data = data.as_str();
-                    let old_state = state.clone();
-                    match data {
-                        "genres" => match now_playing_item.get("Genres") {
-                            None => (),
-                            genre_array => state.push_str(
-                                &genre_array
-                                    .unwrap()
-                                    .as_array()
-                                    .unwrap()
-                                    .iter()
-                                    .map(|genre| genre.as_str().unwrap().to_string())
-                                    .collect::<Vec<String>>()
-                                    .join(", "),
-                            ),
-                        },
-                        "album" => state.push_str(now_playing_item["Album"].as_str().unwrap_or("")),
-                        "year" => {
-                            let mut year = now_playing_item["ProductionYear"]
-                                .as_u64()
-                                .unwrap_or(0)
-                                .to_string();
-                            if year == "0" {
-                                year = String::from("");
-                            }
-                            state.push_str(&year)
+            display.iter().for_each(|data| {
+                index += 1;
+                let data = data.as_str();
+                let old_state = state.clone();
+                match data {
+                    "genres" => match now_playing_item.get("Genres") {
+                        None => (),
+                        genre_array => state.push_str(
+                            &genre_array
+                                .unwrap()
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .map(|genre| genre.as_str().unwrap().to_string())
+                                .collect::<Vec<String>>()
+                                .join(", "),
+                        ),
+                    },
+                    "album" => state.push_str(now_playing_item["Album"].as_str().unwrap_or("")),
+                    "year" => {
+                        let mut year = now_playing_item["ProductionYear"]
+                            .as_u64()
+                            .unwrap_or(0)
+                            .to_string();
+                        if year == "0" {
+                            year = String::from("");
                         }
-                        _ => state = format!("By {}", artist),
+                        state.push_str(&year)
                     }
+                    _ => state = format!("By {}", artist),
+                }
 
-                    if state != old_state && display.len() != index {
-                        state.push_str(&format!(" {} ", separator))
-                    }
-                });
+                if state != old_state && display.len() != index {
+                    state.push_str(&format!(" {} ", separator))
+                }
+            });
 
             content.media_type(MediaType::Music);
             content.details(name.into());
