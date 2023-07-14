@@ -1,6 +1,6 @@
+use crate::core::config::{Config, Display, Username};
+use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::core::config::Config;
 
 /*
     TODO: Comments
@@ -14,7 +14,7 @@ struct ContentBuilder {
     endtime: Option<i64>,
     image_url: String,
     item_id: String,
-    external_services: Vec<ExternalServices>
+    external_services: Vec<ExternalServices>,
 }
 
 impl ContentBuilder {
@@ -41,11 +41,11 @@ impl ContentBuilder {
     fn image_url(&mut self, image_url: String) {
         self.image_url = image_url;
     }
-    
+
     fn item_id(&mut self, item_id: String) {
         self.item_id = item_id;
     }
-    
+
     fn external_services(&mut self, external_services: Vec<ExternalServices>) {
         self.external_services = external_services;
     }
@@ -75,14 +75,12 @@ pub struct Content {
 }
 
 impl Content {
-    pub async fn get(
-        config: &Config
-    ) -> Result<Self, reqwest::Error> {
+    pub async fn get(config: &Config) -> Result<Self, reqwest::Error> {
         let sessions: Vec<Value> = serde_json::from_str(
             &reqwest::get(format!(
                 "{}/Sessions?api_key={}",
-                config.url.trim_end_matches('/'),
-                config.api_key
+                config.jellyfin.url.trim_end_matches('/'),
+                config.jellyfin.api_key
             ))
             .await?
             .text()
@@ -91,17 +89,27 @@ impl Content {
         .unwrap_or_else(|_| {
             panic!(
                 "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
-                config.url
+                config.jellyfin.url
             )
         });
         for session in sessions {
             if session.get("UserName").is_none() {
                 continue;
             }
-            
-            if config.username.iter().all(|username| session["UserName"].as_str().unwrap() != username) {
-                continue;
-            }
+
+            match &config.jellyfin.username {
+                Username::String(username) if session["UserName"].as_str().unwrap() != username => {
+                    continue
+                }
+                Username::Vec(usernames)
+                    if usernames
+                        .iter()
+                        .all(|username| session["UserName"].as_str().unwrap() != username) =>
+                {
+                    continue
+                }
+                _ => (),
+            };
 
             if session.get("NowPlayingItem").is_none() {
                 continue;
@@ -114,8 +122,13 @@ impl Content {
             Content::watching(&mut content, now_playing_item, config).await;
 
             let mut image_url: String = "".to_string();
-            if config.images.enabled {
-                image_url = Content::image(&config.url, content.item_id.clone()).await;
+            if config
+                .images
+                .as_ref()
+                .and_then(|images| images.enable_images)
+                .unwrap_or(false)
+            {
+                image_url = Content::image(&config.jellyfin.url, content.item_id.clone()).await;
             }
             content.external_services(ExternalServices::get(now_playing_item).await);
             content.endtime(Content::time_left(now_playing_item, &session).await);
@@ -175,46 +188,68 @@ impl Content {
             content.state_message(genres);
             content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
-            let artist = now_playing_item["AlbumArtist"].as_str().unwrap().to_string();
+            let artist = now_playing_item["AlbumArtist"]
+                .as_str()
+                .unwrap()
+                .to_string();
+
+            let display = match config
+                .jellyfin
+                .music
+                .clone()
+                .and_then(|music| music.display)
+            {
+                Some(Display::Vec(music)) => music,
+                Some(Display::String(music)) => music
+                    .split(",")
+                    .map(|d| d.trim().to_string())
+                    .collect::<Vec<String>>(),
+                _ => vec![String::from("genres")],
+            };
+
+            let separator = config
+                .jellyfin
+                .music
+                .clone()
+                .and_then(|music| music.separator)
+                .unwrap_or('-');
+
             let mut state = format!("By {} - ", artist);
             let mut index = 0;
-            config.music.display.iter().for_each(|data| {
+            display.iter().for_each(|data| {
                 index += 1;
                 let data = data.as_str();
                 let old_state = state.clone();
                 match data {
                     "genres" => match now_playing_item.get("Genres") {
-                            None => (),
-                            genre_array => {
-                                state.push_str(
-                                    &genre_array
-                                        .unwrap()
-                                        .as_array()
-                                        .unwrap()
-                                        .iter()
-                                        .map(|genre| genre.as_str().unwrap().to_string())
-                                        .collect::<Vec<String>>()
-                                        .join(", ")
-                                )
-                            }
-                        },
+                        None => (),
+                        genre_array => state.push_str(
+                            &genre_array
+                                .unwrap()
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .map(|genre| genre.as_str().unwrap().to_string())
+                                .collect::<Vec<String>>()
+                                .join(", "),
+                        ),
+                    },
                     "album" => state.push_str(now_playing_item["Album"].as_str().unwrap_or("")),
                     "year" => {
-                        let mut year = now_playing_item["ProductionYear"].as_u64().unwrap_or(0).to_string();
+                        let mut year = now_playing_item["ProductionYear"]
+                            .as_u64()
+                            .unwrap_or(0)
+                            .to_string();
                         if year == "0" {
                             year = String::from("");
                         }
                         state.push_str(&year)
-                    },
+                    }
                     _ => state = format!("By {}", artist),
                 }
-                
-                if state != old_state && config.music.display.len() != index {
-                    if config.music.separator.is_some() {
-                        state.push_str(&format!(" {} ", config.music.separator.unwrap()))
-                    } else {
-                        state.push(' ')
-                    }
+
+                if state != old_state && display.len() != index {
+                    state.push_str(&format!(" {} ", separator))
                 }
             });
 
@@ -296,13 +331,80 @@ impl ExternalServices {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum MediaType {
     Movie,
     Episode,
     LiveTv,
     Music,
     None,
+}
+
+impl Serialize for MediaType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match *self {
+            MediaType::Movie => serializer.serialize_unit_variant("MediaType", 0, "Movie"),
+            MediaType::Episode => serializer.serialize_unit_variant("MediaType", 1, "Episode"),
+            MediaType::LiveTv => serializer.serialize_unit_variant("MediaType", 2, "LiveTv"),
+            MediaType::Music => serializer.serialize_unit_variant("MediaType", 3, "Music"),
+            MediaType::None => serializer.serialize_unit_variant("MediaType", 4, "None"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for MediaType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_string(MediaTypeVisitor)
+    }
+}
+
+struct MediaTypeVisitor;
+
+impl<'de> Visitor<'de> for MediaTypeVisitor {
+    type Value = MediaType;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a string")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(MediaType::from(v))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match v.to_lowercase().as_str() {
+            "movie" => Ok(MediaType::Movie),
+            "episode" => Ok(MediaType::Episode),
+            "livetv" => Ok(MediaType::LiveTv),
+            "music" => Ok(MediaType::Music),
+            _ => Ok(MediaType::None),
+        }
+    }
+
+    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match v.to_lowercase().as_str() {
+            "movie" => Ok(MediaType::Movie),
+            "episode" => Ok(MediaType::Episode),
+            "livetv" => Ok(MediaType::LiveTv),
+            "music" => Ok(MediaType::Music),
+            _ => Ok(MediaType::None),
+        }
+    }
 }
 
 impl std::fmt::Display for MediaType {
@@ -377,7 +479,7 @@ pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &st
 
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {
-            if name.to_lowercase() == library {
+            if name.to_lowercase() == library.to_lowercase() {
                 return false;
             }
         }
