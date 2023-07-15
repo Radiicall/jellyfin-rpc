@@ -262,6 +262,18 @@ impl Content {
             content.details(name.into());
             content.state_message("Live TV".into());
             content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
+        } else if now_playing_item["Type"].as_str().unwrap() == "AudioBook" {
+            content.item_id(now_playing_item["ParentId"].as_str().unwrap().to_string());
+            content.details(now_playing_item["Album"].as_str().unwrap().into());
+            let artists = now_playing_item["Artists"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|a| a.as_str().unwrap().to_string())
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            content.state_message(format!("By {}", artists))
         }
     }
 
