@@ -263,8 +263,9 @@ impl Content {
             content.state_message("Live TV".into());
             content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "AudioBook" {
+            content.media_type(MediaType::AudioBook);
             content.item_id(now_playing_item["ParentId"].as_str().unwrap().to_string());
-            content.details(now_playing_item["Album"].as_str().unwrap().into());
+            content.details(now_playing_item["Album"].as_str().unwrap_or(name).into());
             let artists = now_playing_item["Artists"]
                 .as_array()
                 .unwrap()
@@ -273,7 +274,26 @@ impl Content {
                 .collect::<Vec<String>>()
                 .join(", ");
 
-            content.state_message(format!("By {}", artists))
+            let mut genres = "".to_string();
+
+            match now_playing_item.get("Genres") {
+                None => (),
+                genre_array => {
+                    genres = " - ".to_string();
+                    genres.push_str(
+                        &genre_array
+                            .unwrap()
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|genre| genre.as_str().unwrap().to_string())
+                            .collect::<Vec<String>>()
+                            .join(", "),
+                    )
+                },
+            };
+
+            content.state_message(format!("By {}{}", artists, genres))
         }
     }
 
@@ -349,6 +369,7 @@ pub enum MediaType {
     Episode,
     LiveTv,
     Music,
+    AudioBook,
     None,
 }
 
@@ -362,7 +383,8 @@ impl Serialize for MediaType {
             MediaType::Episode => serializer.serialize_unit_variant("MediaType", 1, "Episode"),
             MediaType::LiveTv => serializer.serialize_unit_variant("MediaType", 2, "LiveTv"),
             MediaType::Music => serializer.serialize_unit_variant("MediaType", 3, "Music"),
-            MediaType::None => serializer.serialize_unit_variant("MediaType", 4, "None"),
+            MediaType::AudioBook => serializer.serialize_unit_variant("MediaType", 4, "AudioBook"),
+            MediaType::None => serializer.serialize_unit_variant("MediaType", 5, "None"),
         }
     }
 }
@@ -401,6 +423,7 @@ impl<'de> Visitor<'de> for MediaTypeVisitor {
             "episode" => Ok(MediaType::Episode),
             "livetv" => Ok(MediaType::LiveTv),
             "music" => Ok(MediaType::Music),
+            "audiobook" => Ok(MediaType::AudioBook),
             _ => Ok(MediaType::None),
         }
     }
@@ -414,6 +437,7 @@ impl<'de> Visitor<'de> for MediaTypeVisitor {
             "episode" => Ok(MediaType::Episode),
             "livetv" => Ok(MediaType::LiveTv),
             "music" => Ok(MediaType::Music),
+            "audiobook" => Ok(MediaType::AudioBook),
             _ => Ok(MediaType::None),
         }
     }
@@ -426,6 +450,7 @@ impl std::fmt::Display for MediaType {
             MediaType::LiveTv => "LiveTv",
             MediaType::Movie => "Movie",
             MediaType::Music => "Music",
+            MediaType::AudioBook => "AudioBook",
             MediaType::None => "None",
         };
         write!(f, "{}", res)
@@ -451,6 +476,7 @@ impl From<&'static str> for MediaType {
             "movie" => Self::Movie,
             "music" => Self::Music,
             "livetv" => Self::LiveTv,
+            "audiobook" => Self::AudioBook,
             _ => Self::None,
         }
     }
@@ -463,6 +489,7 @@ impl From<String> for MediaType {
             "movie" => Self::Movie,
             "music" => Self::Music,
             "livetv" => Self::LiveTv,
+            "audiobook" => Self::AudioBook,
             _ => Self::None,
         }
     }
