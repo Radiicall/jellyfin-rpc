@@ -1,0 +1,58 @@
+
+name: Bug report
+description: Report bugs in Jellyfin-RPC
+labels: bug
+body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Please search to see if an issue already exists for the bug you encountered.
+      options:
+      - label: I have searched the existing issues
+        required: true
+  - type: textarea
+    id: describe
+    attributes:
+      label: What went wrong?
+      description: A clear and concise description of what the bug is.
+      placeholder: I did X and then Y happened
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output
+      description: |
+        What the program outputted when the bug occurred.
+
+        Tip: You can attach log files by clicking this area to highlight it and then dragging files in.
+    validations:
+      required: false
+  - type: input
+    id: jfrpc-version
+    attributes:
+      label: Jellyfin-RPC version
+      description: Program version
+      placeholder: 0.14.0
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: What OS are you using?
+      placeholder: Ubuntu 22.04
+  - type: input
+    id: jf-server-version
+    attributes:
+      label: What version is the Jellyfin server on?
+      description: Can be checked at http(s)://your_server_url/web/#!/dashboard.html
+      placeholder: 10.8.10
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: |
+        Links? References? Anything that will give us more context about the issue you are encountering!
+
+        Tip: You can attach images by clicking this area to highlight it and then dragging files in.
+    validations:
+      required: false
