@@ -201,7 +201,7 @@ impl Content {
             {
                 Some(Display::Vec(music)) => music,
                 Some(Display::String(music)) => music
-                    .split(",")
+                    .split(',')
                     .map(|d| d.trim().to_string())
                     .collect::<Vec<String>>(),
                 _ => vec![String::from("genres")],
@@ -267,7 +267,8 @@ impl Content {
             content.item_id(now_playing_item["ParentId"].as_str().unwrap().to_string());
             content.details(now_playing_item["Album"].as_str().unwrap_or(name).into());
 
-            let raw_artists = now_playing_item["Artists"].as_array()
+            let raw_artists = now_playing_item["Artists"]
+                .as_array()
                 .unwrap()
                 .iter()
                 .map(|a| a.as_str().unwrap().to_string())
@@ -280,13 +281,12 @@ impl Content {
                     artists += &raw_artists[i];
                 } else if raw_artists.len() != 1 {
                     artists += &format!(" and {}", raw_artists[i]);
-                    break
+                    break;
                 } else {
                     artists += &raw_artists[i];
-                    break
+                    break;
                 }
                 artists.push_str(", ")
-
             }
 
             let mut genres = "".to_string();
@@ -305,7 +305,7 @@ impl Content {
                             .collect::<Vec<String>>()
                             .join(", "),
                     )
-                },
+                }
             };
 
             content.state_message(format!("By {}{}", artists, genres))

@@ -84,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if config.jellyfin.blacklist.is_some() {
         let blacklist = config.jellyfin.blacklist.clone().unwrap();
-        blacklist.media_types.and_then(|media_types| {
+        if let Some(media_types) = blacklist.media_types {
             println!(
                 "{} {}",
                 "These media types won't be shown:".bold().red(),
@@ -95,18 +95,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .join(", ")
                     .bold()
                     .red()
-            );
-            Some(media_types)
-        });
+            )
+        }
 
-        blacklist.libraries.and_then(|libraries| {
+        if let Some(libraries) = blacklist.libraries {
             println!(
                 "{} {}",
                 "These media libraries won't be shown:".bold().red(),
                 libraries.join(", ").bold().red()
-            );
-            Some(libraries)
-        });
+            )
+        }
     }
 
     let mut connected: bool = false;
@@ -144,7 +142,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .iter()
             .for_each(|x| {
                 if blacklist_check && !content.media_type.is_none() {
-                    blacklist_check = content.media_type != x.to_owned()
+                    blacklist_check = content.media_type != *x
                 }
             });
         if config
@@ -222,6 +220,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .and_then(|discord| discord.buttons)
                 .unwrap_or(vec![default_button.clone(), default_button]);
 
+            #[allow(clippy::needless_range_loop)]
+            // Allowing needless range loop because button.name and button.url gets dropped too early otherwise
             for i in 0..buttons.len() {
                 if buttons[i].name == "dynamic"
                     && buttons[i].url == "dynamic"
