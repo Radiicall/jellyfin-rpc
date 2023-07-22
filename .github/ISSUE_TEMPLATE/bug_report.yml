@@ -41,12 +41,16 @@ body:
     attributes:
       label: What OS are you using?
       placeholder: Ubuntu 22.04
+    validations:
+      required: true
   - type: input
     id: jf-server-version
     attributes:
       label: What version is the Jellyfin server on?
       description: Can be checked at http(s)://your_server_url/web/#!/dashboard.html
       placeholder: 10.8.10
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Anything else?
