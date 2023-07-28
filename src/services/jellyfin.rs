@@ -188,6 +188,14 @@ impl Content {
             content.state_message(genres);
             content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
         } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
+            if let Some(extratype) = now_playing_item
+                .get("ExtraType")
+                .and_then(Value::as_str)
+            {
+                if extratype == "ThemeSong" {
+                    return
+                }
+            }
             let artist = now_playing_item["AlbumArtist"]
                 .as_str()
                 .unwrap()
