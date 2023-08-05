@@ -32,7 +32,7 @@ body:
     id: jfrpc-version
     attributes:
       label: Jellyfin-RPC version
-      description: Program version
+      description: Can be checked by running `jellyfin-rpc[.exe] -V` 
       placeholder: 0.14.0
     validations:
       required: true
