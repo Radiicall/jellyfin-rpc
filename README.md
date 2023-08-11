@@ -176,10 +176,6 @@ You need rust installed, you can get rustup from <a href="https://rustup.rs/">he
 
 If you already have rustup installed then make sure its the latest 2021 version, you can run `rustup update` to update to the newest version.
 
-You also need openssl libs on linux (Don't remember exactly which one, running the jellyfin-rpc exec will tell you what you're missing)
-
-Please make an issue with the missing libs in this repo so I can put them here, also say what distro you're running so I can test it.
-
 After doing all of this you should be able to just run `cargo build` to get a binary.
 In order to get an optimized binary just add `--release` to the end of cargo build.
 
