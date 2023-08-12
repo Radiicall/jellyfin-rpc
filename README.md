@@ -34,18 +34,7 @@ Terminal Output:
 
 ## Install
 
-For Arch Linux there currently exists 3 AUR packages:
-
-<a href="https://aur.archlinux.org/packages/jellyfin-rpc">jellyfin-rpc</a> maintained by [@Maxr1998](https://github.com/Maxr1998)
-
-<a href="https://aur.archlinux.org/packages/jellyfin-rpc-bin">jellyfin-rpc-bin</a> maintained by [@0xGingi](https://github.com/0xGingi)
-
-<a href="https://aur.archlinux.org/packages/jellyfin-rpc-git">jellyfin-rpc-git</a> maintained by [@0xGingi](https://github.com/0xGingi)
-
-
-Everyone else should use the <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/installer.py" download>cross-platform installer</a>, the installer depends on <a href="https://python.org/downloads">Python</a>.
-
-Windows users need <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">vcredist</a>.
+For installation instructions refer to the [Wiki](https://github.com/Radiicall/jellyfin-rpc/wiki/Installation)
 
 ## Setup
 #### Prerequisites
