@@ -42,7 +42,7 @@ if current == "n" or current == "":
 
     print("----------Jellyfin----------")
     url = input("URL (include http/https): ")
-    api_key = input("API key: ")
+    api_key = input(f"API key [Create one here: {url}/web/index.html#!/apikeys.html]: ")
     username = input("username: ")
 
     content += f' "jellyfin": {{ "url": "{url}", "api_key": "{api_key}",  "username": "{username}"'

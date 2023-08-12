@@ -32,6 +32,16 @@ Terminal Output:
 
 </details>
 
+## Install
+
+For Arch Linux there currently exists 3 AUR packages:
+<a href="https://aur.archlinux.org/packages/jellyfin-rpc">jellyfin-rpc</a> maintained by @Maxr1998
+<a href="https://aur.archlinux.org/packages/jellyfin-rpc-bin">jellyfin-rpc-bin</a> maintained by @0xGingi
+<a href="https://aur.archlinux.org/packages/jellyfin-rpc-git">jellyfin-rpc-git</a> maintained by @0xGingi
+
+Everyone else should use the <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/installer.py" download>cross-platform installer</a>, the installer depends on <a href="https://python.org/downloads">Python</a>.
+Windows users need <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">vcredist</a>.
+
 ## Setup
 #### Prerequisites
 - A Jellyfin server
@@ -39,11 +49,6 @@ Terminal Output:
 	- Jellyfin API key on said server
 - Discord
 - Imgur API key (image support without port forwarding)
-
-Windows users will also need <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">vcredist</a>.
-
-**A cross-platform installer written in Python can be found <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/installer.py">here</a>, press ctrl+s on the page to download.**
-**There's also a cross-platform uninstaller that can be found <a href="https://raw.githubusercontent.com/Radiicall/jellyfin-rpc/main/scripts/uninstaller.py">here</a>.**
 
 A fully filled out config would look something like this
 
