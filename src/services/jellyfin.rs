@@ -97,14 +97,14 @@ impl Content {
                 continue;
             }
 
+            let session_username = session["UserName"].as_str().unwrap();
+
             match &config.jellyfin.username {
-                Username::String(username) if session["UserName"].as_str().unwrap() != username => {
-                    continue
-                }
+                Username::String(username) if session_username != username => continue,
                 Username::Vec(usernames)
                     if usernames
                         .iter()
-                        .all(|username| session["UserName"].as_str().unwrap() != username) =>
+                        .all(|username| session_username != username) =>
                 {
                     continue
                 }
@@ -139,7 +139,11 @@ impl Content {
         Ok(Self::default())
     }
 
-    async fn watching(content: &mut ContentBuilder, now_playing_item: &Value, config: &Config) {
+    async fn watching(
+        content: &mut ContentBuilder,
+        now_playing_item: &Value,
+        config: &Config,
+    ) -> Option<()> {
         /*
         FIXME: Update this explanation/remove it.
 
@@ -152,9 +156,9 @@ impl Content {
         After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
-        let name = now_playing_item["Name"].as_str().unwrap();
+        let name = now_playing_item["Name"].as_str()?;
         let mut genres = "".to_string();
-        if now_playing_item["Type"].as_str().unwrap() == "Episode" {
+        if now_playing_item["Type"].as_str()? == "Episode" {
             let season = now_playing_item["ParentIndexNumber"].to_string();
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
             let mut state = "S".to_owned() + &season + "E" + &first_episode_number;
@@ -165,17 +169,15 @@ impl Content {
 
             state += &(" ".to_string() + name);
             content.media_type(MediaType::Episode);
-            content.details(now_playing_item["SeriesName"].as_str().unwrap().to_string());
+            content.details(now_playing_item["SeriesName"].as_str()?.to_string());
             content.state_message(state);
-            content.item_id(now_playing_item["SeriesId"].as_str().unwrap().to_string());
-        } else if now_playing_item["Type"].as_str().unwrap() == "Movie" {
+            content.item_id(now_playing_item["SeriesId"].as_str()?.to_string());
+        } else if now_playing_item["Type"].as_str()? == "Movie" {
             match now_playing_item.get("Genres") {
                 None => (),
                 genre_array => {
-                    genres = genre_array
-                        .unwrap()
-                        .as_array()
-                        .unwrap()
+                    genres = genre_array?
+                        .as_array()?
                         .iter()
                         .map(|x| x.as_str().unwrap().to_string())
                         .collect::<Vec<String>>()
@@ -186,17 +188,14 @@ impl Content {
             content.media_type(MediaType::Movie);
             content.details(name.into());
             content.state_message(genres);
-            content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
-        } else if now_playing_item["Type"].as_str().unwrap() == "Audio" {
+            content.item_id(now_playing_item["Id"].as_str()?.to_string());
+        } else if now_playing_item["Type"].as_str()? == "Audio" {
             if let Some(extratype) = now_playing_item.get("ExtraType").and_then(Value::as_str) {
                 if extratype == "ThemeSong" {
-                    return;
+                    return Some(());
                 }
             }
-            let artist = now_playing_item["AlbumArtist"]
-                .as_str()
-                .unwrap()
-                .to_string();
+            let artist = now_playing_item["AlbumArtist"].as_str()?.to_string();
 
             let display = match config
                 .jellyfin
@@ -264,22 +263,21 @@ impl Content {
             content.item_id(
                 now_playing_item["AlbumId"]
                     .as_str()
-                    .unwrap_or(now_playing_item["Id"].as_str().unwrap())
+                    .unwrap_or(now_playing_item["Id"].as_str()?)
                     .to_string(),
             );
-        } else if now_playing_item["Type"].as_str().unwrap() == "TvChannel" {
+        } else if now_playing_item["Type"].as_str()? == "TvChannel" {
             content.media_type(MediaType::LiveTv);
             content.details(name.into());
             content.state_message("Live TV".into());
-            content.item_id(now_playing_item["Id"].as_str().unwrap().to_string());
-        } else if now_playing_item["Type"].as_str().unwrap() == "AudioBook" {
+            content.item_id(now_playing_item["Id"].as_str()?.to_string());
+        } else if now_playing_item["Type"].as_str()? == "AudioBook" {
             content.media_type(MediaType::AudioBook);
-            content.item_id(now_playing_item["ParentId"].as_str().unwrap().to_string());
+            content.item_id(now_playing_item["ParentId"].as_str()?.to_string());
             content.details(now_playing_item["Album"].as_str().unwrap_or(name).into());
 
             let raw_artists = now_playing_item["Artists"]
-                .as_array()
-                .unwrap()
+                .as_array()?
                 .iter()
                 .map(|a| a.as_str().unwrap().to_string())
                 .collect::<Vec<String>>();
@@ -306,10 +304,8 @@ impl Content {
                 genre_array => {
                     genres = " - ".to_string();
                     genres.push_str(
-                        &genre_array
-                            .unwrap()
-                            .as_array()
-                            .unwrap()
+                        &genre_array?
+                            .as_array()?
                             .iter()
                             .map(|genre| genre.as_str().unwrap().to_string())
                             .collect::<Vec<String>>()
@@ -320,10 +316,11 @@ impl Content {
 
             content.state_message(format!("By {}{}", artists, genres))
         }
+        Some(())
     }
 
     async fn time_left(now_playing_item: &Value, session: &Value) -> Option<i64> {
-        if !session["PlayState"]["IsPaused"].as_bool().unwrap() {
+        if !session["PlayState"]["IsPaused"].as_bool()? {
             let ticks_to_seconds = 10000000;
 
             let mut position_ticks = session["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
@@ -335,7 +332,7 @@ impl Content {
             Some(
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
+                    .ok()?
                     .as_secs() as i64
                     + (runtime_ticks - position_ticks),
             )
@@ -436,35 +433,21 @@ impl<'de> Visitor<'de> for MediaTypeVisitor {
     where
         E: serde::de::Error,
     {
-        Ok(MediaType::from(v))
+        Ok(MediaType::from(v.to_lowercase()))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        match v.to_lowercase().as_str() {
-            "movie" => Ok(MediaType::Movie),
-            "episode" => Ok(MediaType::Episode),
-            "livetv" => Ok(MediaType::LiveTv),
-            "music" => Ok(MediaType::Music),
-            "audiobook" => Ok(MediaType::AudioBook),
-            _ => Ok(MediaType::None),
-        }
+        Ok(MediaType::from(v.to_lowercase()))
     }
 
     fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        match v.to_lowercase().as_str() {
-            "movie" => Ok(MediaType::Movie),
-            "episode" => Ok(MediaType::Episode),
-            "livetv" => Ok(MediaType::LiveTv),
-            "music" => Ok(MediaType::Music),
-            "audiobook" => Ok(MediaType::AudioBook),
-            _ => Ok(MediaType::None),
-        }
+        Ok(MediaType::from(v.to_lowercase()))
     }
 }
 
@@ -520,7 +503,12 @@ impl From<String> for MediaType {
     }
 }
 
-pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &str) -> bool {
+pub async fn library_check(
+    url: &str,
+    api_key: &str,
+    item_id: &str,
+    library: &str,
+) -> Result<bool, reqwest::Error> {
     let parents: Vec<Value> = serde_json::from_str(
         &reqwest::get(format!(
             "{}/Items/{}/Ancestors?api_key={}",
@@ -528,11 +516,9 @@ pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &st
             item_id,
             api_key
         ))
-        .await
-        .unwrap()
+        .await?
         .text()
-        .await
-        .unwrap(),
+        .await?,
     )
     .unwrap_or_else(|_| {
         panic!(
@@ -544,10 +530,10 @@ pub async fn library_check(url: &str, api_key: &str, item_id: &str, library: &st
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {
             if name.to_lowercase() == library.to_lowercase() {
-                return false;
+                return Ok(false);
             }
         }
     }
 
-    true
+    Ok(true)
 }

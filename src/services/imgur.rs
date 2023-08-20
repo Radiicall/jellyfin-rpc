@@ -113,6 +113,9 @@ impl Imgur {
             .await?;
         let val: Value = serde_json::from_str(&response.text().await?)?;
 
-        Ok(val["data"]["link"].as_str().expect("imgur returned no image url!").to_string())
+        Ok(val["data"]["link"]
+            .as_str()
+            .expect("imgur returned no image url!")
+            .to_string())
     }
 }
