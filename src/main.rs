@@ -41,7 +41,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
     });
 
-    std::fs::create_dir_all(std::path::Path::new(&config_path).parent().unwrap()).ok();
+    std::fs::create_dir_all(
+        std::path::Path::new(&config_path)
+            .parent()
+            .expect("Invalid config file path"),
+    )
+    .ok();
 
     let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
         eprintln!(
@@ -166,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &content.item_id,
                         library,
                     )
-                    .await;
+                    .await?;
                 }
             }
         }

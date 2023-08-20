@@ -73,14 +73,10 @@ pub struct Images {
 
 pub fn get_config_path() -> Result<String, ConfigError> {
     if cfg!(not(windows)) {
-        let user = env::var("USER")?;
-        if user != "root" {
-            let xdg_config_home = env::var("XDG_CONFIG_HOME")
-                .unwrap_or_else(|_| env::var("HOME").unwrap() + "/.config");
-            Ok(xdg_config_home + ("/jellyfin-rpc/main.json"))
-        } else {
-            Ok("/etc/jellyfin-rpc/main.json".to_string())
-        }
+        let xdg_config_home = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
+            env::var("HOME").expect("No HOME environment variable") + "/.config"
+        });
+        Ok(xdg_config_home + ("/jellyfin-rpc/main.json"))
     } else {
         let app_data = env::var("APPDATA")?;
         Ok(app_data + r"\jellyfin-rpc\main.json")
