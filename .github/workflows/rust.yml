@@ -21,7 +21,7 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
+        run: cargo build --all --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -47,7 +47,7 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release
+        run: cargo build --all --locked --release
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -73,7 +73,7 @@ jobs:
           override: true
 
       - name: Build for mac
-        run: cargo build --all --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
+        run: cargo build --all --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
