@@ -115,7 +115,10 @@ impl Imgur {
 
         Ok(val["data"]["link"]
             .as_str()
-            .expect("imgur returned no image url!")
+            .unwrap_or_else(|| {
+                eprintln!("imgur returned no image url!\n{}", val);
+                std::process::exit(1)
+            })
             .to_string())
     }
 }
