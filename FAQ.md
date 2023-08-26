@@ -6,3 +6,4 @@ Your server needs to be port forwarded for images to work without using the imgu
 
 ### It looks broken (Windows)
 Open in PowerShell instead
+:p
