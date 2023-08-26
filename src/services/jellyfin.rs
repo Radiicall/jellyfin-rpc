@@ -121,6 +121,15 @@ impl Content {
 
             Content::watching(&mut content, now_playing_item, config).await;
 
+            // Check that details and state_message arent over the max length allowed by discord, if they are then they have to be trimmed down because discord wont display the activity otherwise
+            if content.details.len() > 128 {
+                    content.details(content.details[0..128].to_string());
+            }
+
+            if content.state_message.len() > 128 {
+                content.state_message(content.state_message[0..128].to_string());
+            }
+
             let mut image_url: String = "".to_string();
             if config
                 .images
