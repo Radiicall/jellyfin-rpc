@@ -100,13 +100,13 @@ jobs:
           override: true
 
       - name: Build for arm64 macOS
-        run: cargo build --target aarch64-apple-darwin --all --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-arm64-darwin
+        run: cargo build --target aarch64-apple-darwin --all --locked --release && strip target/aarch64-apple-darwin/release/jellyfin-rpc && mv target/aarch64-apple-darwin/release/jellyfin-rpc target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            target/release/jellyfin-rpc-arm64-darwin
+            target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
