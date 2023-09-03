@@ -21,27 +21,26 @@ For setup instructions refer to the [Wiki](https://github.com/Radiicall/jellyfin
 
 #### Movie
 
-![image](https://user-images.githubusercontent.com/66682497/213467832-5eb6b0a0-1b83-47db-bf00-48c0e739aec4.png)
+![Jellyfin-RPC Displaying a Movie](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/95530d9c-72c9-47c2-bd67-645e444bbe21)
 
 #### Episode
 
-![image](https://user-images.githubusercontent.com/66682497/213467669-8375841d-b846-4afe-8bd3-0b09f4c7f2ad.png)
+![Jellyfin-RPC Displaying a TV Show Episode](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/0a552046-350b-415d-913a-8956723e5684)
 
 #### Music
 
-![image](https://user-images.githubusercontent.com/66682497/228037565-56991219-2630-4da0-ae5a-b1fa904985de.png)
+![Jellyfin-RPC Displaying a Song](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/02bb876b-fc3d-47e0-b120-8f05ec9446d6)
 
 #### Live TV
 
-![image](https://user-images.githubusercontent.com/66682497/228035872-b6cdbf0a-ec6d-49b0-b238-c5ae9298943f.png)
+![Jellyfin-RPC Displaying a TV Channel](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/1d9cf0af-96f2-438b-b147-904ab65bcc48)
 
 #### Audiobook
 
-![image](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/a9aa6913-569e-4baa-921f-db8c85ae9223)
-
+![Jellyfin-RPC Displaying an Audiobook](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/3a7845ae-0219-4932-a1a2-efb44f40a171)
 
 #### Terminal
 
-![image](https://user-images.githubusercontent.com/66682497/222933540-aa5f08ed-afb2-4713-8b9a-18cbaa94444b.png)
+![Image of terminal output](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/4da2c59e-f6c7-49d8-89f6-b2704d9b66c3)
 
 </details>
