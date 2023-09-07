@@ -88,7 +88,7 @@ impl Content {
         )
         .unwrap_or_else(|_| {
             panic!(
-                "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
+                "Can't unwrap URL, check if the Jellyfin URL is correct. Current URL: {}",
                 config.jellyfin.url
             )
         });
@@ -531,7 +531,7 @@ pub async fn library_check(
     )
     .unwrap_or_else(|_| {
         panic!(
-            "Can't unwrap URL, check if JELLYFIN_URL is correct. Current URL: {}",
+            "Can't unwrap URL, check if the Jellyfin URL is correct. Current URL: {}",
             url
         )
     });
