@@ -166,7 +166,6 @@ impl Content {
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
         let name = now_playing_item["Name"].as_str()?;
-        let mut genres = "".to_string();
         if now_playing_item["Type"].as_str()? == "Episode" {
             let season = now_playing_item["ParentIndexNumber"].to_string();
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
@@ -182,17 +181,7 @@ impl Content {
             content.state_message(state);
             content.item_id(now_playing_item["SeriesId"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Movie" {
-            match now_playing_item.get("Genres") {
-                None => (),
-                genre_array => {
-                    genres = genre_array?
-                        .as_array()?
-                        .iter()
-                        .map(|x| x.as_str().unwrap().to_string())
-                        .collect::<Vec<String>>()
-                        .join(", ");
-                }
-            };
+            let genres = Content::get_genres(now_playing_item).unwrap_or(String::from(""));
 
             content.media_type(MediaType::Movie);
             content.details(name.into());
@@ -227,44 +216,8 @@ impl Content {
                 .and_then(|music| music.separator)
                 .unwrap_or('-');
 
-            let mut state = format!("By {} - ", artist);
-            let mut index = 0;
-            display.iter().for_each(|data| {
-                index += 1;
-                let data = data.as_str();
-                let old_state = state.clone();
-                match data {
-                    "genres" => match now_playing_item.get("Genres") {
-                        None => (),
-                        genre_array => state.push_str(
-                            &genre_array
-                                .unwrap()
-                                .as_array()
-                                .unwrap()
-                                .iter()
-                                .map(|genre| genre.as_str().unwrap().to_string())
-                                .collect::<Vec<String>>()
-                                .join(", "),
-                        ),
-                    },
-                    "album" => state.push_str(now_playing_item["Album"].as_str().unwrap_or("")),
-                    "year" => {
-                        let mut year = now_playing_item["ProductionYear"]
-                            .as_u64()
-                            .unwrap_or(0)
-                            .to_string();
-                        if year == "0" {
-                            year = String::from("");
-                        }
-                        state.push_str(&year)
-                    }
-                    _ => state = format!("By {}", artist),
-                }
-
-                if state != old_state && display.len() != index {
-                    state.push_str(&format!(" {} ", separator))
-                }
-            });
+            let state =
+                Content::get_music_info(now_playing_item, artist, display, name, separator).await;
 
             content.media_type(MediaType::Music);
             content.details(name.into());
@@ -306,22 +259,11 @@ impl Content {
                 artists.push_str(", ")
             }
 
-            let mut genres = "".to_string();
+            let mut genres = Content::get_genres(now_playing_item).unwrap_or(String::from(""));
 
-            match now_playing_item.get("Genres") {
-                None => (),
-                genre_array => {
-                    genres = " - ".to_string();
-                    genres.push_str(
-                        &genre_array?
-                            .as_array()?
-                            .iter()
-                            .map(|genre| genre.as_str().unwrap().to_string())
-                            .collect::<Vec<String>>()
-                            .join(", "),
-                    )
-                }
-            };
+            if !genres.is_empty() {
+                genres = String::from(" - ") + &genres
+            }
 
             content.state_message(format!("By {}{}", artists, genres))
         }
@@ -350,12 +292,67 @@ impl Content {
         }
     }
 
+    async fn get_music_info(
+        npi: &Value,
+        artist: String,
+        display: Vec<std::string::String>,
+        name: &str,
+        separator: char,
+    ) -> String {
+        let mut state = format!("By {}", artist);
+
+        display.iter().for_each(|data| {
+            let data = data.as_str();
+
+            match data {
+                "genres" => {
+                    if let Some(genres) = Content::get_genres(npi) {
+                        state.push_str(&format!(" {} ", separator));
+                        state.push_str(&genres)
+                    }
+                }
+
+                "album" if npi["Album"].as_str().unwrap_or("") != name => {
+                    state.push_str(&format!(" {} ", separator));
+                    state.push_str(npi["Album"].as_str().unwrap_or(""));
+                }
+
+                "year" if npi["ProductionYear"].as_u64().unwrap_or(0) != 0 => {
+                    state.push_str(&format!(" {} ", separator));
+                    state.push_str(&npi["ProductionYear"].as_u64().unwrap().to_string());
+                }
+
+                _ => (),
+            }
+        });
+        state
+    }
+
     async fn image(url: &str, item_id: String) -> String {
         format!(
             "{}/Items/{}/Images/Primary",
             url.trim_end_matches('/'),
             item_id
         )
+    }
+
+    fn get_genres(npi: &Value) -> Option<String> {
+        match npi.get("Genres") {
+            Some(genre_array) if !genre_array.as_array()?.is_empty() => {
+                let mut genres = String::new();
+                genres.push_str(
+                    &genre_array
+                        .as_array()?
+                        .iter()
+                        .map(|genre| genre.as_str().unwrap().to_string())
+                        .collect::<Vec<String>>()
+                        .join(", "),
+                );
+                Some(genres)
+            }
+            Some(_) => None,
+            None => None,
+        }
     }
 }
 
