@@ -264,10 +264,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                             match rich_presence_client.reconnect() {
                                 Ok(result) => retry::OperationResult::Ok(result),
-                                Err(_) => {
+                                Err(err) => {
                                     eprintln!(
-                                        "{}",
-                                        "Failed to reconnect, retrying soon".red().bold()
+                                        "{}\nError: {}",
+                                        "Failed to reconnect, retrying soon".red().bold(),
+                                        err
                                     );
                                     retry::OperationResult::Retry(())
                                 }
@@ -323,8 +324,12 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
             );
             match rich_presence_client.connect() {
                 Ok(result) => retry::OperationResult::Ok(result),
-                Err(_) => {
-                    eprintln!("{}", "Failed to connect, retrying soon".red().bold());
+                Err(err) => {
+                    eprintln!(
+                        "{}\nError: {}",
+                        "Failed to connect, retrying soon".red().bold(),
+                        err
+                    );
                     retry::OperationResult::Retry(())
                 }
             }
