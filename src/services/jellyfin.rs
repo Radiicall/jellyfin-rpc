@@ -246,17 +246,15 @@ impl Content {
 
             let mut artists = String::new();
 
-            for i in 0..raw_artists.len() {
-                if i != (raw_artists.len() - 1) {
-                    artists += &raw_artists[i];
-                } else if raw_artists.len() != 1 {
-                    artists += &format!(" and {}", raw_artists[i]);
-                    break;
-                } else {
-                    artists += &raw_artists[i];
-                    break;
+            for (i, artist) in raw_artists.iter().enumerate() {
+                if i != 0 {
+                    if i == raw_artists.len() - 1 {
+                        artists += " and ";
+                    } else {
+                        artists += ", "
+                    }
                 }
-                artists.push_str(", ")
+                artists += artist
             }
 
             let mut genres = Content::get_genres(now_playing_item).unwrap_or(String::from(""));
