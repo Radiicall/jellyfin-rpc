@@ -225,7 +225,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .and_then(|discord| discord.buttons)
                 .unwrap_or(vec![default_button.clone(), default_button]);
 
-            // Using i to get the buttons directly so they dont get dropped early.
+            // For loop to determine if external services are to be used or if there are custom buttons instead
             for button in buttons.iter() {
                 if button.name == "dynamic"
                     && button.url == "dynamic"
