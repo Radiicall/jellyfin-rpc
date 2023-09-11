@@ -225,11 +225,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .and_then(|discord| discord.buttons)
                 .unwrap_or(vec![default_button.clone(), default_button]);
 
-            #[allow(clippy::needless_range_loop)]
-            // Allowing needless range loop because button.name and button.url gets dropped too early otherwise
-            for i in 0..buttons.len() {
-                if buttons[i].name == "dynamic"
-                    && buttons[i].url == "dynamic"
+            // Using i to get the buttons directly so they dont get dropped early.
+            for button in buttons.iter() {
+                if button.name == "dynamic"
+                    && button.url == "dynamic"
                     && content.external_services.len() != x
                 {
                     rpcbuttons.push(activity::Button::new(
@@ -237,8 +236,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &content.external_services[x].url,
                     ));
                     x += 1
-                } else if buttons[i].name != "dynamic" || buttons[i].url != "dynamic" {
-                    rpcbuttons.push(activity::Button::new(&buttons[i].name, &buttons[i].url))
+                } else if button.name != "dynamic" || button.url != "dynamic" {
+                    rpcbuttons.push(activity::Button::new(&button.name, &button.url))
                 }
             }
 
