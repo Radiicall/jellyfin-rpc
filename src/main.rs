@@ -365,25 +365,20 @@ fn setactivity<'a>(
         .large_text(version)
         .large_image(image_url);
 
-    if media_type != &MediaType::LiveTv {
-        match endtime {
-            Some(time) => {
-                new_activity = new_activity
-                    .clone()
-                    .timestamps(activity::Timestamps::new().end(time));
-            }
-            None => {
-                assets = assets
-                    .clone()
-                    .small_image("https://i.imgur.com/wlHSvYy.png")
-                    .small_text("Paused");
-            }
+    match endtime {
+        Some(_) if media_type == &MediaType::LiveTv => (),
+        Some(time) => {
+            new_activity = new_activity
+                .clone()
+                .timestamps(activity::Timestamps::new().end(time));
         }
-    } else if endtime.is_none() {
-        assets = assets
-            .clone()
-            .small_image("https://i.imgur.com/wlHSvYy.png")
-            .small_text("Paused");
+        None if media_type == &MediaType::Book => (),
+        None => {
+            assets = assets
+                .clone()
+                .small_image("https://i.imgur.com/wlHSvYy.png")
+                .small_text("Paused");
+        }
     }
 
     if !state_message.is_empty() {
