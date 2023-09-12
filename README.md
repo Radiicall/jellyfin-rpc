@@ -29,7 +29,7 @@ For setup instructions refer to the [Wiki](https://github.com/Radiicall/jellyfin
 
 #### Music
 
-![Jellyfin-RPC Displaying a Song](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/02bb876b-fc3d-47e0-b120-8f05ec9446d6)
+![Jellyfin-RPC Displaying a Song](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/103b84af-a9c9-49e4-9a15-c5c47051a994)
 
 #### Live TV
 
