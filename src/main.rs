@@ -252,11 +252,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &content.media_type,
                 ))
                 .unwrap_or_else(|err| {
-                    eprintln!(
-                        "{}\nError: {}",
-                        "Failed to set activity".red().bold(),
-                        err
-                    );
+                    eprintln!("{}\nError: {}", "Failed to set activity".red().bold(), err);
                     retry_with_index(
                         retry::delay::Exponential::from_millis(1000),
                         |current_try| {

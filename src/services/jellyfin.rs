@@ -241,7 +241,7 @@ impl Content {
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Book" {
             // Time to convert jellyfin nonsense into pages!!!
-            let ticks_to_pages = 	10000;
+            let ticks_to_pages = 10000;
 
             let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
             position_ticks /= ticks_to_pages;
