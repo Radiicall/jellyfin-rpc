@@ -118,8 +118,9 @@ impl Content {
             let mut content = ContentBuilder::new();
 
             let now_playing_item = &session["NowPlayingItem"];
+            let play_state = &session["PlayState"];
 
-            Content::watching(&mut content, now_playing_item, config).await;
+            Content::watching(&mut content, now_playing_item, play_state, config).await;
 
             // Check that details and state_message arent over the max length allowed by discord, if they are then they have to be trimmed down because discord wont display the activity otherwise
             if content.details.len() > 128 {
@@ -139,8 +140,12 @@ impl Content {
             {
                 image_url = Content::image(&config.jellyfin.url, content.item_id.clone()).await;
             }
+
             content.external_services(ExternalServices::get(now_playing_item).await);
-            content.endtime(Content::time_left(now_playing_item, &session).await);
+
+            if content.media_type != MediaType::Book {
+                content.endtime(Content::time_left(now_playing_item, play_state).await);
+            }
             content.image_url(image_url);
 
             return Ok(content.build());
@@ -151,6 +156,7 @@ impl Content {
     async fn watching(
         content: &mut ContentBuilder,
         now_playing_item: &Value,
+        play_state: &Value,
         config: &Config,
     ) -> Option<()> {
         /*
@@ -233,11 +239,18 @@ impl Content {
             content.details(name.into());
             content.state_message("Live TV".into());
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
-        } else if now_playing_item["Type"].as_str()? == "AudioBook" {
-            content.media_type(MediaType::AudioBook);
-            content.item_id(now_playing_item["ParentId"].as_str()?.to_string());
-            content.details(now_playing_item["Album"].as_str().unwrap_or(name).into());
+        } else if now_playing_item["Type"].as_str()? == "Book" {
+            // Time to convert jellyfin nonsense into pages!!!
+            let ticks_to_pages = 10000;
 
+            let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
+            position_ticks /= ticks_to_pages;
+
+            content.state_message(format!("Reading page {}", position_ticks));
+            content.media_type(MediaType::Book);
+            content.details(name.into());
+            content.item_id(now_playing_item["Id"].as_str()?.to_string());
+        } else if now_playing_item["Type"].as_str()? == "AudioBook" {
             let raw_artists = now_playing_item["Artists"]
                 .as_array()?
                 .iter()
@@ -263,16 +276,19 @@ impl Content {
                 genres = String::from(" - ") + &genres
             }
 
+            content.media_type(MediaType::AudioBook);
+            content.item_id(now_playing_item["ParentId"].as_str()?.to_string());
+            content.details(now_playing_item["Album"].as_str().unwrap_or(name).into());
             content.state_message(format!("By {}{}", artists, genres))
         }
         Some(())
     }
 
-    async fn time_left(now_playing_item: &Value, session: &Value) -> Option<i64> {
-        if !session["PlayState"]["IsPaused"].as_bool()? {
+    async fn time_left(now_playing_item: &Value, play_state: &Value) -> Option<i64> {
+        if !play_state["IsPaused"].as_bool()? {
             let ticks_to_seconds = 10000000;
 
-            let mut position_ticks = session["PlayState"]["PositionTicks"].as_i64().unwrap_or(0);
+            let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
             position_ticks /= ticks_to_seconds;
 
             let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
@@ -395,6 +411,7 @@ pub enum MediaType {
     Episode,
     LiveTv,
     Music,
+    Book,
     AudioBook,
     None,
 }
@@ -409,6 +426,7 @@ impl Serialize for MediaType {
             MediaType::Episode => serializer.serialize_unit_variant("MediaType", 1, "Episode"),
             MediaType::LiveTv => serializer.serialize_unit_variant("MediaType", 2, "LiveTv"),
             MediaType::Music => serializer.serialize_unit_variant("MediaType", 3, "Music"),
+            MediaType::Book => serializer.serialize_unit_variant("MediaType", 4, "Book"),
             MediaType::AudioBook => serializer.serialize_unit_variant("MediaType", 4, "AudioBook"),
             MediaType::None => serializer.serialize_unit_variant("MediaType", 5, "None"),
         }
@@ -462,6 +480,7 @@ impl std::fmt::Display for MediaType {
             MediaType::LiveTv => "LiveTv",
             MediaType::Movie => "Movie",
             MediaType::Music => "Music",
+            MediaType::Book => "Book",
             MediaType::AudioBook => "AudioBook",
             MediaType::None => "None",
         };
@@ -488,6 +507,7 @@ impl From<&'static str> for MediaType {
             "movie" => Self::Movie,
             "music" => Self::Music,
             "livetv" => Self::LiveTv,
+            "book" => Self::Book,
             "audiobook" => Self::AudioBook,
             _ => Self::None,
         }
@@ -501,6 +521,7 @@ impl From<String> for MediaType {
             "movie" => Self::Movie,
             "music" => Self::Music,
             "livetv" => Self::LiveTv,
+            "book" => Self::Book,
             "audiobook" => Self::AudioBook,
             _ => Self::None,
         }
