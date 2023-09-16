@@ -97,14 +97,16 @@ impl Content {
                 continue;
             }
 
-            let session_username = session["UserName"].as_str().unwrap();
+            let session_username = session["UserName"].as_str().unwrap().to_lowercase();
 
             match &config.jellyfin.username {
-                Username::String(username) if session_username != username => continue,
+                Username::String(username) if session_username != username.to_lowercase() => {
+                    continue
+                }
                 Username::Vec(usernames)
                     if usernames
                         .iter()
-                        .all(|username| session_username != username) =>
+                        .all(|username| session_username != username.to_lowercase()) =>
                 {
                     continue
                 }
