@@ -304,7 +304,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(750));
+        std::thread::sleep(std::time::Duration::from_secs(3));
     }
 }
 
