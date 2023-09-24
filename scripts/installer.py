@@ -239,7 +239,7 @@ if platform.system() == "Windows":
         break
 
 elif platform.system() == "Darwin":
-    file = f"https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-{platform.machine()}-linux"
+    file = f"https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-{platform.machine()}-darwin"
     subprocess.run(["curl", "-o", "/usr/local/bin/jellyfin-rpc", "-L", file])
     subprocess.run(["chmod", "+x", "/usr/local/bin/jellyfin-rpc"])
 
