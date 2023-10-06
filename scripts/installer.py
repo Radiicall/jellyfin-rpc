@@ -211,7 +211,7 @@ if platform.system() == "Windows":
         if os.path.isfile(path + "winsw.exe"):
             print("The script will prompt for administrator to remove the already installed service")
             sleep(1)
-            subprocess.run[path + "winsw.exe", "uninstall"]
+            subprocess.run([path + "winsw.exe", "uninstall"])
 
         subprocess.run(["curl", "-o", path + "winsw.exe", "-L", "https://github.com/winsw/winsw/releases/latest/download/WinSW-x64.exe"])
 
