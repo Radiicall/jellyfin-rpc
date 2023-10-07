@@ -201,7 +201,13 @@ impl Content {
                     return Some(());
                 }
             }
-            let artist = now_playing_item["AlbumArtist"].as_str()?.to_string();
+            let raw_artists = now_playing_item["Artists"]
+                .as_array()?
+                .iter()
+                .map(|a| a.as_str().unwrap().to_string())
+                .collect::<Vec<String>>();
+
+            let artists = Self::get_artists(raw_artists);
 
             let display = match config
                 .jellyfin
@@ -225,7 +231,7 @@ impl Content {
                 .unwrap_or('-');
 
             let state =
-                Content::get_music_info(now_playing_item, artist, display, name, separator).await;
+                Content::get_music_info(now_playing_item, artists, display, name, separator).await;
 
             content.media_type(MediaType::Music);
             content.details(name.into());
@@ -259,18 +265,7 @@ impl Content {
                 .map(|a| a.as_str().unwrap().to_string())
                 .collect::<Vec<String>>();
 
-            let mut artists = String::new();
-
-            for (i, artist) in raw_artists.iter().enumerate() {
-                if i != 0 {
-                    if i == raw_artists.len() - 1 {
-                        artists += " and ";
-                    } else {
-                        artists += ", "
-                    }
-                }
-                artists += artist
-            }
+            let artists = Self::get_artists(raw_artists);
 
             let mut genres = Content::get_genres(now_playing_item).unwrap_or(String::from(""));
 
@@ -284,6 +279,21 @@ impl Content {
             content.state_message(format!("By {}{}", artists, genres))
         }
         Some(())
+    }
+
+    fn get_artists(raw_artists: Vec<String>) -> String {
+        let mut artists = String::new();
+        for (i, artist) in raw_artists.iter().enumerate() {
+            if i != 0 {
+                if i == raw_artists.len() - 1 {
+                    artists += " and ";
+                } else {
+                    artists += ", "
+                }
+            }
+            artists += artist
+        }
+        artists
     }
 
     async fn time_left(now_playing_item: &Value, play_state: &Value) -> Option<i64> {
@@ -310,12 +320,12 @@ impl Content {
 
     async fn get_music_info(
         npi: &Value,
-        artist: String,
+        artists: String,
         display: Vec<std::string::String>,
         name: &str,
         separator: char,
     ) -> String {
-        let mut state = format!("By {}", artist);
+        let mut state = format!("By {}", artists);
 
         display.iter().for_each(|data| {
             let data = data.as_str();
