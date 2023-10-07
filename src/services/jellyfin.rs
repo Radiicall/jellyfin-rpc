@@ -140,7 +140,7 @@ impl Content {
                 .and_then(|images| images.enable_images)
                 .unwrap_or(false)
             {
-                image_url = Content::image(&config.jellyfin.url, content.item_id.clone()).await;
+                image_url = Content::image(&config.jellyfin.url, content.item_id.clone()).await.unwrap_or(String::from(""));
             }
 
             content.external_services(ExternalServices::get(now_playing_item).await);
@@ -354,12 +354,18 @@ impl Content {
         state
     }
 
-    async fn image(url: &str, item_id: String) -> String {
-        format!(
+    async fn image(url: &str, item_id: String) -> Result<String, reqwest::Error> {
+        let img = format!(
             "{}/Items/{}/Images/Primary",
             url.trim_end_matches('/'),
             item_id
-        )
+        );
+
+        if reqwest::get(&img).await?.text().await.unwrap_or(String::from("_")).contains("does not have an image of type Primary") {
+            Ok(String::from(""))
+        } else {
+            Ok(img)
+        }
     }
 
     fn get_genres(npi: &Value) -> Option<String> {
