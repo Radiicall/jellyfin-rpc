@@ -2,7 +2,7 @@
 
 <img src="https://shields.io/github/license/radiicall/jellyfin-rpc?color=purple"/> <img src="https://shields.io/github/v/tag/Radiicall/jellyfin-rpc"/> <img src="https://shields.io/github/downloads/radiicall/jellyfin-rpc/total"/>
 
-[FAQ](https://github.com/Radiicall/jellyfin-rpc/wiki/Frequently-Asked-Questions)
+[Frequently Asked Questions](https://github.com/Radiicall/jellyfin-rpc/wiki/Frequently-Asked-Questions)
 
 Program used to display what you're currently watching on discord.
 
