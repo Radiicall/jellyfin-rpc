@@ -1,5 +1,5 @@
 use super::error::ConfigError;
-use crate::MediaType;
+use crate::jellyfin::MediaType;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
