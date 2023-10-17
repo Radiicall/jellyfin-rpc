@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .ok();
 
-    let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
+    let config = Config::load(&config_path).unwrap_or_else(|e| {
         eprintln!(
             "{} {}",
             format!(
