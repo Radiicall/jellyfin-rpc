@@ -1,4 +1,7 @@
 /target
-main.json
+/jellyfin-rpc/target
+/jellyfin-rpc/Cargo.lock
+/main.json
 /pkg
-.DS_Store
+/.DS_Store
+/.vscode

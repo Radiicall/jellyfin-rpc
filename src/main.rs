@@ -1,13 +1,10 @@
-pub mod services;
-use crate::core::updates;
-pub use crate::services::imgur::*;
-pub use crate::services::jellyfin::*;
-pub mod core;
-pub use crate::core::config::{get_config_path, Button, Config};
+pub use jellyfin_rpc::services::{jellyfin::*, imgur::*};
+pub use jellyfin_rpc::core::config::{get_config_path, Button, Config};
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use retry::retry_with_index;
+use jellyfin_rpc::core::{rpc, updates};
 
 /*
     TODO: Comments
@@ -48,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .ok();
 
-    let config = Config::load_config(config_path.clone()).unwrap_or_else(|e| {
+    let config = Config::load(&config_path).unwrap_or_else(|e| {
         eprintln!(
             "{} {}",
             format!(
@@ -242,7 +239,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             rich_presence_client
-                .set_activity(setactivity(
+                .set_activity(rpc::setactivity(
                     &content.state_message,
                     &content.details,
                     content.endtime,
@@ -336,54 +333,4 @@ fn connect(rich_presence_client: &mut DiscordIpcClient) {
         },
     )
     .unwrap();
-}
-
-fn setactivity<'a>(
-    state_message: &'a String,
-    details: &'a str,
-    endtime: Option<i64>,
-    img_url: &'a str,
-    rpcbuttons: Vec<activity::Button<'a>>,
-    version: &'a str,
-    media_type: &'a MediaType,
-) -> activity::Activity<'a> {
-    let mut new_activity = activity::Activity::new().details(details);
-
-    let mut image_url = "https://i.imgur.com/oX6vcds.png";
-
-    if media_type == &MediaType::LiveTv {
-        image_url = "https://i.imgur.com/XxdHOqm.png"
-    } else if !img_url.is_empty() {
-        image_url = img_url;
-    }
-
-    let mut assets = activity::Assets::new()
-        .large_text(version)
-        .large_image(image_url);
-
-    match endtime {
-        Some(_) if media_type == &MediaType::LiveTv => (),
-        Some(time) => {
-            new_activity = new_activity
-                .clone()
-                .timestamps(activity::Timestamps::new().end(time));
-        }
-        None if media_type == &MediaType::Book => (),
-        None => {
-            assets = assets
-                .clone()
-                .small_image("https://i.imgur.com/wlHSvYy.png")
-                .small_text("Paused");
-        }
-    }
-
-    if !state_message.is_empty() {
-        new_activity = new_activity.clone().state(state_message);
-    }
-    if !rpcbuttons.is_empty() {
-        new_activity = new_activity.clone().buttons(rpcbuttons);
-    }
-    new_activity = new_activity.clone().assets(assets);
-
-    new_activity
 }

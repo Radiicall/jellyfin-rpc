@@ -1,0 +1,52 @@
+use discord_rich_presence::activity;
+use crate::jellyfin::MediaType;
+
+pub fn setactivity<'a>(
+    state_message: &'a String,
+    details: &'a str,
+    endtime: Option<i64>,
+    img_url: &'a str,
+    rpcbuttons: Vec<activity::Button<'a>>,
+    version: &'a str,
+    media_type: &'a MediaType,
+) -> activity::Activity<'a> {
+    let mut new_activity = activity::Activity::new().details(details);
+
+    let mut image_url = "https://i.imgur.com/oX6vcds.png";
+
+    if media_type == &MediaType::LiveTv {
+        image_url = "https://i.imgur.com/XxdHOqm.png"
+    } else if !img_url.is_empty() {
+        image_url = img_url;
+    }
+
+    let mut assets = activity::Assets::new()
+        .large_text(version)
+        .large_image(image_url);
+
+    match endtime {
+        Some(_) if media_type == &MediaType::LiveTv => (),
+        Some(time) => {
+            new_activity = new_activity
+                .clone()
+                .timestamps(activity::Timestamps::new().end(time));
+        }
+        None if media_type == &MediaType::Book => (),
+        None => {
+            assets = assets
+                .clone()
+                .small_image("https://i.imgur.com/wlHSvYy.png")
+                .small_text("Paused");
+        }
+    }
+
+    if !state_message.is_empty() {
+        new_activity = new_activity.clone().state(state_message);
+    }
+    if !rpcbuttons.is_empty() {
+        new_activity = new_activity.clone().buttons(rpcbuttons);
+    }
+    new_activity = new_activity.clone().assets(assets);
+
+    new_activity
+}

@@ -1,5 +1,5 @@
 use super::error::ConfigError;
-use crate::MediaType;
+use crate::jellyfin::MediaType;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
@@ -22,7 +22,7 @@ pub struct Jellyfin {
     pub blacklist: Option<Blacklist>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum Username {
     Vec(Vec<String>),
@@ -84,9 +84,26 @@ pub fn get_config_path() -> Result<String, ConfigError> {
 }
 
 impl Config {
-    pub fn load_config(path: String) -> Result<Config, ConfigError> {
+    pub fn load(path: &str) -> Result<Config, ConfigError> {
         let data = std::fs::read_to_string(path)?;
         let config: Config = serde_json::from_str(&data)?;
         Ok(config)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            jellyfin: Jellyfin {
+                url: "".to_string(),
+                username: Username::String("".to_string()),
+                api_key: "".to_string(),
+                music: None,
+                blacklist: None,
+            },
+            discord: None,
+            imgur: None,
+            images: None,
+        }
     }
 }
