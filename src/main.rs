@@ -1,10 +1,12 @@
-pub use jellyfin_rpc::services::{jellyfin::*, imgur::*};
-pub use jellyfin_rpc::core::config::{get_config_path, Button, Config};
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+pub use jellyfin_rpc::core::config::{get_config_path, Button, Config};
+use jellyfin_rpc::core::rpc;
+pub use jellyfin_rpc::services::{imgur::*, jellyfin::*};
 use retry::retry_with_index;
-use jellyfin_rpc::core::{rpc, updates};
+#[cfg(feature = "updates")]
+mod updates;
 
 /*
     TODO: Comments
@@ -29,7 +31,9 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "updates")]
     updates::checker().await;
+
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
@@ -121,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
 
     // Start up the client connection, so that we can actually send and receive stuff
-    connect(&mut rich_presence_client);
+    jellyfin_rpc::connect(&mut rich_presence_client);
     println!(
         "{}\n{}",
         "Connected to Discord Rich Presence Socket"
@@ -303,34 +307,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         std::thread::sleep(std::time::Duration::from_secs(3));
     }
-}
-
-fn connect(rich_presence_client: &mut DiscordIpcClient) {
-    println!(
-        "{}",
-        "------------------------------------------------------------------".bold()
-    );
-    retry_with_index(
-        retry::delay::Exponential::from_millis(1000),
-        |current_try| {
-            println!(
-                "{} {}{}",
-                "Attempt".bold().truecolor(225, 69, 0),
-                current_try.to_string().bold().truecolor(225, 69, 0),
-                ": Trying to connect".bold().truecolor(225, 69, 0)
-            );
-            match rich_presence_client.connect() {
-                Ok(result) => retry::OperationResult::Ok(result),
-                Err(err) => {
-                    eprintln!(
-                        "{}\nError: {}",
-                        "Failed to connect, retrying soon".red().bold(),
-                        err
-                    );
-                    retry::OperationResult::Retry(())
-                }
-            }
-        },
-    )
-    .unwrap();
 }

@@ -1,5 +1,5 @@
-use discord_rich_presence::activity;
 use crate::jellyfin::MediaType;
+use discord_rich_presence::activity;
 
 pub fn setactivity<'a>(
     state_message: &'a String,

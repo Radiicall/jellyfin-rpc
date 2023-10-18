@@ -140,7 +140,9 @@ impl Content {
                 .and_then(|images| images.enable_images)
                 .unwrap_or(false)
             {
-                image_url = Content::image(&config.jellyfin.url, content.item_id.clone()).await.unwrap_or(String::from(""));
+                image_url = Content::image(&config.jellyfin.url, content.item_id.clone())
+                    .await
+                    .unwrap_or(String::from(""));
             }
 
             content.external_services(ExternalServices::get(now_playing_item).await);
@@ -361,7 +363,13 @@ impl Content {
             item_id
         );
 
-        if reqwest::get(&img).await?.text().await.unwrap_or(String::from("_")).contains("does not have an image of type Primary") {
+        if reqwest::get(&img)
+            .await?
+            .text()
+            .await
+            .unwrap_or(String::from("_"))
+            .contains("does not have an image of type Primary")
+        {
             Ok(String::from(""))
         } else {
             Ok(img)

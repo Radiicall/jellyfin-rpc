@@ -505,6 +505,7 @@ dependencies = [
  "colored",
  "discord-rich-presence",
  "jellyfin-rpc",
+ "reqwest",
  "retry",
  "tokio",
 ]

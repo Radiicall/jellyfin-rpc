@@ -15,12 +15,17 @@ exclude = [
 name = "jellyfin-rpc"
 path = "src/main.rs"
 
+[features]
+default = ["updates"]
+updates = ["dep:reqwest"]
+
 [dependencies]
 discord-rich-presence = "0.2"
 colored               = "2.0"
 retry                 = "2.0"
 
 [dependencies.jellyfin-rpc]
+features = ["imgur", "cli"]
 path = "./jellyfin-rpc"
 
 [dependencies.clap]
@@ -30,3 +35,9 @@ version  = "4.1"
 [dependencies.tokio]
 features = ["full"]
 version  = "1"
+
+[dependencies.reqwest]
+default-features = false
+features = ["rustls-tls", "json"]
+version  = "0.11"
+optional = true
