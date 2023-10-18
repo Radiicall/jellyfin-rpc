@@ -3,7 +3,7 @@ name         = "jellyfin-rpc-cli"
 version      = "0.15.2"
 edition      = "2021"
 description  = "Displays the content you're currently watching on Discord!"
-license-file = "LICENSE"
+license = "GPL-3.0-or-later"
 repository   = "https://github.com/Radiicall/jellyfin-rpc"
 
 exclude = [
