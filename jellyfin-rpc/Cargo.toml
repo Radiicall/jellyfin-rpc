@@ -2,7 +2,7 @@
 name = "jellyfin-rpc"
 version = "0.1.0"
 edition = "2021"
-description  = "Displays the content you're currently watching on Discord!"
+description  = "Backend for the Jellyfin-RPC-cli and Jellyfin-RPC-Iced projects"
 license-file = "LICENSE"
 repository   = "https://github.com/Radiicall/jellyfin-rpc"
 
