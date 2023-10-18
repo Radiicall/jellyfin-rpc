@@ -12,5 +12,4 @@ steps:
           override: true
     - uses: katyo/publish-crates@v2
       with:
-          path: './packages'
           registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
