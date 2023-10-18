@@ -26,7 +26,7 @@ retry                 = "2.0"
 
 [dependencies.jellyfin-rpc]
 features = ["imgur", "cli"]
-path = "./jellyfin-rpc"
+path     = "./jellyfin-rpc"
 
 [dependencies.clap]
 features = ["derive"]
