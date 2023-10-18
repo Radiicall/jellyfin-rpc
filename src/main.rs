@@ -1,14 +1,10 @@
-pub mod services;
-use crate::core::updates;
-pub use crate::services::imgur::*;
-pub use crate::services::jellyfin::*;
-pub mod core;
-pub use crate::core::config::{get_config_path, Button, Config};
+pub use jellyfin_rpc::services::{jellyfin::*, imgur::*};
+pub use jellyfin_rpc::core::config::{get_config_path, Button, Config};
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use retry::retry_with_index;
-use core::rpc;
+use jellyfin_rpc::core::{rpc, updates};
 
 /*
     TODO: Comments
