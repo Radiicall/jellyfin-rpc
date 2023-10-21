@@ -1,6 +1,7 @@
 use crate::core::config::{Config, Display, Username};
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
+use async_recursion::async_recursion;
 
 /*
     TODO: Comments
@@ -75,6 +76,14 @@ pub struct Content {
 }
 
 impl Content {
+    #[async_recursion]
+    pub async fn try_get(config: &Config) -> Self {
+        match Content::get(config).await {
+            Ok(content) => content,
+            Err(_) => Content::try_get(config).await,
+        }
+    }
+
     pub async fn get(config: &Config) -> Result<Self, reqwest::Error> {
         let sessions: Vec<Value> = serde_json::from_str(
             &reqwest::get(format!(

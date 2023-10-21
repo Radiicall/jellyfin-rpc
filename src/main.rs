@@ -91,25 +91,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if config.jellyfin.blacklist.is_some() {
         let blacklist = config.jellyfin.blacklist.clone().unwrap();
         if let Some(media_types) = blacklist.media_types {
-            println!(
-                "{} {}",
-                "These media types won't be shown:".bold().red(),
-                media_types
-                    .iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ")
-                    .bold()
-                    .red()
-            )
+            if !media_types.is_empty() {
+                println!(
+                    "{} {}",
+                    "These media types won't be shown:".bold().red(),
+                    media_types
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                        .bold()
+                        .red()
+                )
+            }
         }
 
         if let Some(libraries) = blacklist.libraries {
-            println!(
-                "{} {}",
-                "These media libraries won't be shown:".bold().red(),
-                libraries.join(", ").bold().red()
-            )
+            if !libraries.is_empty() {
+                println!(
+                    "{} {}",
+                    "These media libraries won't be shown:".bold().red(),
+                    libraries.join(", ").bold().red()
+                )
+            }
         }
     }
 
@@ -136,7 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start loop
     loop {
-        let mut content = Content::get(&config).await?;
+        let mut content = Content::try_get(&config).await;
 
         let mut blacklist_check = true;
         config

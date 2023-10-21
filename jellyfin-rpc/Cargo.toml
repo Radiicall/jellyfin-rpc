@@ -14,7 +14,7 @@ cli   = ["dep:colored"]
 discord-rich-presence = "0.2"
 retry                 = "2.0"
 serde_json            = "1.0"
-
+async-recursion       = "1.0.5"
 
 [dependencies.colored]
 version  = "2.0"
