@@ -4,6 +4,7 @@
 # Thanks to https://github.com/xenoncolt for making the original Windows installer
 # Their contributions made this universal script a lot easier to produce.
 
+import json
 import os
 import subprocess
 import platform
@@ -38,14 +39,11 @@ if os.path.isfile(path):
         print("Invalid input, please type y or n")
 
 if current == "n" or current == "":
-    content = "{"
-
     print("----------Jellyfin----------")
     url = input("URL (include http/https): ")
     api_key = input(f"API key [Create one here: {url}/web/index.html#!/apikeys.html]: ")
-    username = input("username: ")
-
-    content += f' "jellyfin": {{ "url": "{url}", "api_key": "{api_key}",  "username": "{username}"'
+    print("Enter a single username or enter multiple usernames in a comma separated list.")
+    username = input("username[s]: ").split(",")
 
     print("If you dont want anything else you can just press enter through all of these")
 
@@ -53,6 +51,7 @@ if current == "n" or current == "":
         val = input("Do you want to customize music display? (y/N): ").lower()
 
         if val == "n" or val == "":
+            music = None
             break
         elif val != "y":
             print("Invalid input, please type y or n")
@@ -61,17 +60,20 @@ if current == "n" or current == "":
         print("Enter what you would like to be shown in a comma seperated list")
         print("Remember that it will show in the order you type it in")
         print("Valid options are year, album and/or genres")
-        display = input("[Default: genres]: ")
+        display = input("[Default: genres]: ").split(",")
 
         print("Choose the separator between the artist name and the info")
         separator = input("[Default: -]: ")
 
-        if display != "" and separator != "":
-            content += f', "music": {{ "display": "{display}", "separator": "{separator}" }}'
-        elif display != "" and separator == "":
-            content += f', "music": {{ "display": "{display}" }}'
-        elif display == "" and separator != "":
-            content += f', "music": {{ "separator": "{separator}" }}'
+        if display == "":
+            display = None
+        if separator == "":
+            separator = None
+
+        music = {
+            "display": display,
+            "separator": separator
+        }
 
         break
 
@@ -79,7 +81,7 @@ if current == "n" or current == "":
         val = input("Do you want to blacklist media types or libraries? (y/N): ").lower()
 
         if val == "n" or val == "":
-            content += " }"
+            blacklist = None
             break
         elif val != "y":
             print("Invalid input, please type y or n")
@@ -96,66 +98,62 @@ if current == "n" or current == "":
         print("Libraries 2/2")
         libraries = input("Enter libraries to blacklist [Default: ]: ").split(",")
 
-        content += ', "blacklist": { "media_types": [ '
-        for i in media_types:
-            content += f'"{i}", '
-
-        content = content.removesuffix(", ")
-        
-        content += ' ], "libraries": ['
-        for i in libraries:
-            content += f'"{i}", '
-
-        content = content.removesuffix(", ")
-        content += " ] } }"
+        blacklist = {
+            "media_types": media_types,
+            "libraries": libraries
+        }
 
         break
 
+    jellyfin = {
+        "url": url,
+        "api_key": api_key,
+        "username": username,
+        "music": music,
+        "blacklist": blacklist
+    }
+
     print("----------Discord----------")
 
-    content += ', "discord": {'
-
     appid = input("Enter your discord application ID [Default: 1053747938519679018]: ")
-    if appid != "":
-        content += f' "application_id": "{appid}"'
+    if appid == "":
+        appid = None
 
     while True:
         val = input("Do you want custom buttons? (y/N): ").lower()
 
         if val == "n" or val == "":
-            content += " }"
+            buttons = None
             break
         elif val != "y":
             print("Invalid input, please type y or n")
             continue
 
-        if appid != "":
-            content += ","
-        
-        content += ' "buttons": [ '
+        buttons = []
 
-        print("If you want one button to continue being dynamic then you have to specifically enter dynamic into both fields")
+        print("If you want one button to continue being dynamic then you have to specifically enter dynamic into both name and url fields")
         print("If you dont want any buttons to appear then you can leave everything blank here and it wont show anything.")
 
         print("Button 1/2")
         name = input("Choose what the button will show [Default: dynamic]: ")
         url = input("Choose where the button will direct to [Default: dynamic]: ")
 
-        button1 = False
         if name != "" and url != "":
-            content += f'{{ "name": "{name}", "url": "{url}" }}'
-            button1 = True
+            buttons.append({
+                "name": name,
+                "url": url
+            })
 
         print("Button 2/2")
         name = input("Choose what the button will show [Default: dynamic]: ")
         url = input("Choose where the button will direct to [Default: dynamic]: ")
 
-        if name != "" and url != "" and button1 == True:
-            content += ", "
         if name != "" and url != "":
-            content += f'{{ "name": "{name}", "url": "{url}" }}'
+            buttons.append({
+                "name": name,
+                "url": url
+            })
 
-        content += " ] }"
         break
 
     print("----------Images----------")
@@ -164,6 +162,8 @@ if current == "n" or current == "":
         val = input("Do you want images? (y/N): ").lower()
 
         if val == "n" or val == "":
+            images = None
+            imgur = None
             break
         elif val != "y":
             print("Invalid input, please type y or n")
@@ -172,27 +172,55 @@ if current == "n" or current == "":
         val2 = input("Do you want imgur images? (y/N): ").lower()
         client_id = ""
 
+        imgur_images = False
+
         if val2 == "y":
+            imgur_images = True
             client_id = input("Enter your imgur client id: ")
         elif val2 != "n" and val2 != "":
             print("Invalid input, please type y or n")
             continue
 
-        if val2 == "y":
-            content += f', "imgur": {{ "client_id": "{client_id}" }}, "images": {{ "enable_images": true, "imgur_images": true }}'
-        else:
-            content += f', "images": {{ "enable_images": true }}'
+        imgur = {
+            "client_id": client_id
+        }
+
+        images = {
+            "enable_images": True,
+            "imgur_images": imgur_images,
+        }
 
         break
 
-    content += " }"
+    discord = {
+        "application_id": appid,
+        "buttons": buttons
+    }
+
+    config = {
+        "jellyfin": jellyfin,
+        "discord" : discord,
+        "imgur": imgur,
+        "images": images
+    }
 
     print(f"\nPlacing config in '{path}'")
 
     file = open(path, "w")
-    file.write(content)
+    file.write(json.dumps(config, indent=2))
     file.close()
-    
+
+while True:
+    val = input("Do you want to download Jellyfin-RPC? (Y/n): ").lower()
+
+    if val == "y" or val == "":
+        break
+    elif val != "n":
+        print("Invalid input, please type y or n")
+        continue
+
+    print("Exiting...")
+    exit(0)
 
 print("\nDownloading Jellyfin-RPC")
 
@@ -335,4 +363,3 @@ WantedBy=default.target"""
         break
 
 print("Installation complete!")
-
