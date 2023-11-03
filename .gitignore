@@ -1,6 +1,7 @@
 /target
 /jellyfin-rpc/target
 /jellyfin-rpc/Cargo.lock
+/jellyfin-rpc-cli/target
 /main.json
 /pkg
 /.DS_Store
