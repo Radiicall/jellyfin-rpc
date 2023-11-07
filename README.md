@@ -48,3 +48,7 @@ For setup instructions refer to the [Wiki](https://github.com/Radiicall/jellyfin
 ![Image of terminal/cmd output](https://github.com/Radiicall/jellyfin-rpc/assets/66682497/4da2c59e-f6c7-49d8-89f6-b2704d9b66c3)
 
 </details>
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=radiicall/jellyfin-rpc&type=Date)](https://star-history.com/#radiicall/jellyfin-rpc&Date)
