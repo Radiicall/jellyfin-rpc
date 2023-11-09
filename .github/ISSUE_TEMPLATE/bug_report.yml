@@ -1,4 +1,3 @@
-
 name: Bug report
 description: Report bugs in Jellyfin-RPC
 labels: bug
@@ -26,6 +25,14 @@ body:
         What the program outputted when the bug occurred.
 
         Tip: You can attach log files by clicking this area to highlight it and then dragging files in.
+
+        Default log locations:
+          Windows:
+            Press Windows + R and type in `%appdata%\jellyfin-rpc`
+          Linux:
+            Open a terminal and enter `journalctl --user -xeu jellyfin-rpc.service`
+          macOS:
+            Log files are located in /tmp/
     validations:
       required: false
   - type: input
@@ -52,6 +59,7 @@ body:
     validations:
       required: true
   - type: textarea
+    id: additional
     attributes:
       label: Anything else?
       description: |
