@@ -34,10 +34,12 @@ impl From<env::VarError> for ConfigError {
 
 #[derive(Debug)]
 pub enum ImgurError {
+    InvalidResponse,
     Reqwest(String),
     Io(String),
     Json(String),
     VarError(String),
+    None
 }
 
 impl From<reqwest::Error> for ImgurError {
