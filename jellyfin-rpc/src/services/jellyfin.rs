@@ -1,7 +1,7 @@
 use crate::core::config::{Config, Display, Username};
+use async_recursion::async_recursion;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
-use async_recursion::async_recursion;
 
 /*
     TODO: Comments

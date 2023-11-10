@@ -39,7 +39,7 @@ pub enum ImgurError {
     Io(String),
     Json(String),
     VarError(String),
-    None
+    None,
 }
 
 impl From<reqwest::Error> for ImgurError {

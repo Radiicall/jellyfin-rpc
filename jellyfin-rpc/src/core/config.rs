@@ -75,7 +75,7 @@ pub fn get_config_path() -> Result<String, ConfigError> {
     if cfg!(not(windows)) {
         let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
             Ok(xdg_config_home) => xdg_config_home,
-            Err(_) => env::var("HOME")? + "/.config"
+            Err(_) => env::var("HOME")? + "/.config",
         };
 
         Ok(xdg_config_home + ("/jellyfin-rpc/main.json"))

@@ -16,7 +16,7 @@ pub fn get_urls_path() -> Result<String, ImgurError> {
     if cfg!(not(windows)) {
         let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
             Ok(xdg_config_home) => xdg_config_home,
-            Err(_) => env::var("HOME")? + "/.config"
+            Err(_) => env::var("HOME")? + "/.config",
         };
 
         Ok(xdg_config_home + ("/jellyfin-rpc/urls.json"))
@@ -35,7 +35,7 @@ impl Imgur {
     ) -> Result<Self, ImgurError> {
         let file = match image_urls_file {
             Some(file) => file,
-            None => get_urls_path()?
+            None => get_urls_path()?,
         };
 
         let mut json = Imgur::read_file(file.clone())?;
@@ -55,15 +55,16 @@ impl Imgur {
             Ok(content) => content,
             Err(_) => {
                 // Create directories
-                let path = path::Path::new(&file).parent().ok_or(ImgurError::from(std::io::Error::new(std::io::ErrorKind::NotFound, file.clone())))?;
+                let path = path::Path::new(&file).parent().ok_or(ImgurError::from(
+                    std::io::Error::new(std::io::ErrorKind::NotFound, file.clone()),
+                ))?;
                 fs::create_dir_all(path)?;
 
                 // Create urls.json file
-                fs::File::create(file.clone())
-                    .map(|mut file| {
-                        write!(file, "{{\n}}").ok();
-                        file
-                    })?;
+                fs::File::create(file.clone()).map(|mut file| {
+                    write!(file, "{{\n}}").ok();
+                    file
+                })?;
 
                 // Read the newly created file
                 fs::read_to_string(file.clone())?
@@ -117,7 +118,7 @@ impl Imgur {
         new_data.insert(item_id.to_string(), json!(imgur_url));
 
         // Turn the old json data into a map and append the new map to the old one
-        let data = json.as_object_mut().ok_or(ImgurError::None)?;//.expect("\"urls.json\" file is not an object, try deleting the file and running the program again.");
+        let data = json.as_object_mut().ok_or(ImgurError::None)?; //.expect("\"urls.json\" file is not an object, try deleting the file and running the program again.");
         data.append(&mut new_data);
 
         // Overwrite the "urls.json" file with the new data
