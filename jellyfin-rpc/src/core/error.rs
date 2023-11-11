@@ -65,3 +65,21 @@ impl From<env::VarError> for ImgurError {
         Self::VarError(format!("Unable to get environment variables: {}", value))
     }
 }
+
+#[derive(Debug)]
+pub enum ContentError {
+    Reqwest(reqwest::Error, String),
+    Json(serde_json::Error),
+}
+
+impl From<serde_json::Error> for ContentError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Json(value)
+    }
+}
+
+impl From<reqwest::Error> for ContentError {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Reqwest(value, "Is your Jellyfin URL set correctly?".to_string())
+    }
+}

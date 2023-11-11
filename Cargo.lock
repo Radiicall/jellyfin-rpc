@@ -480,6 +480,7 @@ dependencies = [
  "retry",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

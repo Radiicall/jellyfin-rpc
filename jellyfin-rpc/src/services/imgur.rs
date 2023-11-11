@@ -71,34 +71,6 @@ impl Imgur {
             }
         };
 
-        /*
-        let content = fs::read_to_string(file.clone()).unwrap_or_else(|_| {
-            // Create directories
-            let path = path::Path::new(&file).parent().unwrap_or_else(|| {
-                eprintln!("Unable to convert \"{}\" to path", file);
-                std::process::exit(1);
-            });
-            fs::create_dir_all(path).ok();
-
-            // Create urls.json file
-            fs::File::create(file.clone())
-                .map(|mut file| {
-                    write!(file, "{{\n}}").ok();
-                    file
-                })
-                .unwrap_or_else(|err| {
-                    eprintln!("Unable to create file: \"{}\"\nerror: {}", file, err);
-                    std::process::exit(1)
-                });
-
-            // Read the newly created file
-            fs::read_to_string(file.clone()).unwrap_or_else(|err| {
-                eprintln!("Unable to read file: \"{}\"\nerror: {}", file, err);
-                std::process::exit(1);
-            })
-        });
-        */
-
         let json: Value = serde_json::from_str(&content)?;
         Ok(json)
     }

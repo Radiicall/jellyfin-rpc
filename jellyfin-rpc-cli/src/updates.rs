@@ -18,7 +18,7 @@ pub async fn checker() {
                 .bold(),
             "This can be safely ignored if you are running a prerelease version".bold()
         );
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 }
 
