@@ -577,7 +577,7 @@ pub async fn library_check(
     api_key: &str,
     item_id: &str,
     library: &str,
-) -> Result<bool, reqwest::Error> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     let parents: Vec<Value> = serde_json::from_str(
         &reqwest::get(format!(
             "{}/Items/{}/Ancestors?api_key={}",
@@ -588,13 +588,7 @@ pub async fn library_check(
         .await?
         .text()
         .await?,
-    )
-    .unwrap_or_else(|_| {
-        panic!(
-            "Can't unwrap URL, check if the Jellyfin URL is correct. Current URL: {}",
-            url
-        )
-    });
+    )?;
 
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {
