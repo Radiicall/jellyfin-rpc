@@ -190,6 +190,10 @@ impl Content {
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
             let mut state = "S".to_owned() + &season + "E" + &first_episode_number;
 
+            if season == *"null" {
+                state = "E".to_owned() + &first_episode_number;
+            }
+
             if now_playing_item.get("IndexNumberEnd").is_some() {
                 state += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
             }
