@@ -14,9 +14,11 @@ pub struct Imgur {
 
 pub fn get_urls_path() -> Result<String, ImgurError> {
     if cfg!(not(windows)) {
-        let xdg_config_home = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
-            env::var("HOME").expect("No HOME environment variable") + "/.config"
-        });
+        let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
+            Ok(xdg_config_home) => xdg_config_home,
+            Err(_) => env::var("HOME")? + "/.config",
+        };
+
         Ok(xdg_config_home + ("/jellyfin-rpc/urls.json"))
     } else {
         let app_data = env::var("APPDATA")?;
@@ -31,8 +33,11 @@ impl Imgur {
         client_id: &str,
         image_urls_file: Option<String>,
     ) -> Result<Self, ImgurError> {
-        let file = image_urls_file
-            .unwrap_or_else(|| get_urls_path().expect("Failed to get \"urls.json\" file path"));
+        let file = match image_urls_file {
+            Some(file) => file,
+            None => get_urls_path()?,
+        };
+
         let mut json = Imgur::read_file(file.clone())?;
         if let Some(value) = json.get(item_id).and_then(Value::as_str) {
             return Ok(Self {
@@ -46,31 +51,25 @@ impl Imgur {
     }
 
     fn read_file(file: String) -> Result<Value, ImgurError> {
-        let content = fs::read_to_string(file.clone()).unwrap_or_else(|_| {
-            // Create directories
-            let path = path::Path::new(&file).parent().unwrap_or_else(|| {
-                eprintln!("Unable to convert \"{}\" to path", file);
-                std::process::exit(1);
-            });
-            fs::create_dir_all(path).ok();
+        let content = match fs::read_to_string(file.clone()) {
+            Ok(content) => content,
+            Err(_) => {
+                // Create directories
+                let path = path::Path::new(&file).parent().ok_or(ImgurError::from(
+                    std::io::Error::new(std::io::ErrorKind::NotFound, file.clone()),
+                ))?;
+                fs::create_dir_all(path)?;
 
-            // Create urls.json file
-            fs::File::create(file.clone())
-                .map(|mut file| {
+                // Create urls.json file
+                fs::File::create(file.clone()).map(|mut file| {
                     write!(file, "{{\n}}").ok();
                     file
-                })
-                .unwrap_or_else(|err| {
-                    eprintln!("Unable to create file: \"{}\"\nerror: {}", file, err);
-                    std::process::exit(1)
-                });
+                })?;
 
-            // Read the newly created file
-            fs::read_to_string(file.clone()).unwrap_or_else(|err| {
-                eprintln!("Unable to read file: \"{}\"\nerror: {}", file, err);
-                std::process::exit(1);
-            })
-        });
+                // Read the newly created file
+                fs::read_to_string(file.clone())?
+            }
+        };
 
         let json: Value = serde_json::from_str(&content)?;
         Ok(json)
@@ -91,7 +90,7 @@ impl Imgur {
         new_data.insert(item_id.to_string(), json!(imgur_url));
 
         // Turn the old json data into a map and append the new map to the old one
-        let data = json.as_object_mut().expect("\"urls.json\" file is not an object, try deleting the file and running the program again.");
+        let data = json.as_object_mut().ok_or(ImgurError::None)?; //.expect("\"urls.json\" file is not an object, try deleting the file and running the program again.");
         data.append(&mut new_data);
 
         // Overwrite the "urls.json" file with the new data
@@ -115,10 +114,7 @@ impl Imgur {
 
         Ok(val["data"]["link"]
             .as_str()
-            .unwrap_or_else(|| {
-                eprintln!("imgur returned no image url!\n{}", val);
-                std::process::exit(1)
-            })
+            .ok_or(ImgurError::InvalidResponse)?
             .to_string())
     }
 }

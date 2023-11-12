@@ -1,7 +1,8 @@
 use crate::core::config::{Config, Display, Username};
+use crate::core::error::ContentError;
+use async_recursion::async_recursion;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
-use async_recursion::async_recursion;
 
 /*
     TODO: Comments
@@ -77,14 +78,28 @@ pub struct Content {
 
 impl Content {
     #[async_recursion]
-    pub async fn try_get(config: &Config) -> Self {
+    pub async fn try_get(config: &Config, attempt: u64) -> Self {
+        let mut time = attempt * 5;
+        if time > 30 {
+            time = 30
+        }
+
         match Content::get(config).await {
             Ok(content) => content,
-            Err(_) => Content::try_get(config).await,
+            Err(error) => {
+                eprintln!{"{}: Error while getting content: {:#?}", attempt, error}
+                while time > 0 {
+                    eprint!("\rRetrying in {} seconds…", time);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    time -= 1
+                }
+                eprintln!("");
+                Content::try_get(config, attempt + 1).await
+            },
         }
     }
 
-    pub async fn get(config: &Config) -> Result<Self, reqwest::Error> {
+    pub async fn get(config: &Config) -> Result<Self, ContentError> {
         let sessions: Vec<Value> = serde_json::from_str(
             &reqwest::get(format!(
                 "{}/Sessions?api_key={}",
@@ -94,13 +109,7 @@ impl Content {
             .await?
             .text()
             .await?,
-        )
-        .unwrap_or_else(|_| {
-            panic!(
-                "Can't unwrap URL, check if the Jellyfin URL is correct. Current URL: {}",
-                config.jellyfin.url
-            )
-        });
+        )?;
         for session in sessions {
             if session.get("UserName").is_none() {
                 continue;
@@ -572,7 +581,7 @@ pub async fn library_check(
     api_key: &str,
     item_id: &str,
     library: &str,
-) -> Result<bool, reqwest::Error> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     let parents: Vec<Value> = serde_json::from_str(
         &reqwest::get(format!(
             "{}/Items/{}/Ancestors?api_key={}",
@@ -583,13 +592,7 @@ pub async fn library_check(
         .await?
         .text()
         .await?,
-    )
-    .unwrap_or_else(|_| {
-        panic!(
-            "Can't unwrap URL, check if the Jellyfin URL is correct. Current URL: {}",
-            url
-        )
-    });
+    )?;
 
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {

@@ -1,8 +1,8 @@
 pub mod services;
+pub use crate::services::jellyfin;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
-pub use crate::services::jellyfin;
 pub mod core;
 pub use crate::core::config::{get_config_path, Button, Config};
 

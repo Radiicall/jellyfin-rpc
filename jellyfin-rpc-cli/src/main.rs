@@ -140,7 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start loop
     loop {
-        let mut content = Content::try_get(&config).await;
+        let mut content = Content::try_get(&config, 1).await;
 
         let mut blacklist_check = true;
         config
@@ -309,6 +309,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
 
-        std::thread::sleep(std::time::Duration::from_secs(3));
+        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
     }
 }
