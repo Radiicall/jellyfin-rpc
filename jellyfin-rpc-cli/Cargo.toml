@@ -1,6 +1,6 @@
 [package]
 name         = "jellyfin-rpc-cli"
-version      = "0.15.3"
+version      = "0.15.4"
 edition      = "2021"
 description  = "Displays the content you're currently watching on Discord!"
 license      = "GPL-3.0-or-later"
