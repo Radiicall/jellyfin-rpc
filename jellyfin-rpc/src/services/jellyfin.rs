@@ -4,10 +4,6 @@ use async_recursion::async_recursion;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
-/*
-    TODO: Comments
-*/
-
 #[derive(Default, Clone)]
 struct ContentBuilder {
     media_type: MediaType,
