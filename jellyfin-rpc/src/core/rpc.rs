@@ -5,7 +5,7 @@ use discord_rich_presence::activity;
 /// 
 /// This has checks to do different things for different mediatypes and replaces images with default ones if they are needed.
 pub fn setactivity<'a>(
-    state_message: &'a String,
+    state_message: &'a str,
     details: &'a str,
     endtime: Option<i64>,
     img_url: &'a str,

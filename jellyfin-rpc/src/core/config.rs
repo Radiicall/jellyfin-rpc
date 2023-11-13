@@ -7,7 +7,7 @@ use std::env;
 /// Main struct containing every other struct in the file.
 /// 
 /// The config file is parsed into this struct.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub struct Config {
     /// Jellyfin configuration.
@@ -23,7 +23,7 @@ pub struct Config {
 }
 
 /// This struct contains every "required" part of the config.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Jellyfin {
     /// URL to the jellyfin server.
     pub url: String,
@@ -48,7 +48,7 @@ pub enum Username {
 }
 
 /// Contains configuration for Music display.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Music {
     /// Display is where you tell the program what should be displayed.
     /// 
@@ -61,7 +61,7 @@ pub struct Music {
 /// Display is where you tell the program what should be displayed.
 /// 
 /// Example: `vec![String::from("genres"), String::from("year")]`
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum Display {
     /// If the Display is a `Vec<String>`.
@@ -71,7 +71,7 @@ pub enum Display {
 }
 
 /// Blacklist MediaTypes and libraries.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Blacklist {
     /// `Vec<String>` of MediaTypes to blacklist
     pub media_types: Option<Vec<MediaType>>,
@@ -80,7 +80,7 @@ pub struct Blacklist {
 }
 
 /// Discord configuration
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Discord {
     /// Set a custom Application ID to be used.
     pub application_id: Option<String>,
@@ -91,7 +91,7 @@ pub struct Discord {
 /// Button struct
 /// 
 /// Contains information about buttons
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Button {
     /// What the name should be showed as in Discord.
     pub name: String,
@@ -100,14 +100,14 @@ pub struct Button {
 }
 
 /// Imgur configuration
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Imgur {
     /// Contains the client ID used to upload images to imgur.
     pub client_id: Option<String>,
 }
 
 /// Images configuration
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Images {
     /// Enables images, not everyone wants them so its a toggle.
     pub enable_images: Option<bool>,

@@ -13,6 +13,8 @@ use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
 pub use core::rpc::setactivity;
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(feature = "cli"))]
 /// Function for connecting to the Discord Ipc.
