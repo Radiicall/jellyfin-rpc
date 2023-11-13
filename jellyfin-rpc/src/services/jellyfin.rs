@@ -93,7 +93,7 @@ impl Content {
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                     time -= 1
                 }
-                eprintln!("");
+                eprintln!();
                 Content::try_get(config, attempt + 1).await
             },
         }
