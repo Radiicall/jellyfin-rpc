@@ -65,14 +65,29 @@ impl ContentBuilder {
     }
 }
 
+/// Struct containing information about what's being played on jellyfin
 #[derive(Default)]
 pub struct Content {
+    /// What type of content is currently playing.
+    /// 
+    /// Example: MediaType::Movie
     pub media_type: MediaType,
+    /// The title of the content
     pub details: String,
+    /// Description of the content, usually includes season and episode/genres, etc.
     pub state_message: String,
+    /// When the content will end, current UNIX epoch + time left
     pub endtime: Option<i64>,
+    /// Image URL supplied by Jellyfin, this is different from the Imgur URL
+    /// 
+    /// This has to be passed to the Imgur::get() function to upload images to imgur
     pub image_url: String,
+    /// Item ID of the content currently playing, 
+    /// used to store Imgur URLs so that they can be reused instead of reuploading to Imgur every time.
     pub item_id: String,
+    /// External services to display as buttons.
+    /// 
+    /// Example: IMDb, Trakt, etc.
     pub external_services: Vec<ExternalServices>,
 }
 

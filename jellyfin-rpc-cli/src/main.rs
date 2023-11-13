@@ -1,7 +1,7 @@
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
-pub use jellyfin_rpc::imgur::*;
+pub use jellyfin_rpc::services::imgur::*;
 pub use jellyfin_rpc::prelude::*;
 use retry::retry_with_index;
 #[cfg(feature = "updates")]
