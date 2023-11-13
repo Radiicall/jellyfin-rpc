@@ -1,6 +1,9 @@
 use crate::prelude::MediaType;
 use discord_rich_presence::activity;
 
+/// Used to set the activity on Discord.
+/// 
+/// This has checks to do different things for different mediatypes and replaces images with default ones if they are needed.
 pub fn setactivity<'a>(
     state_message: &'a str,
     details: &'a str,

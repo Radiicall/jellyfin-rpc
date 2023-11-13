@@ -1,17 +1,23 @@
+//! Backend for displaying jellyfin rich presence on discord
+
+/// Main module
+pub mod core;
+/// Useful imports
+/// 
+/// Contains imports that most programs will be using.
 pub mod prelude;
+/// External connections
 pub mod services;
 pub use crate::core::error;
-#[cfg(feature = "imgur")]
-pub use crate::services::imgur;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
-pub mod core;
 pub use core::rpc::setactivity;
 #[cfg(test)]
 mod tests;
 
 #[cfg(not(feature = "cli"))]
+/// Function for connecting to the Discord Ipc.
 pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
     retry_with_index(
         retry::delay::Exponential::from_millis(1000),
@@ -24,6 +30,7 @@ pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
 }
 
 #[cfg(feature = "cli")]
+/// Function for connecting to the Discord Ipc.
 pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
     use colored::Colorize;
     println!(

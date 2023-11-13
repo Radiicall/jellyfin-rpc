@@ -4,10 +4,6 @@ use async_recursion::async_recursion;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
-/*
-    TODO: Comments
-*/
-
 #[derive(Default, Clone)]
 struct ContentBuilder {
     media_type: MediaType,
@@ -65,18 +61,38 @@ impl ContentBuilder {
     }
 }
 
+/// Struct containing information about what's being played on jellyfin
 #[derive(Default)]
 pub struct Content {
+    /// What type of content is currently playing.
+    /// 
+    /// Example: MediaType::Movie
     pub media_type: MediaType,
+    /// The title of the content
     pub details: String,
+    /// Description of the content, usually includes season and episode/genres, etc.
     pub state_message: String,
+    /// When the content will end, current UNIX epoch + time left
     pub endtime: Option<i64>,
+    /// Image URL supplied by Jellyfin, this is different from the Imgur URL
+    /// 
+    /// This has to be passed to the Imgur::get() function to upload images to imgur
     pub image_url: String,
+    /// Item ID of the content currently playing, 
+    /// used to store Imgur URLs so that they can be reused instead of reuploading to Imgur every time.
     pub item_id: String,
+    /// External services to display as buttons.
+    /// 
+    /// Example: IMDb, Trakt, etc.
     pub external_services: Vec<ExternalServices>,
 }
 
 impl Content {
+    /// Calls the Content::get() function recursively until it returns a Content struct.
+    /// 
+    /// It waits (attempt * 5) seconds before retrying.
+    /// 
+    /// The max time it will wait is 30 seconds.
     #[async_recursion]
     pub async fn try_get(config: &Config, attempt: u64) -> Self {
         let mut time = attempt * 5;
@@ -99,6 +115,7 @@ impl Content {
         }
     }
 
+    /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
         let sessions: Vec<Value> = serde_json::from_str(
             &reqwest::get(format!(
@@ -418,9 +435,16 @@ impl Content {
     }
 }
 
+/// Struct with the external services collected from Jellyfin.
 #[derive(Debug, Clone)]
 pub struct ExternalServices {
+    /// Name of the service
+    /// 
+    /// Example: IMDb, Trakt
     pub name: String,
+    /// URL pointing to the specific Show/Movie etc. on the external service.
+    /// 
+    /// Example: <https://www.imdb.com/title/tt0117500/>, <https://trakt.tv/shows/the-simpsons>
     pub url: String,
 }
 
@@ -453,14 +477,22 @@ impl ExternalServices {
     }
 }
 
+/// The type of the currently playing content.
 #[derive(Debug, PartialEq, Clone)]
 pub enum MediaType {
+    /// If the content playing is a Movie.
     Movie,
+    /// If the content playing is an Episode.
     Episode,
+    /// If the content playing is a LiveTv.
     LiveTv,
+    /// If the content playing is a Music.
     Music,
+    /// If the content playing is a Book.
     Book,
+    /// If the content playing is an Audio Book.
     AudioBook,
+    /// If nothing is playing.
     None,
 }
 
@@ -543,6 +575,7 @@ impl Default for MediaType {
 }
 
 impl MediaType {
+    /// Check if the MediaType is none, returns `true` if it is.
     pub fn is_none(&self) -> bool {
         self == &Self::None
     }

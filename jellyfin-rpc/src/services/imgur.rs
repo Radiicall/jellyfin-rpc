@@ -3,15 +3,19 @@ use serde_json::{json, Value};
 use std::io::Write;
 use std::{env, fs, path};
 
-/*
-    TODO: Comments
-*/
-
+/// Struct containing the Imgur URL of the currently playing item.
 #[derive(Default)]
 pub struct Imgur {
     pub url: String,
 }
 
+/// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
+/// 
+/// This is to avoid the user having to specify a filepath on launch.
+/// 
+/// Default urls.json path depends on OS
+/// Windows: `%appdata%\jellyfin-rpc\urls.json`
+/// Linux/macOS: `~/.config/jellyfin-rpc/urls.json`
 pub fn get_urls_path() -> Result<String, ImgurError> {
     if cfg!(not(windows)) {
         let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
@@ -27,6 +31,9 @@ pub fn get_urls_path() -> Result<String, ImgurError> {
 }
 
 impl Imgur {
+    /// Queries the urls.json file for an imgur url with the same item ID attached.
+    /// 
+    /// If there's no imgur URL in the file, it will upload the image to imgur, store it in the file and then hand the URL over in a result.
     pub async fn get(
         image_url: &str,
         item_id: &str,

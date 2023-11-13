@@ -1,10 +1,15 @@
 use std::env;
 
+/// Error type for the config module.
 #[derive(Debug)]
 pub enum ConfigError {
+    /// Returns when it can't find the config file.
     MissingConfig(String),
+    /// Returns when it can't read the config file.
     Io(String),
+    /// Returns when it's unable to parse the config file to the Config struct.
     Json(String),
+    /// Returns when environment variables fail to be read.
     VarError(String),
 }
 
@@ -32,13 +37,22 @@ impl From<env::VarError> for ConfigError {
     }
 }
 
+/// Error type for the imgur module.
 #[derive(Debug)]
 pub enum ImgurError {
+    /// Returns when the response from the Imgur API is invalid.
+    ///
+    /// This is usually due to a bad API key or something wrong with the image its trying to upload.
     InvalidResponse,
+    /// Returns on errors in the reqwest library, can happen when trying to upload a file.
     Reqwest(String),
+    /// Returns when it can't read the urls.json file.
     Io(String),
+    /// Returns when it can't parse the urls.json file.
     Json(String),
+    /// Returns when environment variables fail to be read.
     VarError(String),
+    /// Returns when a required `Option<T>` is `None`.
     None,
 }
 
@@ -66,9 +80,13 @@ impl From<env::VarError> for ImgurError {
     }
 }
 
+/// Error type for the jellyfin module
+// TODO: Rename to `JellyfinError`
 #[derive(Debug)]
 pub enum ContentError {
+    /// Returns on errors in the reqwest library, can happen when trying to access the Jellyfin server.
     Reqwest(reqwest::Error, String),
+    /// Returns when the reply from jellyfin can't be parsed to the needed types.
     Json(serde_json::Error),
 }
 
