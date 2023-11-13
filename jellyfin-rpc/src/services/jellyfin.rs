@@ -87,7 +87,7 @@ impl Content {
         match Content::get(config).await {
             Ok(content) => content,
             Err(error) => {
-                eprintln!{"{}: Error while getting content: {:#?}", attempt, error}
+                eprintln! {"{}: Error while getting content: {:#?}", attempt, error}
                 while time > 0 {
                     eprint!("\rRetrying in {} seconds…", time);
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -95,7 +95,7 @@ impl Content {
                 }
                 eprintln!();
                 Content::try_get(config, attempt + 1).await
-            },
+            }
         }
     }
 

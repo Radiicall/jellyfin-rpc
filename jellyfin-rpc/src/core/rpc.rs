@@ -1,4 +1,4 @@
-use crate::jellyfin::MediaType;
+use crate::prelude::MediaType;
 use discord_rich_presence::activity;
 
 pub fn setactivity<'a>(

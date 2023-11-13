@@ -1,9 +1,8 @@
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
-pub use jellyfin_rpc::core::config::{get_config_path, Button, Config};
-use jellyfin_rpc::core::rpc;
-pub use jellyfin_rpc::services::{imgur::*, jellyfin::*};
+pub use jellyfin_rpc::imgur::*;
+pub use jellyfin_rpc::prelude::*;
 use retry::retry_with_index;
 #[cfg(feature = "updates")]
 mod updates;
@@ -170,7 +169,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap()
             {
                 if blacklist_check && !content.media_type.is_none() {
-                    blacklist_check = library_check(
+                    blacklist_check = jellyfin::library_check(
                         &config.jellyfin.url,
                         &config.jellyfin.api_key,
                         &content.item_id,
@@ -220,7 +219,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = vec![];
             let mut x = 0;
-            let default_button = Button {
+            let default_button = config::Button {
                 name: String::from("dynamic"),
                 url: String::from("dynamic"),
             };
@@ -247,7 +246,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             rich_presence_client
-                .set_activity(rpc::setactivity(
+                .set_activity(jellyfin_rpc::setactivity(
                     &content.state_message,
                     &content.details,
                     content.endtime,

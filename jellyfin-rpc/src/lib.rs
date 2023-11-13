@@ -1,10 +1,12 @@
+pub mod prelude;
 pub mod services;
-pub use crate::services::jellyfin;
+pub use crate::core::error;
+pub use crate::services::imgur;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
 pub mod core;
-pub use crate::core::config::{get_config_path, Button, Config};
+pub use core::rpc::setactivity;
 
 #[cfg(not(feature = "cli"))]
 pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
