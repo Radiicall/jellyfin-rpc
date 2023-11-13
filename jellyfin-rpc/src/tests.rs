@@ -71,7 +71,7 @@ fn try_get_content() {
 #[test]
 #[should_panic]
 fn try_imgur() {
-    use crate::imgur;
+    use crate::services::imgur;
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
