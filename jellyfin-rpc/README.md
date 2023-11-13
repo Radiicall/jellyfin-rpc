@@ -1,4 +1,6 @@
 # Jellyfin-RPC
+[![Documentation](https://docs.rs/jellyfin-rpc/badge.svg)](https://docs.rs/jellyfin-rpc/)
+[![Crates.io](https://img.shields.io/crates/v/jellyfin-rpc.svg)](https://crates.io/crates/jellyfin-rpc)
 
 This is the backend for the Jellyfin-RPC-cli and Jellyfin-RPC-Iced projects.
 
