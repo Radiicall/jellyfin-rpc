@@ -2,7 +2,7 @@ use crate::prelude::MediaType;
 use discord_rich_presence::activity;
 
 pub fn setactivity<'a>(
-    state_message: &'a String,
+    state_message: &'a str,
     details: &'a str,
     endtime: Option<i64>,
     img_url: &'a str,
