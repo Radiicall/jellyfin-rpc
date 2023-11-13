@@ -1,12 +1,15 @@
 pub mod prelude;
 pub mod services;
 pub use crate::core::error;
+#[cfg(feature = "imgur")]
 pub use crate::services::imgur;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
 pub mod core;
 pub use core::rpc::setactivity;
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(feature = "cli"))]
 pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
