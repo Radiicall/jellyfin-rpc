@@ -137,6 +137,7 @@ pub fn get_config_path() -> Result<String, ConfigError> {
 }
 
 impl Config {
+    /// Loads the config from the given path.
     pub fn load(path: &str) -> Result<Config, ConfigError> {
         let data = std::fs::read_to_string(path)?;
         let config: Config = serde_json::from_str(&data)?;

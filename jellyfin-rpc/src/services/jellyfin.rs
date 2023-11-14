@@ -609,6 +609,8 @@ impl From<String> for MediaType {
     }
 }
 
+/// Checks if a library exists.
+// TODO: Reverse the output of this function, currently returns `false` if the library exists.
 pub async fn library_check(
     url: &str,
     api_key: &str,
