@@ -1,6 +1,8 @@
 # Jellyfin-RPC
-
-<img src="https://shields.io/github/license/radiicall/jellyfin-rpc?color=purple"/> <img src="https://shields.io/github/v/tag/Radiicall/jellyfin-rpc"/> <img src="https://shields.io/github/downloads/radiicall/jellyfin-rpc/total"/> <img src="https://visitor-badge.laobi.icu/badge?page_id=radiicall.jellyfin-rpc"/>
+[![License](https://shields.io/github/license/radiicall/jellyfin-rpc?color=purple)](https://www.gnu.org/licenses/gpl-3.0-standalone.html)
+[![Crates.io](https://img.shields.io/crates/v/jellyfin-rpc-cli.svg)](https://crates.io/crates/jellyfin-rpc-cli)
+[![Downloads](https://shields.io/github/downloads/radiicall/jellyfin-rpc/total)](https://github.com/Radiicall/jellyfin-rpc/releases/latest)
+[![Visitors](https://visitor-badge.laobi.icu/badge?page_id=radiicall.jellyfin-rpc)](https://github.com/Radiicall/jellyfin-rpc)
 
 [Frequently Asked Questions](https://github.com/Radiicall/jellyfin-rpc/wiki/Frequently-Asked-Questions)
 
