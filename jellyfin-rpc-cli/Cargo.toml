@@ -5,6 +5,7 @@ edition      = "2021"
 description  = "Displays the content you're currently watching on Discord!"
 license      = "GPL-3.0-or-later"
 repository   = "https://github.com/Radiicall/jellyfin-rpc"
+keywords     = ["cli", "jellyfin", "discord", "rich-presence"]
 
 exclude = [
     "scripts/*",

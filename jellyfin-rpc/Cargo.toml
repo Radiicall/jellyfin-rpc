@@ -5,6 +5,7 @@ edition     = "2021"
 description = "Backend for the Jellyfin-RPC-cli and Jellyfin-RPC-Iced projects"
 license     = "GPL-3.0-or-later"
 repository  = "https://github.com/Radiicall/jellyfin-rpc"
+keywords     = ["jellyfin", "discord", "rich-presence"]
 
 [features]
 imgur = []
