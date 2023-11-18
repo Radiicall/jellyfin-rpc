@@ -3,16 +3,16 @@
 /// Main module
 pub mod core;
 /// Useful imports
-/// 
+///
 /// Contains imports that most programs will be using.
 pub mod prelude;
 /// External connections
 pub mod services;
 pub use crate::core::error;
+pub use core::rpc::setactivity;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
-pub use core::rpc::setactivity;
 #[cfg(test)]
 mod tests;
 

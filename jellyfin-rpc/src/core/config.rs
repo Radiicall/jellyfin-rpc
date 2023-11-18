@@ -5,13 +5,13 @@ use serde_json;
 use std::env;
 
 /// Main struct containing every other struct in the file.
-/// 
+///
 /// The config file is parsed into this struct.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub struct Config {
     /// Jellyfin configuration.
-    /// 
+    ///
     /// Has every required part of the config, hence why its not an `Option<Jellyfin>`.
     pub jellyfin: Jellyfin,
     /// Discord configuration.
@@ -35,6 +35,8 @@ pub struct Jellyfin {
     pub music: Option<Music>,
     /// Blacklist configuration.
     pub blacklist: Option<Blacklist>,
+    /// Self signed certificate option
+    pub self_signed_cert: Option<bool>,
 }
 
 /// Username of the person that info should be gathered from.
@@ -51,7 +53,7 @@ pub enum Username {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Music {
     /// Display is where you tell the program what should be displayed.
-    /// 
+    ///
     /// Example: `vec![String::from("genres"), String::from("year")]`
     pub display: Option<Display>,
     /// Separator is what should be between the artist(s) and the `display` options.
@@ -59,7 +61,7 @@ pub struct Music {
 }
 
 /// Display is where you tell the program what should be displayed.
-/// 
+///
 /// Example: `vec![String::from("genres"), String::from("year")]`
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
@@ -89,7 +91,7 @@ pub struct Discord {
 }
 
 /// Button struct
-/// 
+///
 /// Contains information about buttons
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Button {
@@ -116,9 +118,9 @@ pub struct Images {
 }
 
 /// Find config.json in filesystem.
-/// 
+///
 /// This is to avoid the user having to specify a filepath on launch.
-/// 
+///
 /// Default config path depends on OS
 /// Windows: `%appdata%\jellyfin-rpc\config.json`
 /// Linux/macOS: `~/.config/jellyfin-rpc/config.json`
@@ -154,6 +156,7 @@ impl Default for Config {
                 api_key: "".to_string(),
                 music: None,
                 blacklist: None,
+                self_signed_cert: None,
             },
             discord: None,
             imgur: None,
