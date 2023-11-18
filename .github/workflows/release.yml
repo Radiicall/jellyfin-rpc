@@ -1,10 +1,8 @@
-name: Build
+name: Release
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  release:
+    types: [published]
 
 jobs:
   ubuntu:
@@ -46,11 +44,14 @@ jobs:
           command: test
           args: --all-features --locked
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: linux
-          path: target/release/jellyfin-rpc-x86_64-linux
+          files: |
+            target/release/jellyfin-rpc-x86_64-linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   windows:
     runs-on: windows-latest
@@ -88,11 +89,13 @@ jobs:
           command: test
           args: --all-features --locked
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: windows
-          path: target/release/jellyfin-rpc.exe
+          files: target/release/jellyfin-rpc.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos-x86_64:
     runs-on: macos-latest
@@ -134,11 +137,14 @@ jobs:
           command: test
           args: --all-features --locked
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: macos-x86_64
-          path: target/release/jellyfin-rpc-x86_64-darwin
+          files: |
+            target/release/jellyfin-rpc-x86_64-darwin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos-arm64:
     runs-on: macos-latest
@@ -174,8 +180,11 @@ jobs:
       - name: Strip and rename binary
         run: strip target/aarch64-apple-darwin/release/jellyfin-rpc && mv target/aarch64-apple-darwin/release/jellyfin-rpc target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: macos-arm64
-          path: target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
+          files: |
+            target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
