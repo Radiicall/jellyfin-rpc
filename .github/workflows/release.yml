@@ -20,12 +20,12 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
+        run: cargo build --workspace --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --all-features --locked
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -51,12 +51,12 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --locked --release
+        run: cargo build --workspace --locked --release
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --all-features --locked
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -82,12 +82,12 @@ jobs:
           override: true
 
       - name: Build for x86_64 macOS
-        run: cargo build --all --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
+        run: cargo build --workspace --locked --release && strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --all-features --locked
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -114,12 +114,12 @@ jobs:
           override: true
 
       - name: Build for arm64 macOS
-        run: cargo build --target aarch64-apple-darwin --all --locked --release && strip target/aarch64-apple-darwin/release/jellyfin-rpc && mv target/aarch64-apple-darwin/release/jellyfin-rpc target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
+        run: cargo build --target aarch64-apple-darwin --workspace --locked --release && strip target/aarch64-apple-darwin/release/jellyfin-rpc && mv target/aarch64-apple-darwin/release/jellyfin-rpc target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --all-features --locked
 
       - name: Release
         uses: softprops/action-gh-release@v1
