@@ -178,10 +178,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features --locked
+          args: --target aarch64-apple-darwin --all-features --locked
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: macos-arm64
-          path: target/release/jellyfin-rpc-arm64-darwin
+          path: target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin

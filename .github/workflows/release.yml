@@ -184,7 +184,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features --locked
+          args: --target aarch64-apple-darwin --all-features --locked
 
       - name: Release
         uses: softprops/action-gh-release@v1
