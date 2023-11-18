@@ -21,6 +21,16 @@ jobs:
           default: true
           override: true
 
+      - name: Cache target folder
+        uses: actions/cache@v3
+        env:
+          cache-name: target-folder
+        with:
+          path: target
+          key: x86_64-linux-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            x86_64-linux-
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -56,6 +66,16 @@ jobs:
           default: true
           override: true
 
+      - name: Cache target folder
+        uses: actions/cache@v3
+        env:
+          cache-name: target-folder
+        with:
+          path: target
+          key: x86_64-windows-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            x86_64-windows-
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -88,6 +108,16 @@ jobs:
           target: x86_64-apple-darwin
           default: true
           override: true
+
+      - name: Cache target folder
+        uses: actions/cache@v3
+        env:
+          cache-name: target-folder
+        with:
+          path: target
+          key: x86_64-macos-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            x86_64-macos-
 
       - name: Build for x86_64 macOS
         uses: actions-rs/cargo@v1
@@ -124,6 +154,16 @@ jobs:
           target: aarch64-apple-darwin
           default: true
           override: true
+
+      - name: Cache target folder
+        uses: actions/cache@v3
+        env:
+          cache-name: target-folder
+        with:
+          path: target
+          key: arm64-macos-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            arm64-macos-
 
       - name: Build for arm64 macOS
         uses: actions-rs/cargo@v1
