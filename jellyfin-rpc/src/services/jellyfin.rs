@@ -118,16 +118,17 @@ impl Content {
     /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
         let sessions: Vec<Value> = serde_json::from_str(
-            &crate::get(format!(
+            &crate::get(
+                format!(
                     "{}/Sessions?api_key={}",
                     config.jellyfin.url.trim_end_matches('/'),
                     config.jellyfin.api_key
                 ),
-                config.jellyfin.self_signed_cert.unwrap_or(false)
+                config.jellyfin.self_signed_cert.unwrap_or(false),
             )
-                .await?
-                .text()
-                .await?,
+            .await?
+            .text()
+            .await?,
         )?;
         for session in sessions {
             if session.get("UserName").is_none() {
@@ -629,15 +630,18 @@ pub async fn library_check(
     self_signed_cert: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let parents: Vec<Value> = serde_json::from_str(
-        &crate::get(format!(
+        &crate::get(
+            format!(
                 "{}/Items/{}/Ancestors?api_key={}",
                 url.trim_end_matches('/'),
                 item_id,
                 api_key
-            ), self_signed_cert)
-            .await?
-            .text()
-            .await?,
+            ),
+            self_signed_cert,
+        )
+        .await?
+        .text()
+        .await?,
     )?;
 
     for i in parents {
