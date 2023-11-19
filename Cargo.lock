@@ -484,13 +484,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "jellyfin-rpc"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87a6719e6cec522a053e226f48ed788fe301870d74806087631d43780ffde5db"
+dependencies = [
+ "async-recursion",
+ "colored",
+ "discord-rich-presence",
+ "reqwest",
+ "retry",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "jellyfin-rpc-cli"
 version = "0.15.5"
 dependencies = [
  "clap",
  "colored",
  "discord-rich-presence",
- "jellyfin-rpc",
+ "jellyfin-rpc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest",
  "retry",
  "tokio",
