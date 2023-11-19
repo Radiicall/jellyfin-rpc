@@ -45,6 +45,22 @@ if current == "n" or current == "":
     print("Enter a single username or enter multiple usernames in a comma separated list.")
     username = input("username[s]: ").split(",")
 
+    if url.startswith("https://"):
+        while True:
+            val = input("Are you using a self signed certificate? (y/N): ").lower()
+
+            if val == "n" or val == "":
+                self_signed_cert = False
+                break
+            elif val == "y":
+                self_signed_cert = True
+                break
+            else:
+                print("Invalid input, please type y or n")
+                continue
+    else:
+        self_signed_cert = None
+
     print("If you dont want anything else you can just press enter through all of these")
 
     while True:
@@ -110,7 +126,8 @@ if current == "n" or current == "":
         "api_key": api_key,
         "username": username,
         "music": music,
-        "blacklist": blacklist
+        "blacklist": blacklist,
+        "self_signed_cert": self_signed_cert
     }
 
     print("----------Discord----------")
