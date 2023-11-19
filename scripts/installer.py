@@ -9,6 +9,7 @@ import os
 import subprocess
 import platform
 from time import sleep
+import sys
 
 path = ""
 
@@ -20,7 +21,7 @@ if platform.system() != "Windows":
 
     subprocess.run(["mkdir", "-p", path.removesuffix("main.json")])
 else:
-    path = os.environ["APPDATA"].removesuffix("\\") + "\jellyfin-rpc\main.json"
+    path = os.environ["APPDATA"].removesuffix("\\") + "\\jellyfin-rpc\\main.json"
     subprocess.run(["powershell", "-Command", f'mkdir "{path.removesuffix("main.json")}"'], stdout=subprocess.DEVNULL)
 
 print("""
@@ -32,11 +33,19 @@ current = ""
 
 if os.path.isfile(path):
     print(f"Found existing config: {path}")
-    while True:
-        current = input("Use existing config? (y/N): ").lower()
-        if current == "n" or current == "y" or current == "":
+
+    for arg in sys.argv:
+        if arg == "--use-existing-config":
+            print("Using existing config")
+            current = "y"
             break
-        print("Invalid input, please type y or n")
+
+    if current != "y":
+        while True:
+            current = input("Use existing config? (y/N): ").lower()
+            if current == "n" or current == "y" or current == "":
+                break
+            print("Invalid input, please type y or n")
 
 if current == "n" or current == "":
     print("----------Jellyfin----------")
@@ -226,6 +235,11 @@ if current == "n" or current == "":
     file = open(path, "w")
     file.write(json.dumps(config, indent=2))
     file.close()
+
+for arg in sys.argv:
+    if arg == "--no-install":
+        print("Skipping installation")
+        exit(0)
 
 while True:
     val = input("Do you want to download Jellyfin-RPC? (Y/n): ").lower()
