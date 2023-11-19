@@ -1,8 +1,8 @@
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
-pub use jellyfin_rpc::services::imgur::*;
 pub use jellyfin_rpc::prelude::*;
+pub use jellyfin_rpc::services::imgur::*;
 use retry::retry_with_index;
 #[cfg(feature = "updates")]
 mod updates;
@@ -26,6 +26,13 @@ struct Args {
         help = "Path to image urls file for imgur"
     )]
     image_urls: Option<String>,
+    #[arg(
+        short = 's',
+        long = "suppress-warnings",
+        help = "Stops warnings from showing on startup",
+        default_value_t = false
+    )]
+    suppress_warnings: bool,
 }
 
 #[tokio::main]
@@ -68,11 +75,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Jellyfin-RPC".bright_blue()
     );
 
-    if config
-        .clone()
-        .images
-        .and_then(|images| images.enable_images)
-        .unwrap_or(false)
+    if !args.suppress_warnings && config.jellyfin.self_signed_cert.is_some_and(|val| val) {
+        eprintln!(
+            "{}\n{}",
+            "------------------------------------------------------------------".bold(),
+            "WARNING: Self-signed certificates are enabled!"
+                .bold()
+                .red()
+        );
+    }
+
+    if !args.suppress_warnings
+        && config
+            .clone()
+            .images
+            .and_then(|images| images.enable_images)
+            .unwrap_or(false)
         && !config
             .clone()
             .images
@@ -82,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!(
             "{}\n{}",
             "------------------------------------------------------------------".bold(),
-            "Images without Imgur requires port forwarding!"
+            "WARNING: Images without Imgur requires port forwarding!"
                 .bold()
                 .red()
         )
@@ -174,6 +192,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &config.jellyfin.api_key,
                         &content.item_id,
                         library,
+                        config.jellyfin.self_signed_cert.unwrap_or(false),
                     )
                     .await?;
                 }
@@ -207,6 +226,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .and_then(|imgur| imgur.client_id)
                         .expect("Imgur client ID cant be loaded."),
                     args.image_urls.clone(),
+                    config.jellyfin.self_signed_cert.unwrap_or(false),
                 )
                 .await
                 .unwrap_or_else(|e| {

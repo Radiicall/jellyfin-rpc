@@ -3,16 +3,16 @@
 /// Main module
 pub mod core;
 /// Useful imports
-/// 
+///
 /// Contains imports that most programs will be using.
 pub mod prelude;
 /// External connections
 pub mod services;
 pub use crate::core::error;
+pub use core::rpc::setactivity;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
-pub use core::rpc::setactivity;
 #[cfg(test)]
 mod tests;
 
@@ -60,4 +60,17 @@ pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
         },
     )
     .unwrap();
+}
+
+/// Built in reqwest::get() function, has an extra field to specify if the self signed cert should be accepted.
+pub async fn get<U: reqwest::IntoUrl>(
+    url: U,
+    self_signed_cert: bool,
+) -> Result<reqwest::Response, reqwest::Error> {
+    reqwest::Client::builder()
+        .danger_accept_invalid_certs(self_signed_cert)
+        .build()?
+        .get(url)
+        .send()
+        .await
 }

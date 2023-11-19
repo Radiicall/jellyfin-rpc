@@ -65,7 +65,7 @@ impl ContentBuilder {
 #[derive(Default)]
 pub struct Content {
     /// What type of content is currently playing.
-    /// 
+    ///
     /// Example: MediaType::Movie
     pub media_type: MediaType,
     /// The title of the content
@@ -75,23 +75,23 @@ pub struct Content {
     /// When the content will end, current UNIX epoch + time left
     pub endtime: Option<i64>,
     /// Image URL supplied by Jellyfin, this is different from the Imgur URL
-    /// 
+    ///
     /// This has to be passed to the Imgur::get() function to upload images to imgur
     pub image_url: String,
-    /// Item ID of the content currently playing, 
+    /// Item ID of the content currently playing,
     /// used to store Imgur URLs so that they can be reused instead of reuploading to Imgur every time.
     pub item_id: String,
     /// External services to display as buttons.
-    /// 
+    ///
     /// Example: IMDb, Trakt, etc.
     pub external_services: Vec<ExternalServices>,
 }
 
 impl Content {
     /// Calls the Content::get() function recursively until it returns a Content struct.
-    /// 
+    ///
     /// It waits (attempt * 5) seconds before retrying.
-    /// 
+    ///
     /// The max time it will wait is 30 seconds.
     #[async_recursion]
     pub async fn try_get(config: &Config, attempt: u64) -> Self {
@@ -118,11 +118,14 @@ impl Content {
     /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
         let sessions: Vec<Value> = serde_json::from_str(
-            &reqwest::get(format!(
-                "{}/Sessions?api_key={}",
-                config.jellyfin.url.trim_end_matches('/'),
-                config.jellyfin.api_key
-            ))
+            &crate::get(
+                format!(
+                    "{}/Sessions?api_key={}",
+                    config.jellyfin.url.trim_end_matches('/'),
+                    config.jellyfin.api_key
+                ),
+                config.jellyfin.self_signed_cert.unwrap_or(false),
+            )
             .await?
             .text()
             .await?,
@@ -175,9 +178,13 @@ impl Content {
                 .and_then(|images| images.enable_images)
                 .unwrap_or(false)
             {
-                image_url = Content::image(&config.jellyfin.url, content.item_id.clone())
-                    .await
-                    .unwrap_or(String::from(""));
+                image_url = Content::image(
+                    &config.jellyfin.url,
+                    content.item_id.clone(),
+                    config.jellyfin.self_signed_cert.unwrap_or(false),
+                )
+                .await
+                .unwrap_or(String::from(""));
             }
 
             content.external_services(ExternalServices::get(now_playing_item).await);
@@ -395,14 +402,18 @@ impl Content {
         state
     }
 
-    async fn image(url: &str, item_id: String) -> Result<String, reqwest::Error> {
+    async fn image(
+        url: &str,
+        item_id: String,
+        self_signed_cert: bool,
+    ) -> Result<String, reqwest::Error> {
         let img = format!(
             "{}/Items/{}/Images/Primary",
             url.trim_end_matches('/'),
             item_id
         );
 
-        if reqwest::get(&img)
+        if crate::get(&img, self_signed_cert)
             .await?
             .text()
             .await
@@ -439,11 +450,11 @@ impl Content {
 #[derive(Debug, Clone)]
 pub struct ExternalServices {
     /// Name of the service
-    /// 
+    ///
     /// Example: IMDb, Trakt
     pub name: String,
     /// URL pointing to the specific Show/Movie etc. on the external service.
-    /// 
+    ///
     /// Example: <https://www.imdb.com/title/tt0117500/>, <https://trakt.tv/shows/the-simpsons>
     pub url: String,
 }
@@ -616,14 +627,18 @@ pub async fn library_check(
     api_key: &str,
     item_id: &str,
     library: &str,
+    self_signed_cert: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let parents: Vec<Value> = serde_json::from_str(
-        &reqwest::get(format!(
-            "{}/Items/{}/Ancestors?api_key={}",
-            url.trim_end_matches('/'),
-            item_id,
-            api_key
-        ))
+        &crate::get(
+            format!(
+                "{}/Items/{}/Ancestors?api_key={}",
+                url.trim_end_matches('/'),
+                item_id,
+                api_key
+            ),
+            self_signed_cert,
+        )
         .await?
         .text()
         .await?,

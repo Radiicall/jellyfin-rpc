@@ -10,9 +10,9 @@ pub struct Imgur {
 }
 
 /// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
-/// 
+///
 /// This is to avoid the user having to specify a filepath on launch.
-/// 
+///
 /// Default urls.json path depends on OS
 /// Windows: `%appdata%\jellyfin-rpc\urls.json`
 /// Linux/macOS: `~/.config/jellyfin-rpc/urls.json`
@@ -32,13 +32,14 @@ pub fn get_urls_path() -> Result<String, ImgurError> {
 
 impl Imgur {
     /// Queries the urls.json file for an imgur url with the same item ID attached.
-    /// 
+    ///
     /// If there's no imgur URL in the file, it will upload the image to imgur, store it in the file and then hand the URL over in a result.
     pub async fn get(
         image_url: &str,
         item_id: &str,
         client_id: &str,
         image_urls_file: Option<String>,
+        self_signed_cert: bool,
     ) -> Result<Self, ImgurError> {
         let file = match image_urls_file {
             Some(file) => file,
@@ -53,7 +54,15 @@ impl Imgur {
         }
 
         Ok(Self {
-            url: Imgur::write_file(file, image_url, item_id, client_id, &mut json).await?,
+            url: Imgur::write_file(
+                file,
+                image_url,
+                item_id,
+                client_id,
+                self_signed_cert,
+                &mut json,
+            )
+            .await?,
         })
     }
 
@@ -87,12 +96,13 @@ impl Imgur {
         image_url: &str,
         item_id: &str,
         client_id: &str,
+        self_signed_cert: bool,
         json: &mut Value,
     ) -> Result<String, ImgurError> {
         // Create a new map that's used for adding data to the "urls.json" file
         let mut new_data = serde_json::Map::new();
         // Upload the content's image to imgur
-        let imgur_url = Imgur::upload(image_url, client_id).await?;
+        let imgur_url = Imgur::upload(image_url, client_id, self_signed_cert).await?;
         // Insert the item_id and the new image url into the map we created earlier
         new_data.insert(item_id.to_string(), json!(imgur_url));
 
@@ -105,8 +115,15 @@ impl Imgur {
         Ok(imgur_url)
     }
 
-    async fn upload(image_url: &str, client_id: &str) -> Result<String, ImgurError> {
-        let img = reqwest::get(image_url).await?.bytes().await?;
+    async fn upload(
+        image_url: &str,
+        client_id: &str,
+        self_signed_cert: bool,
+    ) -> Result<String, ImgurError> {
+        let img = crate::get(image_url, self_signed_cert)
+            .await?
+            .bytes()
+            .await?;
         let client = reqwest::Client::new();
         let response = client
             .post("https://api.imgur.com/3/image")
