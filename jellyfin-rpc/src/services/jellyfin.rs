@@ -118,30 +118,17 @@ impl Content {
     /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
         let sessions: Vec<Value> = serde_json::from_str(
-            &reqwest::Client::builder()
-                .danger_accept_invalid_certs(config.jellyfin.self_signed_cert.unwrap_or(false))
-                .build()
-                .unwrap()
-                .get(format!(
+            &crate::get(format!(
                     "{}/Sessions?api_key={}",
                     config.jellyfin.url.trim_end_matches('/'),
                     config.jellyfin.api_key
-                ))
-                .send()
+                ),
+                config.jellyfin.self_signed_cert.unwrap_or(false)
+            )
                 .await?
                 .text()
                 .await?,
         )?;
-        /*let sessions: Vec<Value> = serde_json::from_str(
-            &reqwest::get(format!(
-                "{}/Sessions?api_key={}",
-                config.jellyfin.url.trim_end_matches('/'),
-                config.jellyfin.api_key
-            ))
-            .await?
-            .text()
-            .await?,
-        )?;*/
         for session in sessions {
             if session.get("UserName").is_none() {
                 continue;
@@ -425,12 +412,7 @@ impl Content {
             item_id
         );
 
-        if reqwest::Client::builder()
-            .danger_accept_invalid_certs(self_signed_cert)
-            .build()
-            .unwrap()
-            .get(&img)
-            .send()
+        if crate::get(&img, self_signed_cert)
             .await?
             .text()
             .await
@@ -647,17 +629,12 @@ pub async fn library_check(
     self_signed_cert: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let parents: Vec<Value> = serde_json::from_str(
-        &reqwest::Client::builder()
-            .danger_accept_invalid_certs(self_signed_cert)
-            .build()
-            .unwrap()
-            .get(format!(
+        &crate::get(format!(
                 "{}/Items/{}/Ancestors?api_key={}",
                 url.trim_end_matches('/'),
                 item_id,
                 api_key
-            ))
-            .send()
+            ), self_signed_cert)
             .await?
             .text()
             .await?,

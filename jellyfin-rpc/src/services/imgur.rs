@@ -120,12 +120,7 @@ impl Imgur {
         client_id: &str,
         self_signed_cert: bool,
     ) -> Result<String, ImgurError> {
-        let img = reqwest::Client::builder()
-            .danger_accept_invalid_certs(self_signed_cert)
-            .build()
-            .unwrap()
-            .get(image_url)
-            .send()
+        let img = crate::get(image_url, self_signed_cert)
             .await?
             .bytes()
             .await?;
