@@ -276,10 +276,10 @@ impl Content {
                 .music
                 .clone()
                 .and_then(|music| music.separator)
-                .unwrap_or('-');
+                .unwrap_or("-".to_string());
 
             let state =
-                Content::get_music_info(now_playing_item, artists, display, name, separator).await;
+                Content::get_music_info(now_playing_item, artists, display, name, &separator).await;
 
             content.media_type(MediaType::Music);
             content.details(name.into());
@@ -371,7 +371,7 @@ impl Content {
         artists: String,
         display: Vec<std::string::String>,
         name: &str,
-        separator: char,
+        separator: &str,
     ) -> String {
         let mut state = format!("By {}", artists);
 

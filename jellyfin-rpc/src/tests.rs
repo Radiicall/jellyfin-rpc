@@ -10,7 +10,7 @@ fn load_example_config() {
             username: Username::String("your_username_here".to_string()),
             music: Some(Music {
                 display: Some(Display::String("genres".to_string())),
-                separator: Some('-'),
+                separator: Some("-".to_string()),
             }),
             blacklist: Some(Blacklist {
                 media_types: Some(vec![

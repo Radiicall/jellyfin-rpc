@@ -57,7 +57,7 @@ pub struct Music {
     /// Example: `vec![String::from("genres"), String::from("year")]`
     pub display: Option<Display>,
     /// Separator is what should be between the artist(s) and the `display` options.
-    pub separator: Option<char>,
+    pub separator: Option<String>,
 }
 
 /// Display is where you tell the program what should be displayed.
