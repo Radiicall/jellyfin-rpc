@@ -1,9 +1,9 @@
-use std::sync::mpsc;
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::DiscordIpcClient;
 pub use jellyfin_rpc::prelude::*;
 pub use jellyfin_rpc::services::imgur::*;
+use std::sync::mpsc;
 #[cfg(feature = "updates")]
 mod updates;
 
@@ -143,11 +143,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .as_str(),
     )
     .expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
-    
+
     let (transmitter, reciever) = mpsc::channel();
 
     tokio::spawn(async move {
-        jellyfin_rpc::presence_loop(transmitter, &mut rich_presence_client, config, VERSION.unwrap_or("0.0.0"), args.image_urls).await.expect("Server crashed");
+        jellyfin_rpc::presence_loop(
+            transmitter,
+            &mut rich_presence_client,
+            config,
+            VERSION.unwrap_or("0.0.0"),
+            args.image_urls,
+        )
+        .await
+        .expect("Server crashed");
     });
 
     loop {
@@ -158,9 +166,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Color::Green => println!("{}", data.bold().bright_green()),
                     Color::Orange => println!("{}", data.bold().truecolor(225, 69, 0)),
                 },
-                Event::Activity(details, state_message) => println!("{}\n{}", details.bright_cyan().bold(), state_message.bright_cyan().bold()),
-                Event::Spacer => println!("{}", "------------------------------------------------------------------".bold()),
-                Event::Error(data, error) => eprintln!("{}\nError: {}", data.bold().bright_red(), error),
+                Event::Activity(details, state_message) => println!(
+                    "{}\n{}",
+                    details.bright_cyan().bold(),
+                    state_message.bright_cyan().bold()
+                ),
+                Event::Spacer => println!(
+                    "{}",
+                    "------------------------------------------------------------------".bold()
+                ),
+                Event::Error(data, error) => {
+                    eprintln!("{}\nError: {}", data.bold().bright_red(), error)
+                }
             },
             Err(error) => eprintln!("{} {}", "Failed to recieve event".red(), error),
         }

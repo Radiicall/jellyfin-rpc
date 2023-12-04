@@ -9,7 +9,7 @@ pub mod prelude;
 /// External connections
 pub mod services;
 pub use crate::core::error;
-pub use core::rpc::{setactivity, presence_loop};
+pub use core::rpc::{presence_loop, setactivity};
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use retry::retry_with_index;
@@ -17,19 +17,30 @@ use retry::retry_with_index;
 mod tests;
 
 /// Function for connecting to the Discord Ipc.
-pub fn connect(rich_presence_client: &mut DiscordIpcClient, transmitter: std::sync::mpsc::Sender<core::rpc::Event>) {
-    use crate::core::rpc::{Event, Color};
+pub fn connect(
+    rich_presence_client: &mut DiscordIpcClient,
+    transmitter: std::sync::mpsc::Sender<core::rpc::Event>,
+) {
+    use crate::core::rpc::{Color, Event};
     transmitter.send(Event::Spacer).ok();
     retry_with_index(
         retry::delay::Exponential::from_millis(1000),
         |current_try| {
-            transmitter.send(
-                Event::Information(format!("Attempt {}: Trying to connect", current_try), Color::Orange)
-            ).ok();
+            transmitter
+                .send(Event::Information(
+                    format!("Attempt {}: Trying to connect", current_try),
+                    Color::Orange,
+                ))
+                .ok();
             match rich_presence_client.connect() {
                 Ok(result) => retry::OperationResult::Ok(result),
                 Err(err) => {
-                    transmitter.send(Event::Error("Failed to connect, retrying soon".to_string(), err.to_string())).ok();
+                    transmitter
+                        .send(Event::Error(
+                            "Failed to connect, retrying soon".to_string(),
+                            err.to_string(),
+                        ))
+                        .ok();
                     retry::OperationResult::Retry(())
                 }
             }

@@ -1,9 +1,9 @@
 use crate::prelude::*;
-use discord_rich_presence::{activity, DiscordIpcClient, DiscordIpc};
-use retry::retry_with_index;
-use std::sync::mpsc;
 #[cfg(feature = "imgur")]
 use crate::services::imgur::*;
+use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+use retry::retry_with_index;
+use std::sync::mpsc;
 
 /// Used to set the activity on Discord.
 ///
@@ -58,13 +58,24 @@ pub fn setactivity<'a>(
     new_activity
 }
 
-pub async fn presence_loop<'a>(transmitter: mpsc::Sender<Event>,rich_presence_client: &mut DiscordIpcClient, config: Config, version: &'a str, image_urls: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn presence_loop<'a>(
+    transmitter: mpsc::Sender<Event>,
+    rich_presence_client: &mut DiscordIpcClient,
+    config: Config,
+    version: &'a str,
+    image_urls: Option<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut connected = false;
 
     // Start up the client connection, so that we can actually send and receive stuff
     crate::connect(rich_presence_client, transmitter.clone());
 
-    transmitter.send(Event::Information("Connected to Discord Rich Presence Socket".to_string(), Color::Green)).ok();
+    transmitter
+        .send(Event::Information(
+            "Connected to Discord Rich Presence Socket".to_string(),
+            Color::Green,
+        ))
+        .ok();
 
     // Start loop
     loop {
@@ -113,7 +124,12 @@ pub async fn presence_loop<'a>(transmitter: mpsc::Sender<Event>,rich_presence_cl
         if !content.media_type.is_none() && blacklist_check {
             // Print what we're watching
             if !connected {
-                transmitter.send(Event::Activity(content.details.clone(), content.state_message.clone())).ok();
+                transmitter
+                    .send(Event::Activity(
+                        content.details.clone(),
+                        content.state_message.clone(),
+                    ))
+                    .ok();
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
@@ -138,7 +154,12 @@ pub async fn presence_loop<'a>(transmitter: mpsc::Sender<Event>,rich_presence_cl
                 )
                 .await
                 .unwrap_or_else(|e| {
-                    transmitter.send(Event::Error("Failed to use Imgur".to_string(), format!("{:?}", e))).ok();
+                    transmitter
+                        .send(Event::Error(
+                            "Failed to use Imgur".to_string(),
+                            format!("{:?}", e),
+                        ))
+                        .ok();
                     Imgur::default()
                 })
                 .url;
@@ -184,27 +205,47 @@ pub async fn presence_loop<'a>(transmitter: mpsc::Sender<Event>,rich_presence_cl
                     &content.media_type,
                 ))
                 .unwrap_or_else(|err| {
-                    transmitter.send(Event::Error("Failed to set activity".to_string(), err.to_string())).ok();
+                    transmitter
+                        .send(Event::Error(
+                            "Failed to set activity".to_string(),
+                            err.to_string(),
+                        ))
+                        .ok();
                     retry_with_index(
                         retry::delay::Exponential::from_millis(1000),
                         |current_try| {
-                            transmitter.send(
-                                Event::Information(format!("Attempt {}: Trying to reconnect", current_try), Color::Orange)
-                            ).ok();
+                            transmitter
+                                .send(Event::Information(
+                                    format!("Attempt {}: Trying to reconnect", current_try),
+                                    Color::Orange,
+                                ))
+                                .ok();
 
                             match rich_presence_client.reconnect() {
                                 Ok(result) => retry::OperationResult::Ok(result),
                                 Err(err) => {
-                                    transmitter.send(Event::Error("Failed to reconnect, retrying soon".to_string(), err.to_string())).ok();
+                                    transmitter
+                                        .send(Event::Error(
+                                            "Failed to reconnect, retrying soon".to_string(),
+                                            err.to_string(),
+                                        ))
+                                        .ok();
                                     retry::OperationResult::Retry(())
                                 }
                             }
                         },
                     )
                     .unwrap();
-                    transmitter.send(Event::Information("Reconnected to Discord Rich Presence Socket".to_string(), Color::Green)).ok();
+                    transmitter
+                        .send(Event::Information(
+                            "Reconnected to Discord Rich Presence Socket".to_string(),
+                            Color::Green,
+                        ))
+                        .ok();
                     transmitter.send(Event::Spacer).ok();
-                    transmitter.send(Event::Activity(content.details, content.state_message)).ok();
+                    transmitter
+                        .send(Event::Activity(content.details, content.state_message))
+                        .ok();
                 });
         } else if connected {
             // Disconnect from the client
@@ -215,7 +256,12 @@ pub async fn presence_loop<'a>(transmitter: mpsc::Sender<Event>,rich_presence_cl
             connected = false;
 
             transmitter.send(Event::Spacer).ok();
-            transmitter.send(Event::Information("Cleared Rich Presence".to_string(), Color::Red)).ok();
+            transmitter
+                .send(Event::Information(
+                    "Cleared Rich Presence".to_string(),
+                    Color::Red,
+                ))
+                .ok();
             transmitter.send(Event::Spacer).ok();
         }
 
