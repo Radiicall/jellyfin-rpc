@@ -474,7 +474,6 @@ name = "jellyfin-rpc"
 version = "0.1.6"
 dependencies = [
  "async-recursion",
- "colored",
  "discord-rich-presence",
  "reqwest",
  "retry",

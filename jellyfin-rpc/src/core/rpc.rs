@@ -60,12 +60,15 @@ pub fn setactivity<'a>(
 
 pub async fn presence_loop<'a>(
     transmitter: mpsc::Sender<Event>,
+    receiver: Option<mpsc::Receiver<Command>>,
     rich_presence_client: &mut DiscordIpcClient,
-    config: Config,
+    config_path: &'a str,
+    config: &mut Config,
     version: &'a str,
     image_urls: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut connected = false;
+    let mut enabled = true;
 
     // Start up the client connection, so that we can actually send and receive stuff
     crate::connect(rich_presence_client, transmitter.clone());
@@ -80,6 +83,50 @@ pub async fn presence_loop<'a>(
     // Start loop
     loop {
         let mut content = Content::try_get(&config, 1).await;
+
+        receiver.as_ref().and_then(|rx| {
+            while !enabled {
+                if rx.try_recv().unwrap_or(Command::None) == Command::Start {
+                    enabled = true;
+                    crate::connect(rich_presence_client, transmitter.clone());
+                    transmitter
+                        .send(Event::Information(
+                            "Connected to Discord Rich Presence Socket".to_string(),
+                            Color::Green,
+                        ))
+                        .ok();
+                }
+            }
+
+            // Handle the signal
+            match rx.try_recv() {
+                Ok(Command::Stop) => {
+                    enabled = false;
+                    rich_presence_client.close().ok();
+                    transmitter.send(Event::Information("Stopped".to_string(), Color::Red)).unwrap();
+                }
+                Ok(Command::Start) => (),
+                Ok(Command::ReloadConfig) => match Config::load(&config_path) {
+                    Ok(new_config) => {
+                        *config = new_config;
+
+                        transmitter.send(Event::Information("Config reloaded!".to_string(), Color::Green))
+                            .unwrap();
+                        transmitter.send(Event::Error("None".to_string(), "None".to_string())).unwrap();
+
+                        std::thread::sleep(std::time::Duration::from_secs(2));
+
+                        transmitter.send(Event::Information("Connected".to_string(), Color::Green)).unwrap();
+                    }
+                    Err(e) => transmitter
+                        .send(Event::Error("Error reloading config".to_string(), format!("{:?}", e)))
+                        .unwrap(),
+                },
+                Ok(_) => (),
+                Err(_) => (),
+            }
+            Some(())
+        });
 
         let mut blacklist_check = true;
         config
@@ -267,6 +314,14 @@ pub async fn presence_loop<'a>(
 
         tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
     }
+}
+
+#[derive(PartialEq)]
+pub enum Command {
+    Start,
+    Stop,
+    ReloadConfig,
+    None,
 }
 
 pub enum Event {

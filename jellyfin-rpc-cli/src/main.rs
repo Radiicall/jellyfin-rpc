@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .ok();
 
-    let config = Config::load(&config_path).unwrap_or_else(|e| {
+    let mut config = Config::load(&config_path).unwrap_or_else(|e| {
         eprintln!(
             "{} {}",
             format!(
@@ -144,13 +144,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .expect("Failed to create Discord RPC client, discord is down or the Client ID is invalid.");
 
-    let (transmitter, reciever) = mpsc::channel();
+    let (transmitter, receiver) = mpsc::channel();
 
     tokio::spawn(async move {
         jellyfin_rpc::presence_loop(
             transmitter,
+            None,
             &mut rich_presence_client,
-            config,
+            &config_path,
+            &mut config,
             VERSION.unwrap_or("0.0.0"),
             args.image_urls,
         )
@@ -159,7 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     loop {
-        match reciever.recv() {
+        match receiver.recv() {
             Ok(event) => match event {
                 Event::Information(data, color) => match color {
                     Color::Red => println!("{}", data.bold().bright_red()),
