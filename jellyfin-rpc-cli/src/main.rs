@@ -27,6 +27,13 @@ struct Args {
     )]
     image_urls: Option<String>,
     #[arg(
+        short = 't',
+        long = "wait-time",
+        help = "Time to wait between loops in seconds",
+        default_value_t = 3
+    )]
+    wait_time: usize,
+    #[arg(
         short = 's',
         long = "suppress-warnings",
         help = "Stops warnings from showing on startup",
@@ -328,6 +335,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(args.wait_time as u64)).await;
     }
 }
