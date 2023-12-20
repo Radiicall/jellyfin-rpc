@@ -27,6 +27,13 @@ struct Args {
     )]
     image_urls: Option<String>,
     #[arg(
+        short = 't',
+        long = "wait-time",
+        help = "Time to wait between loops in seconds",
+        default_value_t = 3
+    )]
+    wait_time: usize,
+    #[arg(
         short = 's',
         long = "suppress-warnings",
         help = "Stops warnings from showing on startup",
@@ -155,6 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &mut config,
             VERSION.unwrap_or("0.0.0"),
             args.image_urls,
+            args.wait_time,
         )
         .await
         .expect("Server crashed");

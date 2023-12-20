@@ -66,6 +66,7 @@ pub async fn presence_loop<'a>(
     config: &mut Config,
     version: &'a str,
     image_urls: Option<String>,
+    wait_time: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut connected = false;
     let mut enabled = true;
@@ -312,7 +313,7 @@ pub async fn presence_loop<'a>(
             transmitter.send(Event::Spacer).ok();
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(wait_time as u64)).await;
     }
 }
 
