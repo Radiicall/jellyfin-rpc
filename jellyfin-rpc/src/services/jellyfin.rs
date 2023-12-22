@@ -252,8 +252,8 @@ impl Content {
             let raw_artists = now_playing_item["Artists"]
                 .as_array()?
                 .iter()
-                .map(|a| a.as_str().unwrap().to_string())
-                .collect::<Vec<String>>();
+                .map(|a| a.as_str().unwrap())
+                .collect::<Vec<&str>>();
 
             let artists = Self::get_artists(raw_artists);
 
@@ -310,8 +310,8 @@ impl Content {
             let raw_artists = now_playing_item["Artists"]
                 .as_array()?
                 .iter()
-                .map(|a| a.as_str().unwrap().to_string())
-                .collect::<Vec<String>>();
+                .map(|a| a.as_str().unwrap())
+                .collect::<Vec<&str>>();
 
             let artists = Self::get_artists(raw_artists);
 
@@ -329,7 +329,7 @@ impl Content {
         Some(())
     }
 
-    fn get_artists(raw_artists: Vec<String>) -> String {
+    fn get_artists(raw_artists: Vec<&str>) -> String {
         let mut artists = String::new();
         for (i, artist) in raw_artists.iter().enumerate() {
             if i != 0 {
@@ -434,8 +434,8 @@ impl Content {
                     &genre_array
                         .as_array()?
                         .iter()
-                        .map(|genre| genre.as_str().unwrap().to_string())
-                        .collect::<Vec<String>>()
+                        .map(|genre| genre.as_str().unwrap())
+                        .collect::<Vec<&str>>()
                         .join(", "),
                 );
                 Some(genres)
