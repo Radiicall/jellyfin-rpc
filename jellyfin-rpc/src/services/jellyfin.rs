@@ -171,6 +171,12 @@ impl Content {
                 content.state_message(content.state_message.chars().take(128).collect());
             }
 
+            if content.details.len() < 3 {
+                let current_details = content.details.clone();
+
+                content.details(current_details + " - Jellyfin");
+            }
+
             let mut image_url: String = "".to_string();
             if config
                 .images
