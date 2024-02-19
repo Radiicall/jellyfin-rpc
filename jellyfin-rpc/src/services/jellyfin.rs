@@ -174,7 +174,7 @@ impl Content {
             if content.details.len() < 3 {
                 let current_details = content.details.clone();
 
-                content.details(current_details + " - Jellyfin");
+                content.details(current_details + "‎‎");
             }
 
             let mut image_url: String = "".to_string();
