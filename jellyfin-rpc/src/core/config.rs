@@ -88,6 +88,8 @@ pub struct Discord {
     pub application_id: Option<String>,
     /// Set custom buttons to be displayed.
     pub buttons: Option<Vec<Button>>,
+    /// Show status when media is paused
+    pub show_paused: Option<bool>,
 }
 
 /// Button struct
