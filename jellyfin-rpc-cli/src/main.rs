@@ -1,9 +1,9 @@
 use clap::Parser;
 use colored::Colorize;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+pub use jellyfin_rpc::core::rpc::show_paused;
 pub use jellyfin_rpc::prelude::*;
 pub use jellyfin_rpc::services::imgur::*;
-pub use jellyfin_rpc::core::rpc::show_paused;
 use retry::retry_with_index;
 #[cfg(feature = "updates")]
 mod updates;
@@ -207,7 +207,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        if !content.media_type.is_none() && blacklist_check && show_paused(&content.media_type, content.endtime, &config.discord) {
+        if !content.media_type.is_none()
+            && blacklist_check
+            && show_paused(&content.media_type, content.endtime, &config.discord)
+        {
             // Print what we're watching
             if !connected {
                 println!(
