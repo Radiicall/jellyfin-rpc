@@ -25,7 +25,8 @@
                 "name": "dynamic",
                 "url": "dynamic"
             }
-        ]
+        ],
+        "show_paused": true
     },
     "imgur": {
         "client_id": "asdjdjdg394209fdjs093"

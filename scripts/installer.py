@@ -145,6 +145,17 @@ if current == "n" or current == "":
     if appid == "":
         appid = None
 
+    show_paused = input("Do you want to show paused videos? (Y/n): ").lower()
+
+    if show_paused == "y":
+        show_paused = True
+    elif show_paused == "n":
+        show_paused = False
+    else:
+        show_paused = None
+
+    print("----------Buttons----------")
+
     while True:
         val = input("Do you want custom buttons? (y/N): ").lower()
 
@@ -220,7 +231,8 @@ if current == "n" or current == "":
 
     discord = {
         "application_id": appid,
-        "buttons": buttons
+        "buttons": buttons,
+        "show_paused": show_paused
     }
 
     config = {

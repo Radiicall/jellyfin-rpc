@@ -1,4 +1,5 @@
 use crate::prelude::MediaType;
+use super::config::Discord;
 use discord_rich_presence::activity;
 
 /// Used to set the activity on Discord.
@@ -52,4 +53,20 @@ pub fn setactivity<'a>(
     new_activity = new_activity.clone().assets(assets);
 
     new_activity
+}
+
+pub fn show_paused<'a>(media_type: &'a MediaType, endtime: Option<i64>, discord: &'a Option<Discord>) -> bool {
+    if media_type == &MediaType::Book {
+        return true;
+    }
+
+    if endtime.is_some() {
+        return true;
+    }
+
+    if let Some(discord) = discord {
+        return discord.show_paused.unwrap_or(true);
+    }
+
+    true
 }
