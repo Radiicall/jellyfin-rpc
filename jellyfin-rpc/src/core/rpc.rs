@@ -4,6 +4,7 @@ use crate::services::imgur::*;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use retry::retry_with_index;
 use std::sync::mpsc;
+use super::config::Discord;
 
 /// Used to set the activity on Discord.
 ///
@@ -57,6 +58,7 @@ pub fn setactivity<'a>(
 
     new_activity
 }
+
 
 pub async fn presence_loop<'a>(
     transmitter: mpsc::Sender<Event>,
@@ -169,7 +171,10 @@ pub async fn presence_loop<'a>(
             }
         }
 
-        if !content.media_type.is_none() && blacklist_check {
+        if !content.media_type.is_none()
+            && blacklist_check
+            && show_paused(&content.media_type, content.endtime, &config.discord)
+        {
             // Print what we're watching
             if !connected {
                 transmitter
@@ -336,4 +341,24 @@ pub enum Color {
     Red,
     Green,
     Orange,
+}
+
+pub fn show_paused<'a>(
+    media_type: &'a MediaType,
+    endtime: Option<i64>,
+    discord: &'a Option<Discord>,
+) -> bool {
+    if media_type == &MediaType::Book {
+        return true;
+    }
+
+    if endtime.is_some() {
+        return true;
+    }
+
+    if let Some(discord) = discord {
+        return discord.show_paused.unwrap_or(true);
+    }
+
+    true
 }

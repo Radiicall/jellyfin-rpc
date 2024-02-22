@@ -35,6 +35,7 @@ fn load_example_config() {
                     url: "dynamic".to_string(),
                 },
             ]),
+            show_paused: Some(true),
         }),
         imgur: Some(Imgur {
             client_id: Some("asdjdjdg394209fdjs093".to_string()),
