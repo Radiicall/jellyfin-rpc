@@ -26,7 +26,7 @@ colored               = "2.0"
 retry                 = "2.0"
 
 [dependencies.jellyfin-rpc]
-features = ["imgur", "cli"]
+features = ["imgur"]
 #version  = "1.0.0"
 path = "../jellyfin-rpc"
 
