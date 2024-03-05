@@ -217,21 +217,6 @@ jobs:
           restore-keys: |
             x86_64-linux-
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --workspace --locked --release
-
-      - name: Strip and rename binary
-        run: strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
-
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features --locked
-
       - name: Release Jellyfin-RPC
         working-directory: ./jellyfin-rpc
         run: cargo publish --token ${CRATES_TOKEN}
