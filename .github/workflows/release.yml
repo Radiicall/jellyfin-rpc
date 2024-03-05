@@ -6,7 +6,7 @@ on:
 
 jobs:
   ubuntu:
-    needs: crates.io
+    needs: crates-io
     runs-on: ubuntu-latest
 
     steps:
@@ -55,7 +55,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   windows:
-    needs: crates.io
+    needs: crates-io
     runs-on: windows-latest
 
     steps:
@@ -100,7 +100,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos-x86_64:
-    needs: crates.io
+    needs: crates-io
     runs-on: macos-latest
 
     steps:
@@ -150,7 +150,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos-arm64:
-    needs: crates.io
+    needs: crates-io
     runs-on: macos-latest
 
     steps:
@@ -193,7 +193,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  crates.io:
+  crates-io:
     runs-on: ubuntu-latest
 
     steps:
