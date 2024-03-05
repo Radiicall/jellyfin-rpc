@@ -233,19 +233,13 @@ jobs:
           args: --all-features --locked
 
       - name: Release Jellyfin-RPC
-        uses: actions-rs/cargo@v1
         working-directory: ./jellyfin-rpc
-        with:
-          command: publish
-          args: --token ${CRATES_TOKEN}
+        run: cargo publish --token ${CRATES_TOKEN}
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
 
       - name: Release Jellyfin-RPC-cli
-        uses: actions-rs/cargo@v1
         working-directory: ./jellyfin-rpc-cli
-        with:
-          command: publish
-          args: --token ${CRATES_TOKEN}
+        run: cargo publish --token ${CRATES_TOKEN}
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
