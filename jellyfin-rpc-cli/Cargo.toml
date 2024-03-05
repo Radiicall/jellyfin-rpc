@@ -1,6 +1,6 @@
 [package]
 name         = "jellyfin-rpc-cli"
-version      = "1.0.0"
+version      = "1.0.1"
 edition      = "2021"
 description  = "Displays the content you're currently watching on Discord!"
 license      = "GPL-3.0-or-later"
@@ -26,9 +26,9 @@ colored               = "2.0"
 retry                 = "2.0"
 
 [dependencies.jellyfin-rpc]
-features = ["imgur", "cli"]
-version  = "1.0.0"
-#path = "../jellyfin-rpc"
+features = ["imgur"]
+#version  = "1.0.0"
+path = "../jellyfin-rpc"
 
 [dependencies.clap]
 features = ["derive"]
