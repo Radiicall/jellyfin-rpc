@@ -6,7 +6,6 @@ on:
 
 jobs:
   ubuntu:
-    needs: crates-io
     runs-on: ubuntu-latest
 
     steps:
@@ -55,7 +54,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   windows:
-    needs: crates-io
     runs-on: windows-latest
 
     steps:
@@ -100,7 +98,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos-x86_64:
-    needs: crates-io
     runs-on: macos-latest
 
     steps:
@@ -150,7 +147,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos-arm64:
-    needs: crates-io
     runs-on: macos-latest
 
     steps:
@@ -192,39 +188,3 @@ jobs:
             target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  crates-io:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install latest rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          override: true
-
-      - name: Cache target folder
-        uses: actions/cache@v3
-        env:
-          cache-name: target-folder
-        with:
-          path: target
-          key: x86_64-linux-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            x86_64-linux-
-
-      - name: Release Jellyfin-RPC
-        working-directory: ./jellyfin-rpc
-        run: cargo publish --token ${CRATES_TOKEN}
-        env:
-          CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
-
-      - name: Release Jellyfin-RPC-cli
-        working-directory: ./jellyfin-rpc-cli
-        run: cargo publish --token ${CRATES_TOKEN}
-        env:
-          CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
