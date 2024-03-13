@@ -250,15 +250,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Set the activity
             let mut rpcbuttons: Vec<activity::Button> = vec![];
             let mut x = 0;
-            let default_button = config::Button {
-                name: String::from("dynamic"),
-                url: String::from("dynamic"),
-            };
             let buttons = config
                 .clone()
                 .discord
                 .and_then(|discord| discord.buttons)
-                .unwrap_or(vec![default_button.clone(), default_button]);
+                .unwrap_or(vec![config::Button::default(), config::Button::default()]);
 
             // For loop to determine if external services are to be used or if there are custom buttons instead
             for button in buttons.iter() {

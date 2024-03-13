@@ -103,6 +103,15 @@ pub struct Button {
     pub url: String,
 }
 
+impl Default for Button {
+    fn default() -> Self {
+        Self {
+            name: String::from("dynamic"),
+            url: String::from("dynamic"),
+        }
+    }
+}
+
 /// Imgur configuration
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Imgur {
