@@ -270,6 +270,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else if button.name != "dynamic" || button.url != "dynamic" {
                     rpcbuttons.push(activity::Button::new(&button.name, &button.url))
                 }
+
+                // Exit early if there's 2 buttons already present, as this is Discord's cap
+                if rpcbuttons.len() == 2 {
+                    break
+                }
             }
 
             rich_presence_client
