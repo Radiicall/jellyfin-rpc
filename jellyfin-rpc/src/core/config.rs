@@ -38,7 +38,9 @@ pub struct Jellyfin {
     /// Self signed certificate option
     pub self_signed_cert: Option<bool>,
     /// Simple episode name
-    pub show_simple: Option<bool>
+    pub show_simple: Option<bool>,
+    /// Add "0" before season/episode number if lower than 10.
+    pub append_prefix: Option<bool>,
 }
 
 /// Username of the person that info should be gathered from.
@@ -170,7 +172,8 @@ impl Default for Config {
                 music: None,
                 blacklist: None,
                 self_signed_cert: None,
-                show_simple: Some(false)
+                show_simple: Some(false),
+                append_prefix: Some(false)
             },
             discord: None,
             imgur: None,

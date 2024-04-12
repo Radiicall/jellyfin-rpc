@@ -9,6 +9,7 @@
         },
         "self_signed_cert": false,
         "show_simple": false,
+        "append_prefix": false,
         "_comment": "the 4 lines below and this line arent needed and should be removed, by default nothing will display if these are present",
         "blacklist": {
             "media_types": ["music", "movie", "episode", "livetv"],

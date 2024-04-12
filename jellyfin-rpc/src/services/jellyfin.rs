@@ -229,16 +229,30 @@ impl Content {
           now_playing_item["Name"].as_str()?
         };
         if now_playing_item["Type"].as_str()? == "Episode" {
-            let season = now_playing_item["ParentIndexNumber"].to_string();
-            let first_episode_number = now_playing_item["IndexNumber"].to_string();
-            let mut state = "S".to_owned() + &season + "E" + &first_episode_number;
+            let season = now_playing_item["ParentIndexNumber"].as_i64().unwrap_or(0) as i32;
+            let first_episode_number = now_playing_item["IndexNumber"].as_i64().unwrap_or(0) as i32;
+            let mut state;
+            if config.jellyfin.append_prefix? {
+                state = format!("S{:02} - E{:02}", season, first_episode_number);
+            } else {
+                state = format!("S{} - E{}", season, first_episode_number);
+            };
 
-            if season == *"null" {
-                state = "E".to_owned() + &first_episode_number;
+            if season.to_string() == *"null" {
+                if config.jellyfin.append_prefix? {
+                    state = format!("E{:02}", first_episode_number);
+                } else {
+                    state = format!("E{}", first_episode_number);
+                };
             }
 
             if now_playing_item.get("IndexNumberEnd").is_some() {
-                state += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
+                let end_number = if config.jellyfin.append_prefix? {
+                    format!("{:02}", now_playing_item["IndexNumberEnd"])
+                } else {
+                    format!("{}", now_playing_item["IndexNumberEnd"])
+                };
+                state += &(" - ".to_string() + &end_number);
             }
 
             if !config.jellyfin.show_simple? {

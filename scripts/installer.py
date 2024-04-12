@@ -152,6 +152,15 @@ if current == "n" or current == "":
     else:
         show_simple = False
 
+    append_prefix = input("Do you want to add a leading 0 to season and episode numbers? (Y/n): ").lower()
+
+    if append_prefix == "y":
+        append_prefix = True
+    elif append_prefix == "n":
+        append_prefix = False
+    else:
+        append_prefix = False
+
     jellyfin = {
         "url": url,
         "api_key": api_key,
@@ -159,7 +168,8 @@ if current == "n" or current == "":
         "music": music,
         "blacklist": blacklist,
         "self_signed_cert": self_signed_cert,
-        "show_simple": show_simple
+        "show_simple": show_simple,
+        "append_prefix": append_prefix
     }
 
     print("----------Discord----------")
