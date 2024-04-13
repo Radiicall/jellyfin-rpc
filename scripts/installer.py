@@ -11,6 +11,19 @@ import platform
 from time import sleep
 import sys
 
+
+def is_arm():
+    try:
+        with open('/proc/cpuinfo', 'r') as cpuinfo:
+            for line in cpuinfo:
+                if line.startswith('model name'):
+                    hardware = line.split(':')[1].strip()
+                    if 'ARM' in hardware:
+                        return True
+    except FileNotFoundError:
+        pass
+    return False
+
 path = ""
 
 if platform.system() != "Windows":
@@ -359,8 +372,13 @@ elif platform.system() == "Darwin":
         print("If needed, you can run Jellyfin RPC at any time by running 'jellyfin-rpc' in a terminal.")
         break
 else:
+    if is_arm():
+      linux_binary = "jellyfin-rpc-arm-linux"
+    else :
+      linux_binary = "jellyfin-rpc-x86_64-linux"
+
     subprocess.run(["mkdir", "-p", os.environ["HOME"].removesuffix("/") + "/.local/bin"])
-    subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
+    subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", f"https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/{linux_binary}"])
     subprocess.run(["chmod", "+x", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc"])
 
     if os.environ.get("XDG_CONFIG_HOME"):

@@ -53,6 +53,61 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  ubuntu-arm:
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+  
+      - name: Setup Alpine Linux v3.15 for armv7
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: armv7
+          branch: v3.15
+          packages: binutils
+  
+      - name: Install latest rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          default: true
+          override: true
+  
+      - name: Install ARM gcc
+        run: sudo apt install gcc-arm-linux-gnueabihf -y
+  
+      - name: Cache target folder
+        uses: actions/cache@v3
+        env:
+          cache-name: target-folder
+        with:
+          path: target
+          key: arm-linux-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            arm-linux-
+  
+      - name: Build for ARM Linux
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target armv7-unknown-linux-gnueabihf --workspace --locked --release
+  
+      - name: Strip and rename binary
+        run: strip target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc && mv target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc-arm-linux
+        shell: alpine.sh {0}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc-arm-linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   windows:
     runs-on: windows-latest
 
