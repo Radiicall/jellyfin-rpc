@@ -233,9 +233,18 @@ impl Content {
             let first_episode_number = now_playing_item["IndexNumber"].as_i64().unwrap_or(0) as i32;
             let mut state;
             if config.jellyfin.append_prefix? {
-                state = format!("S{:02} - E{:02}", season, first_episode_number);
+                if config.jellyfin.add_divider? {
+                  state = format!("S{:02} - E{:02}", season, first_episode_number);
+                } else {
+                  state = format!("S{:02}E{:02}", season, first_episode_number);
+                }
+                
             } else {
+              if config.jellyfin.add_divider? {
                 state = format!("S{} - E{}", season, first_episode_number);
+              } else {
+                state = format!("S{}E{}", season, first_episode_number);
+              }
             };
 
             if season.to_string() == *"null" {

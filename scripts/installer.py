@@ -161,6 +161,15 @@ if current == "n" or current == "":
     else:
         append_prefix = False
 
+    add_divider = input("Do you want to add a divider between numbers, ex. S01 - E01? (Y/n): ").lower()
+
+    if add_divider == "y":
+        add_divider = True
+    elif add_divider == "n":
+        add_divider = False
+    else:
+        add_divider = False
+
     jellyfin = {
         "url": url,
         "api_key": api_key,
@@ -169,7 +178,8 @@ if current == "n" or current == "":
         "blacklist": blacklist,
         "self_signed_cert": self_signed_cert,
         "show_simple": show_simple,
-        "append_prefix": append_prefix
+        "append_prefix": append_prefix,
+        "add_divider": add_divider
     }
 
     print("----------Discord----------")
