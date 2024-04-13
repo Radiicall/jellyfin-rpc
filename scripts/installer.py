@@ -143,13 +143,23 @@ if current == "n" or current == "":
 
         break
 
+    show_simple = input("Do you want to show episode names in RPC? (Y/n): ").lower()
+
+    if show_simple == "y":
+        show_simple = False
+    elif show_simple == "n":
+        show_simple = True
+    else:
+        show_simple = False
+
     jellyfin = {
         "url": url,
         "api_key": api_key,
         "username": username,
         "music": music,
         "blacklist": blacklist,
-        "self_signed_cert": self_signed_cert
+        "self_signed_cert": self_signed_cert,
+        "show_simple": show_simple
     }
 
     print("----------Discord----------")

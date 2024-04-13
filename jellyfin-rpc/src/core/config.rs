@@ -37,6 +37,8 @@ pub struct Jellyfin {
     pub blacklist: Option<Blacklist>,
     /// Self signed certificate option
     pub self_signed_cert: Option<bool>,
+    /// Simple episode name
+    pub show_simple: Option<bool>
 }
 
 /// Username of the person that info should be gathered from.
@@ -168,6 +170,7 @@ impl Default for Config {
                 music: None,
                 blacklist: None,
                 self_signed_cert: None,
+                show_simple: Some(false)
             },
             discord: None,
             imgur: None,

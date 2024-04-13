@@ -22,6 +22,7 @@ fn load_example_config() {
                 libraries: Some(vec!["Anime".to_string(), "Anime Movies".to_string()]),
             }),
             self_signed_cert: Some(false),
+            show_simple: Some(false)
         },
         discord: Some(Discord {
             application_id: Some("1053747938519679018".to_string()),
@@ -63,6 +64,7 @@ fn try_get_content() {
             music: None,
             blacklist: None,
             self_signed_cert: None,
+            show_simple: Some(false)
         },
         discord: None,
         imgur: None,

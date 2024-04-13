@@ -223,7 +223,11 @@ impl Content {
         After the for loop is complete we remove the trailing ", " because it looks bad in the presence.
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
-        let name = now_playing_item["Name"].as_str()?;
+        let name = if config.jellyfin.show_simple? {
+          ""
+        } else {
+          now_playing_item["Name"].as_str()?
+        };
         if now_playing_item["Type"].as_str()? == "Episode" {
             let season = now_playing_item["ParentIndexNumber"].to_string();
             let first_episode_number = now_playing_item["IndexNumber"].to_string();
@@ -237,7 +241,9 @@ impl Content {
                 state += &("-".to_string() + &now_playing_item["IndexNumberEnd"].to_string());
             }
 
-            state += &(" ".to_string() + name);
+            if !config.jellyfin.show_simple? {
+              state += &(" ".to_string() + name);
+            }
             content.media_type(MediaType::Episode);
             content.details(now_playing_item["SeriesName"].as_str()?.to_string());
             content.state_message(state);
