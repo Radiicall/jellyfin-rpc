@@ -52,7 +52,7 @@ jobs:
           name: linux
           path: target/release/jellyfin-rpc-x86_64-linux
 
-  ubuntu-arm:
+  ubuntu-arm32:
     runs-on: ubuntu-latest
   
     steps:
@@ -74,7 +74,7 @@ jobs:
           default: true
           override: true
   
-      - name: Install arm gcc
+      - name: Install ARM32 gcc
         run: sudo apt install gcc-arm-linux-gnueabihf -y
   
       - name: Cache target folder
@@ -83,11 +83,11 @@ jobs:
           cache-name: target-folder
         with:
           path: target
-          key: arm-linux-${{ hashFiles('**/Cargo.lock') }}
+          key: arm32-linux-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            arm-linux-
+            arm32-linux-
   
-      - name: Build for ARM Linux
+      - name: Build for ARM32 Linux
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
@@ -95,14 +95,66 @@ jobs:
           args: --target armv7-unknown-linux-gnueabihf --workspace --locked --release
   
       - name: Strip and rename binary
-        run: strip target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc && mv target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc-arm-linux
+        run: strip target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc && mv target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc-arm32-linux
         shell: alpine.sh {0}
   
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: linux-arm
-          path: target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc-arm-linux
+          name: linux-arm32
+          path: target/armv7-unknown-linux-gnueabihf/release/jellyfin-rpc-arm32-linux
+
+  ubuntu-arm64:
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+  
+      - name: Setup Alpine Linux v3.15 for armv7
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: aarch64
+          branch: v3.15
+          packages: binutils
+  
+      - name: Install latest rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-unknown-linux-gnu
+          default: true
+          override: true
+  
+      - name: Install ARM64 gcc
+        run: sudo apt install gcc-aarch64-linux-gnu -y
+  
+      - name: Cache target folder
+        uses: actions/cache@v3
+        env:
+          cache-name: target-folder
+        with:
+          path: target
+          key: arm64-linux-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            arm64-linux-
+  
+      - name: Build for ARM64 Linux
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target aarch64-unknown-linux-gnu --workspace --locked --release
+
+      - name: Strip and rename binary
+        run: strip target/aarch64-unknown-linux-gnu/release/jellyfin-rpc && mv target/aarch64-unknown-linux-gnu/release/jellyfin-rpc target/aarch64-unknown-linux-gnu/release/jellyfin-rpc-arm64-linux
+        shell: alpine.sh {0}          
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-arm64
+          path: target/aarch64-unknown-linux-gnu/release/jellyfin-rpc-arm64-linux
 
   windows:
     runs-on: windows-latest
