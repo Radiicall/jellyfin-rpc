@@ -13,16 +13,7 @@ import sys
 
 
 def is_arm():
-    try:
-        with open('/proc/cpuinfo', 'r') as cpuinfo:
-            for line in cpuinfo:
-                if line.startswith('model name'):
-                    hardware = line.split(':')[1].strip()
-                    if 'ARM' in hardware:
-                        return True
-    except FileNotFoundError:
-        pass
-    return False
+    return True if 'arm' in platform.machine().lower() or 'aarch' in platform.machine().lower() else False
 
 path = ""
 
