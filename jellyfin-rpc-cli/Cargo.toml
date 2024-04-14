@@ -43,3 +43,9 @@ default-features = false
 features = ["rustls-tls", "json"]
 version  = "0.11"
 optional = true
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
