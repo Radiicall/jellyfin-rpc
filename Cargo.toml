@@ -9,3 +9,9 @@ default-members = [
     "jellyfin-rpc",
     "jellyfin-rpc-cli",
 ]
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"

@@ -35,8 +35,8 @@ jobs:
           command: build
           args: --workspace --locked --release
 
-      - name: Strip and rename binary
-        run: strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
+      - name: Rename binary
+        run: mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-linux
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -128,8 +128,8 @@ jobs:
           command: build
           args: --workspace --locked --release
 
-      - name: Strip and rename binary
-        run: strip target/release/jellyfin-rpc && mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
+      - name: Rename binary
+        run: mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -177,8 +177,8 @@ jobs:
           command: build
           args: --target aarch64-apple-darwin --workspace --locked --release
 
-      - name: Strip and rename binary
-        run: strip target/aarch64-apple-darwin/release/jellyfin-rpc && mv target/aarch64-apple-darwin/release/jellyfin-rpc target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
+      - name: Rename binary
+        run: mv target/aarch64-apple-darwin/release/jellyfin-rpc target/aarch64-apple-darwin/release/jellyfin-rpc-arm64-darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
