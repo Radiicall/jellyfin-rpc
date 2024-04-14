@@ -11,6 +11,13 @@ import platform
 from time import sleep
 import sys
 
+# Covering all the possible arch, aarch variations
+def is_arm64():
+    return True if 'aarch64' in platform.machine().lower() or 'armv8' in platform.machine().lower() else False
+
+def is_arm32():
+    return True if 'aarch' in platform.machine().lower() or 'arm' in platform.machine().lower() else False
+
 path = ""
 
 if platform.system() != "Windows":
@@ -130,13 +137,43 @@ if current == "n" or current == "":
 
         break
 
+    show_simple = input("Do you want to show episode names in RPC? (Y/n): ").lower()
+
+    if show_simple == "y":
+        show_simple = False
+    elif show_simple == "n":
+        show_simple = True
+    else:
+        show_simple = False
+
+    append_prefix = input("Do you want to add a leading 0 to season and episode numbers? (Y/n): ").lower()
+
+    if append_prefix == "y":
+        append_prefix = True
+    elif append_prefix == "n":
+        append_prefix = False
+    else:
+        append_prefix = False
+
+    add_divider = input("Do you want to add a divider between numbers, ex. S01 - E01? (Y/n): ").lower()
+
+    if add_divider == "y":
+        add_divider = True
+    elif add_divider == "n":
+        add_divider = False
+    else:
+        add_divider = False
+
     jellyfin = {
         "url": url,
         "api_key": api_key,
         "username": username,
         "music": music,
         "blacklist": blacklist,
-        "self_signed_cert": self_signed_cert
+        "self_signed_cert": self_signed_cert,
+        "show_simple": show_simple,
+        "append_prefix": append_prefix,
+        "add_divider": add_divider
     }
 
     print("----------Discord----------")
@@ -359,8 +396,15 @@ elif platform.system() == "Darwin":
         print("If needed, you can run Jellyfin RPC at any time by running 'jellyfin-rpc' in a terminal.")
         break
 else:
+    if is_arm64():
+      linux_binary = "jellyfin-rpc-arm64-linux"
+    elif is_arm32():
+      linux_binary = "jellyfin-rpc-arm32-linux"
+    else :
+      linux_binary = "jellyfin-rpc-x86_64-linux"
+
     subprocess.run(["mkdir", "-p", os.environ["HOME"].removesuffix("/") + "/.local/bin"])
-    subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", "https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/jellyfin-rpc-x86_64-linux"])
+    subprocess.run(["curl", "-o", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc", "-L", f"https://github.com/Radiicall/jellyfin-rpc/releases/latest/download/{linux_binary}"])
     subprocess.run(["chmod", "+x", os.environ["HOME"].removesuffix("/") + "/.local/bin/jellyfin-rpc"])
 
     if os.environ.get("XDG_CONFIG_HOME"):
