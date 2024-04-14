@@ -11,9 +11,12 @@ import platform
 from time import sleep
 import sys
 
+# Covering all the possible arch, aarch variations
+def is_arm32():
+    return True if ('aarch' in platform.machine().lower() or 'arm' in platform.machine().lower()) and ('32' in platform.machine().lower() or 'v7' in platform.machine().lower()) else False
 
-def is_arm():
-    return True if 'arm' in platform.machine().lower() or 'aarch' in platform.machine().lower() else False
+def is_arm64():
+    return True if ('aarch' in platform.machine().lower() or 'arm' in platform.machine().lower()) and ('64' in platform.machine().lower() or 'v8' in platform.machine().lower()) else False
 
 path = ""
 
@@ -393,8 +396,10 @@ elif platform.system() == "Darwin":
         print("If needed, you can run Jellyfin RPC at any time by running 'jellyfin-rpc' in a terminal.")
         break
 else:
-    if is_arm():
-      linux_binary = "jellyfin-rpc-arm-linux"
+    if is_arm32():
+      linux_binary = "jellyfin-rpc-arm32-linux"
+    elif is_arm64():
+      linux_binary = "jellyfin-rpc-arm64-linux"
     else :
       linux_binary = "jellyfin-rpc-x86_64-linux"
 
