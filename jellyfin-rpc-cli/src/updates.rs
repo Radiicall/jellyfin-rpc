@@ -1,24 +1,30 @@
 use crate::VERSION;
 use colored::Colorize;
+use log::warn;
 
 pub async fn checker() {
     let current = VERSION.unwrap_or("0.0.0").to_string();
     let latest = get_latest_github().await.unwrap_or(current.clone());
     if latest != current {
-        eprintln!(
-            "{} (Current: v{}, Latest: v{})\n{}\n{}\n{}",
+        warn!(
+            "{} (Current: v{}, Latest: v{})",
             "You are not running the latest version of Jellyfin-RPC"
                 .red()
                 .bold(),
             current,
             latest,
-            "A newer version can be found at".red().bold(),
+        );
+        warn!("{}", "A newer version can be found at".red().bold());
+        warn!(
+            "{}",
             "https://github.com/Radiicall/jellyfin-rpc/releases/latest"
                 .green()
-                .bold(),
+                .bold()
+        );
+        warn!(
+            "{}",
             "This can be safely ignored if you are running a prerelease version".bold()
         );
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 }
 

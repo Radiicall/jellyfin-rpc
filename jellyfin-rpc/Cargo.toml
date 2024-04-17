@@ -1,6 +1,6 @@
 [package]
 name        = "jellyfin-rpc"
-version     = "1.0.3"
+version     = "1.1.0"
 edition     = "2021"
 description = "Backend for the Jellyfin-RPC-cli and Jellyfin-RPC-Iced projects"
 license     = "GPL-3.0-or-later"
@@ -17,6 +17,7 @@ retry                 = "2.0"
 serde_json            = "1.0"
 async-recursion       = "1.0.5"
 tokio                 = "1"
+log                   = "0.4"
 
 [dependencies.colored]
 version  = "2.0"

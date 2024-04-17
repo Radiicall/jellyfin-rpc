@@ -4,7 +4,10 @@ use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 pub use jellyfin_rpc::core::rpc::show_paused;
 pub use jellyfin_rpc::prelude::*;
 pub use jellyfin_rpc::services::imgur::*;
+use log::{error, info, warn};
+use simple_logger::SimpleLogger;
 use retry::retry_with_index;
+use time::macros::format_description;
 #[cfg(feature = "updates")]
 mod updates;
 
@@ -45,13 +48,22 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    SimpleLogger::new()
+        .with_level(log::LevelFilter::Info)
+        .env()
+        .with_timestamp_format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
+        .init()
+        .unwrap();
+
+    info!("Initializing Jellyfin-RPC");
+
     #[cfg(feature = "updates")]
     updates::checker().await;
 
     let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
-            eprintln!("Error determining config path: {:?}", err);
+            error!("Error determining config path: {:?}", err);
             std::process::exit(1)
         })
     });
@@ -64,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .ok();
 
     let config = Config::load(&config_path).unwrap_or_else(|e| {
-        eprintln!(
+        error!(
             "{} {}",
             format!(
                 "Config can't be loaded: {:?}.\nConfig file should be located at:",
@@ -77,17 +89,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(2)
     });
 
-    println!(
-        "{}\n                          {}",
-        "//////////////////////////////////////////////////////////////////".bold(),
-        "Jellyfin-RPC".bright_blue()
-    );
-
     if !args.suppress_warnings && config.jellyfin.self_signed_cert.is_some_and(|val| val) {
-        eprintln!(
-            "{}\n{}",
-            "------------------------------------------------------------------".bold(),
-            "WARNING: Self-signed certificates are enabled!"
+        warn!(
+            "{}",
+            "Self-signed certificates are enabled!"
                 .bold()
                 .red()
         );
@@ -105,10 +110,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .and_then(|images| images.imgur_images)
             .unwrap_or(false)
     {
-        eprintln!(
-            "{}\n{}",
-            "------------------------------------------------------------------".bold(),
-            "WARNING: Images without Imgur requires port forwarding!"
+        warn!(
+            "{}",
+            "Images without Imgur requires port forwarding!"
                 .bold()
                 .red()
         )
@@ -117,7 +121,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let blacklist = config.jellyfin.blacklist.clone().unwrap();
         if let Some(media_types) = blacklist.media_types {
             if !media_types.is_empty() {
-                println!(
+                info!(
                     "{} {}",
                     "These media types won't be shown:".bold().red(),
                     media_types
@@ -133,7 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if let Some(libraries) = blacklist.libraries {
             if !libraries.is_empty() {
-                println!(
+                info!(
                     "{} {}",
                     "These media libraries won't be shown:".bold().red(),
                     libraries.join(", ").bold().red()
@@ -155,12 +159,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start up the client connection, so that we can actually send and receive stuff
     jellyfin_rpc::connect(&mut rich_presence_client);
-    println!(
-        "{}\n{}",
+    info!(
+        "{}",
         "Connected to Discord Rich Presence Socket"
             .bright_green()
             .bold(),
-        "------------------------------------------------------------------".bold()
     );
 
     // Start loop
@@ -213,9 +216,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             // Print what we're watching
             if !connected {
-                println!(
-                    "{}\n{}",
-                    content.details.bright_cyan().bold(),
+                info!(
+                    "{}",
+                    content.details.bright_cyan().bold()
+                );
+                info!(
+                    "{}",
                     content.state_message.bright_cyan().bold()
                 );
                 // Set connected to true so that we don't try to connect again
@@ -241,7 +247,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .await
                 .unwrap_or_else(|e| {
-                    eprintln!("{}", format!("Failed to use Imgur: {:?}", e).red().bold());
+                    error!("{}", format!("Failed to use Imgur: {:?}", e).red().bold());
                     Imgur::default()
                 })
                 .url;
@@ -273,7 +279,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 // Exit early if there's 2 buttons already present, as this is Discord's cap
                 if rpcbuttons.len() == 2 {
-                    break
+                    break;
                 }
             }
 
@@ -288,11 +294,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &content.media_type,
                 ))
                 .unwrap_or_else(|err| {
-                    eprintln!("{}\nError: {}", "Failed to set activity".red().bold(), err);
+                    error!("{}\nError: {}", "Failed to set activity".red().bold(), err);
                     retry_with_index(
                         retry::delay::Exponential::from_millis(1000),
                         |current_try| {
-                            println!(
+                            info!(
                                 "{} {}{}",
                                 "Attempt".bold().truecolor(225, 69, 0),
                                 current_try.to_string().bold().truecolor(225, 69, 0),
@@ -301,7 +307,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             match rich_presence_client.reconnect() {
                                 Ok(result) => retry::OperationResult::Ok(result),
                                 Err(err) => {
-                                    eprintln!(
+                                    error!(
                                         "{}\nError: {}",
                                         "Failed to reconnect, retrying soon".red().bold(),
                                         err
@@ -312,16 +318,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         },
                     )
                     .unwrap();
-                    println!(
-                        "{}\n{}",
+                    info!(
+                        "{}",
                         "Reconnected to Discord Rich Presence Socket"
                             .bright_green()
                             .bold(),
-                        "------------------------------------------------------------------".bold()
                     );
-                    println!(
-                        "\n{}\n{}",
-                        content.details.bright_cyan().bold(),
+                    info!(
+                        "{}",
+                        content.details.bright_cyan().bold()
+                    );
+                    info!(
+                        "{}",
                         content.state_message.bright_cyan().bold()
                     );
                 });
@@ -332,11 +340,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .expect("Failed to clear activity");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
-            println!(
-                "{}\n{}\n{}",
-                "------------------------------------------------------------------".bold(),
+            info!(
+                "{}",
                 "Cleared Rich Presence".bright_red().bold(),
-                "------------------------------------------------------------------".bold()
             );
         }
 

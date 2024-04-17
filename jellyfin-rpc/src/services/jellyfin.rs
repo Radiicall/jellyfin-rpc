@@ -3,6 +3,7 @@ use crate::core::error::ContentError;
 use async_recursion::async_recursion;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
+use log::{debug, error};
 
 #[derive(Default, Clone)]
 struct ContentBuilder {
@@ -103,7 +104,7 @@ impl Content {
         match Content::get(config).await {
             Ok(content) => content,
             Err(error) => {
-                eprintln! {"{}: Error while getting content: {:#?}", attempt, error}
+                error!("{}: Error while getting content: {:#?}", attempt, error);
                 while time > 0 {
                     eprint!("\rRetrying in {} seconds…", time);
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -117,6 +118,7 @@ impl Content {
 
     /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
+        debug!("Getting sessions from Jellyfin");
         let sessions: Vec<Value> = serde_json::from_str(
             &crate::get(
                 format!(
@@ -131,12 +133,14 @@ impl Content {
             .await?,
         )?;
         for session in sessions {
+            debug!("Checking if session has a username");
             if session.get("UserName").is_none() {
                 continue;
             }
 
             let session_username = session["UserName"].as_str().unwrap().to_lowercase();
 
+            debug!("Getting username(s) from config");
             match &config.jellyfin.username {
                 Username::String(username) if session_username != username.to_lowercase() => {
                     continue
@@ -151,10 +155,12 @@ impl Content {
                 _ => (),
             };
 
+            debug!("Check if something is playing");
             if session.get("NowPlayingItem").is_none() {
                 continue;
             }
 
+            debug!("Creating content struct");
             let mut content = ContentBuilder::new();
 
             let now_playing_item = &session["NowPlayingItem"];
@@ -164,14 +170,17 @@ impl Content {
 
             // Check that details and state_message arent over the max length allowed by discord, if they are then they have to be trimmed down because discord wont display the activity otherwise
             if content.details.len() > 128 {
+                debug!("content.details is over 128 characters, shortening it");
                 content.details(content.details.chars().take(128).collect());
             }
 
             if content.state_message.len() > 128 {
+                debug!("content.state_message is over 128 characters, shortening it");
                 content.state_message(content.state_message.chars().take(128).collect());
             }
 
             if content.details.len() < 3 {
+                debug!("content.details is under 3 characters, adding zero-width joiners");
                 let current_details = content.details.clone();
 
                 content.details(current_details + "‎‎");
@@ -224,9 +233,9 @@ impl Content {
         Then we send it off as a Vec<String> with the external urls and the end timer to the main loop.
         */
         let name = if config.jellyfin.show_simple? {
-          ""
+            ""
         } else {
-          now_playing_item["Name"].as_str()?
+            now_playing_item["Name"].as_str()?
         };
         if now_playing_item["Type"].as_str()? == "Episode" {
             let season = now_playing_item["ParentIndexNumber"].as_i64().unwrap_or(0) as i32;
@@ -234,17 +243,16 @@ impl Content {
             let mut state;
             if config.jellyfin.append_prefix? {
                 if config.jellyfin.add_divider? {
-                  state = format!("S{:02} - E{:02}", season, first_episode_number);
+                    state = format!("S{:02} - E{:02}", season, first_episode_number);
                 } else {
-                  state = format!("S{:02}E{:02}", season, first_episode_number);
+                    state = format!("S{:02}E{:02}", season, first_episode_number);
                 }
-                
             } else {
-              if config.jellyfin.add_divider? {
-                state = format!("S{} - E{}", season, first_episode_number);
-              } else {
-                state = format!("S{}E{}", season, first_episode_number);
-              }
+                if config.jellyfin.add_divider? {
+                    state = format!("S{} - E{}", season, first_episode_number);
+                } else {
+                    state = format!("S{}E{}", season, first_episode_number);
+                }
             };
 
             if season.to_string() == *"null" {
@@ -265,7 +273,7 @@ impl Content {
             }
 
             if !config.jellyfin.show_simple? {
-              state += &(" ".to_string() + name);
+                state += &(" ".to_string() + name);
             }
             content.media_type(MediaType::Episode);
             content.details(now_playing_item["SeriesName"].as_str()?.to_string());
