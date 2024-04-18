@@ -267,7 +267,7 @@ impl Content {
                 state += &(" - ".to_string() + &end_number);
             }
 
-            if !config.jellyfin.show_simple? {
+            if !config.jellyfin.show_simple.unwrap_or(false) {
               state += &(" ".to_string() + name);
             }
             content.media_type(MediaType::Episode);
