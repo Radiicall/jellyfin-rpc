@@ -29,7 +29,7 @@ simple_logger         = "4.3"
 time                  = "0.3.36"
 
 [dependencies.jellyfin-rpc]
-features = ["imgur", "cli"]
+features = ["imgur"]
 #version  = "1.0.3"
 path = "../jellyfin-rpc"
 

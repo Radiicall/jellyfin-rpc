@@ -118,7 +118,7 @@ impl Content {
 
     /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
-        debug!("Getting sessions from Jellyfin");
+        debug!("Getting sessions from {}", config.jellyfin.url);
         let sessions: Vec<Value> = serde_json::from_str(
             &crate::get(
                 format!(
@@ -132,6 +132,8 @@ impl Content {
             .text()
             .await?,
         )?;
+
+        debug!("Session count: {}", sessions.len() + 1);
         for session in sessions {
             debug!("Checking if session has a username");
             if session.get("UserName").is_none() {
@@ -234,10 +236,15 @@ impl Content {
         */
 
         let mut name = now_playing_item["Name"].as_str()?;
+        debug!("Current name is {}", name);
 
         if now_playing_item["Type"].as_str()? == "Episode" {
+            debug!("Content type is Episode");
             let season = now_playing_item["ParentIndexNumber"].as_i64().unwrap_or(0) as i32;
             let first_episode_number = now_playing_item["IndexNumber"].as_i64().unwrap_or(0) as i32;
+
+            debug!("Season {}, episode {}", season, first_episode_number);
+
             let mut state;
             
             if config.jellyfin.show_simple.unwrap_or(false) {
@@ -278,11 +285,13 @@ impl Content {
             if !config.jellyfin.show_simple? {
                 state += &(" ".to_string() + name);
             }
+
             content.media_type(MediaType::Episode);
             content.details(now_playing_item["SeriesName"].as_str()?.to_string());
             content.state_message(state);
             content.item_id(now_playing_item["SeriesId"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Movie" {
+            debug!("Content type is Movie");
             let genres = Content::get_genres(now_playing_item).unwrap_or(String::from(""));
 
             content.media_type(MediaType::Movie);
@@ -290,8 +299,10 @@ impl Content {
             content.state_message(genres);
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Audio" {
+            debug!("Content type is Audio");
             if let Some(extratype) = now_playing_item.get("ExtraType").and_then(Value::as_str) {
                 if extratype == "ThemeSong" {
+                    debug!("ExtraType is ThemeSong, returning..");
                     return Some(());
                 }
             }
@@ -316,6 +327,7 @@ impl Content {
                     .collect::<Vec<String>>(),
                 _ => vec![String::from("genres")],
             };
+            debug!("Display options: {:?}", display);
 
             let separator = config
                 .jellyfin
@@ -323,6 +335,7 @@ impl Content {
                 .clone()
                 .and_then(|music| music.separator)
                 .unwrap_or("-".to_string());
+            debug!("Using {} as separator", separator);
 
             let state =
                 Content::get_music_info(now_playing_item, artists, display, name, &separator).await;
@@ -337,22 +350,26 @@ impl Content {
                     .to_string(),
             );
         } else if now_playing_item["Type"].as_str()? == "TvChannel" {
+            debug!("Content type is LiveTv");
             content.media_type(MediaType::LiveTv);
             content.details(name.into());
             content.state_message("Live TV".into());
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Book" {
+            debug!("Content type is Book");
             // Time to convert jellyfin nonsense into pages!!!
             let ticks_to_pages = 10000;
 
             let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
             position_ticks /= ticks_to_pages;
+            debug!("Converted postition_ticks to pages");
 
             content.state_message(format!("Reading page {}", position_ticks));
             content.media_type(MediaType::Book);
             content.details(name.into());
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "AudioBook" {
+            debug!("Content type is AudioBook");
             let raw_artists = now_playing_item["Artists"]
                 .as_array()?
                 .iter()
@@ -395,9 +412,11 @@ impl Content {
             let ticks_to_seconds = 10000000;
 
             let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
+            debug!("Got position ticks: {}", position_ticks);
             position_ticks /= ticks_to_seconds;
 
             let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
+            debug!("Got runtime ticks: {}", runtime_ticks);
             runtime_ticks /= ticks_to_seconds;
 
             Some(

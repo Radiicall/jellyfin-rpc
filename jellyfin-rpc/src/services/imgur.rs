@@ -1,4 +1,5 @@
 use crate::core::error::ImgurError;
+use log::debug;
 use serde_json::{json, Value};
 use std::io::Write;
 use std::{env, fs, path};
@@ -18,6 +19,7 @@ pub struct Imgur {
 /// Linux/macOS: `~/.config/jellyfin-rpc/urls.json`
 pub fn get_urls_path() -> Result<String, ImgurError> {
     if cfg!(not(windows)) {
+        debug!("Platform is not Windows");
         let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
             Ok(xdg_config_home) => xdg_config_home,
             Err(_) => env::var("HOME")? + "/.config",
@@ -25,6 +27,7 @@ pub fn get_urls_path() -> Result<String, ImgurError> {
 
         Ok(xdg_config_home + ("/jellyfin-rpc/urls.json"))
     } else {
+        debug!("Platform is Windows");
         let app_data = env::var("APPDATA")?;
         Ok(app_data + r"\jellyfin-rpc\urls.json")
     }
@@ -45,6 +48,8 @@ impl Imgur {
             Some(file) => file,
             None => get_urls_path()?,
         };
+
+        debug!("Imgur urls path is: {}", file);
 
         let mut json = Imgur::read_file(file.clone())?;
         if let Some(value) = json.get(item_id).and_then(Value::as_str) {

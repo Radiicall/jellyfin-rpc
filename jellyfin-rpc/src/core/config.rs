@@ -1,5 +1,6 @@
 use super::error::ConfigError;
 use crate::prelude::MediaType;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
@@ -142,14 +143,17 @@ pub struct Images {
 /// Windows: `%appdata%\jellyfin-rpc\config.json`
 /// Linux/macOS: `~/.config/jellyfin-rpc/config.json`
 pub fn get_config_path() -> Result<String, ConfigError> {
+    debug!("Getting config path");
     if cfg!(not(windows)) {
+        debug!("Platform is not Windows");
         let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
             Ok(xdg_config_home) => xdg_config_home,
             Err(_) => env::var("HOME")? + "/.config",
         };
 
-        Ok(xdg_config_home + ("/jellyfin-rpc/main.json"))
+        Ok(xdg_config_home + "/jellyfin-rpc/main.json")
     } else {
+        debug!("Platform is Windows");
         let app_data = env::var("APPDATA")?;
         Ok(app_data + r"\jellyfin-rpc\main.json")
     }
@@ -158,8 +162,13 @@ pub fn get_config_path() -> Result<String, ConfigError> {
 impl Config {
     /// Loads the config from the given path.
     pub fn load(path: &str) -> Result<Config, ConfigError> {
+        debug!("Config path is: {}", path);
+
         let data = std::fs::read_to_string(path)?;
         let config: Config = serde_json::from_str(&data)?;
+        
+        debug!("Config loaded successfully");
+
         Ok(config)
     }
 }
