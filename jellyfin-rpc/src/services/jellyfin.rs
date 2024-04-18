@@ -170,6 +170,9 @@ impl Content {
 
             Content::watching(&mut content, now_playing_item, play_state, config).await;
 
+            debug!("Content type is {}", content.media_type);
+            debug!("Item ID is {}", content.item_id);
+
             // Check that details and state_message arent over the max length allowed by discord, if they are then they have to be trimmed down because discord wont display the activity otherwise
             if content.details.len() > 128 {
                 debug!("content.details is over 128 characters, shortening it");
@@ -239,7 +242,6 @@ impl Content {
         debug!("Current name is {}", name);
 
         if now_playing_item["Type"].as_str()? == "Episode" {
-            debug!("Content type is Episode");
             let season = now_playing_item["ParentIndexNumber"].as_i64().unwrap_or(0) as i32;
             let first_episode_number = now_playing_item["IndexNumber"].as_i64().unwrap_or(0) as i32;
 
@@ -265,7 +267,9 @@ impl Content {
               }
             };
 
+            // Does this if statement work?
             if season.to_string() == *"null" {
+                debug!("Show doesn't have seasons");
                 if config.jellyfin.append_prefix.unwrap_or(false) {
                     state = format!("E{:02}", first_episode_number);
                 } else {
@@ -291,7 +295,6 @@ impl Content {
             content.state_message(state);
             content.item_id(now_playing_item["SeriesId"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Movie" {
-            debug!("Content type is Movie");
             let genres = Content::get_genres(now_playing_item).unwrap_or(String::from(""));
 
             content.media_type(MediaType::Movie);
@@ -299,7 +302,6 @@ impl Content {
             content.state_message(genres);
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Audio" {
-            debug!("Content type is Audio");
             if let Some(extratype) = now_playing_item.get("ExtraType").and_then(Value::as_str) {
                 if extratype == "ThemeSong" {
                     debug!("ExtraType is ThemeSong, returning..");
@@ -327,7 +329,7 @@ impl Content {
                     .collect::<Vec<String>>(),
                 _ => vec![String::from("genres")],
             };
-            debug!("Display options: {:?}", display);
+            debug!("Music display options: {:?}", display);
 
             let separator = config
                 .jellyfin
@@ -350,13 +352,11 @@ impl Content {
                     .to_string(),
             );
         } else if now_playing_item["Type"].as_str()? == "TvChannel" {
-            debug!("Content type is LiveTv");
             content.media_type(MediaType::LiveTv);
             content.details(name.into());
             content.state_message("Live TV".into());
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "Book" {
-            debug!("Content type is Book");
             // Time to convert jellyfin nonsense into pages!!!
             let ticks_to_pages = 10000;
 
@@ -369,7 +369,6 @@ impl Content {
             content.details(name.into());
             content.item_id(now_playing_item["Id"].as_str()?.to_string());
         } else if now_playing_item["Type"].as_str()? == "AudioBook" {
-            debug!("Content type is AudioBook");
             let raw_artists = now_playing_item["Artists"]
                 .as_array()?
                 .iter()
@@ -409,6 +408,7 @@ impl Content {
 
     async fn time_left(now_playing_item: &Value, play_state: &Value) -> Option<i64> {
         if !play_state["IsPaused"].as_bool()? {
+            debug!("play_state is not paused, getting time left..");
             let ticks_to_seconds = 10000000;
 
             let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
@@ -419,6 +419,8 @@ impl Content {
             debug!("Got runtime ticks: {}", runtime_ticks);
             runtime_ticks /= ticks_to_seconds;
 
+            debug!("Got time left: {}s", runtime_ticks - position_ticks);
+
             Some(
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -427,6 +429,7 @@ impl Content {
                     + (runtime_ticks - position_ticks),
             )
         } else {
+            debug!("play_state is paused");
             None
         }
     }
@@ -482,7 +485,7 @@ impl Content {
             .await?
             .text()
             .await
-            .unwrap_or(String::from("_"))
+            .unwrap_or(String::from("does not have an image of type Primary"))
             .contains("does not have an image of type Primary")
         {
             Ok(String::from(""))
@@ -539,11 +542,13 @@ impl ExternalServices {
                     i.get("Name").and_then(Value::as_str),
                     i.get("Url").and_then(Value::as_str),
                 ) {
+                    debug!("Found external service: {}: {}", name, url);
                     external_services.push(Self {
                         name: name.into(),
                         url: url.into(),
                     });
                     if external_services.len() == 2 {
+                        debug!("Found 2 external services, stopping search for more");
                         break;
                     }
                 }
@@ -711,6 +716,7 @@ pub async fn library_check(
 
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {
+            debug!("{} has parent {}", item_id, name);
             if name.to_lowercase() == library.to_lowercase() {
                 return Ok(false);
             }
