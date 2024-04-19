@@ -44,12 +44,26 @@ struct Args {
         default_value_t = false
     )]
     suppress_warnings: bool,
+    #[arg(
+        short = 'v',
+        long = "log-level",
+        help = "Sets the log level to one of: trace, debug, info, warn, error, off",
+        default_value_t = String::from("info")
+    )]
+    log_level: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+
+    if std::env::var("RUST_LOG").is_err() {
+        let _ = tokio::task::spawn_blocking(move || {
+            std::env::set_var("RUST_LOG", &args.log_level);
+        }).await;
+    }
+
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
         .env()
         .with_timestamp_format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
         .init()
@@ -60,7 +74,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "updates")]
     updates::checker().await;
 
-    let args = Args::parse();
     let config_path = args.config.unwrap_or_else(|| {
         get_config_path().unwrap_or_else(|err| {
             error!("Error determining config path: {:?}", err);
