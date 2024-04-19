@@ -64,6 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     SimpleLogger::new()
+        .with_level(log::LevelFilter::Info)
         .env()
         .with_timestamp_format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
         .init()
