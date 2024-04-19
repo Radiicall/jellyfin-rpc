@@ -278,7 +278,7 @@ impl Content {
             }
 
             if now_playing_item.get("IndexNumberEnd").is_some() {
-                let end_number = if config.jellyfin.append_prefix? {
+                let end_number = if config.jellyfin.append_prefix.unwrap_or(false) {
                     format!("{:02}", now_playing_item["IndexNumberEnd"])
                 } else {
                     format!("{}", now_playing_item["IndexNumberEnd"])
@@ -286,8 +286,8 @@ impl Content {
                 state += &(" - ".to_string() + &end_number);
             }
 
-            if !config.jellyfin.show_simple? {
-                state += &(" ".to_string() + name);
+            if !config.jellyfin.show_simple.unwrap_or(false) {
+              state += &(" ".to_string() + name);
             }
 
             content.media_type(MediaType::Episode);
