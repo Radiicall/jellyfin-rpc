@@ -1,6 +1,7 @@
 use crate::core::config::{Config, Display, Username};
 use crate::core::error::ContentError;
 use async_recursion::async_recursion;
+use log::{debug, error};
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
@@ -103,7 +104,7 @@ impl Content {
         match Content::get(config).await {
             Ok(content) => content,
             Err(error) => {
-                eprintln! {"{}: Error while getting content: {:#?}", attempt, error}
+                error!("{}: Error while getting content: {:#?}", attempt, error);
                 while time > 0 {
                     eprint!("\rRetrying in {} seconds…", time);
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -117,6 +118,7 @@ impl Content {
 
     /// Returns a Content struct with the updated information from jellyfin
     pub async fn get(config: &Config) -> Result<Self, ContentError> {
+        debug!("Getting sessions from {}", config.jellyfin.url);
         let sessions: Vec<Value> = serde_json::from_str(
             &crate::get(
                 format!(
@@ -130,13 +132,17 @@ impl Content {
             .text()
             .await?,
         )?;
+
+        debug!("Session count: {}", sessions.len() + 1);
         for session in sessions {
+            debug!("Checking if session has a username");
             if session.get("UserName").is_none() {
                 continue;
             }
 
             let session_username = session["UserName"].as_str().unwrap().to_lowercase();
 
+            debug!("Getting username(s) from config");
             match &config.jellyfin.username {
                 Username::String(username) if session_username != username.to_lowercase() => {
                     continue
@@ -151,10 +157,12 @@ impl Content {
                 _ => (),
             };
 
+            debug!("Check if something is playing");
             if session.get("NowPlayingItem").is_none() {
                 continue;
             }
 
+            debug!("Creating content struct");
             let mut content = ContentBuilder::new();
 
             let now_playing_item = &session["NowPlayingItem"];
@@ -162,16 +170,22 @@ impl Content {
 
             Content::watching(&mut content, now_playing_item, play_state, config).await;
 
+            debug!("Content type is {}", content.media_type);
+            debug!("Item ID is {}", content.item_id);
+
             // Check that details and state_message arent over the max length allowed by discord, if they are then they have to be trimmed down because discord wont display the activity otherwise
             if content.details.len() > 128 {
+                debug!("content.details is over 128 characters, shortening it");
                 content.details(content.details.chars().take(128).collect());
             }
 
             if content.state_message.len() > 128 {
+                debug!("content.state_message is over 128 characters, shortening it");
                 content.state_message(content.state_message.chars().take(128).collect());
             }
 
             if content.details.len() < 3 {
+                debug!("content.details is under 3 characters, adding zero-width joiners");
                 let current_details = content.details.clone();
 
                 content.details(current_details + "‎‎");
@@ -225,32 +239,35 @@ impl Content {
         */
 
         let mut name = now_playing_item["Name"].as_str()?;
+        debug!("Current name is {}", name);
 
         if now_playing_item["Type"].as_str()? == "Episode" {
             let season = now_playing_item["ParentIndexNumber"].as_i64().unwrap_or(0) as i32;
             let first_episode_number = now_playing_item["IndexNumber"].as_i64().unwrap_or(0) as i32;
+
+            debug!("Season {}, episode {}", season, first_episode_number);
+
             let mut state;
-            
+
             if config.jellyfin.show_simple.unwrap_or(false) {
                 name = ""
             };
 
             if config.jellyfin.append_prefix.unwrap_or(false) {
                 if config.jellyfin.add_divider.unwrap_or(false) {
-                  state = format!("S{:02} - E{:02}", season, first_episode_number);
+                    state = format!("S{:02} - E{:02}", season, first_episode_number);
                 } else {
-                  state = format!("S{:02}E{:02}", season, first_episode_number);
+                    state = format!("S{:02}E{:02}", season, first_episode_number);
                 }
-                
-            } else {
-              if config.jellyfin.add_divider.unwrap_or(false) {
+            } else if config.jellyfin.add_divider.unwrap_or(false) {
                 state = format!("S{} - E{}", season, first_episode_number);
-              } else {
+            } else {
                 state = format!("S{}E{}", season, first_episode_number);
-              }
             };
 
+            // Does this if statement work?
             if season.to_string() == *"null" {
+                debug!("Show doesn't have seasons");
                 if config.jellyfin.append_prefix.unwrap_or(false) {
                     state = format!("E{:02}", first_episode_number);
                 } else {
@@ -268,8 +285,9 @@ impl Content {
             }
 
             if !config.jellyfin.show_simple.unwrap_or(false) {
-              state += &(" ".to_string() + name);
+                state += &(" ".to_string() + name);
             }
+
             content.media_type(MediaType::Episode);
             content.details(now_playing_item["SeriesName"].as_str()?.to_string());
             content.state_message(state);
@@ -284,6 +302,7 @@ impl Content {
         } else if now_playing_item["Type"].as_str()? == "Audio" {
             if let Some(extratype) = now_playing_item.get("ExtraType").and_then(Value::as_str) {
                 if extratype == "ThemeSong" {
+                    debug!("ExtraType is ThemeSong, returning..");
                     return Some(());
                 }
             }
@@ -308,6 +327,7 @@ impl Content {
                     .collect::<Vec<String>>(),
                 _ => vec![String::from("genres")],
             };
+            debug!("Music display options: {:?}", display);
 
             let separator = config
                 .jellyfin
@@ -315,6 +335,7 @@ impl Content {
                 .clone()
                 .and_then(|music| music.separator)
                 .unwrap_or("-".to_string());
+            debug!("Using {} as separator", separator);
 
             let state =
                 Content::get_music_info(now_playing_item, artists, display, name, &separator).await;
@@ -339,6 +360,7 @@ impl Content {
 
             let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
             position_ticks /= ticks_to_pages;
+            debug!("Converted postition_ticks to pages");
 
             content.state_message(format!("Reading page {}", position_ticks));
             content.media_type(MediaType::Book);
@@ -384,13 +406,18 @@ impl Content {
 
     async fn time_left(now_playing_item: &Value, play_state: &Value) -> Option<i64> {
         if !play_state["IsPaused"].as_bool()? {
+            debug!("play_state is not paused, getting time left..");
             let ticks_to_seconds = 10000000;
 
             let mut position_ticks = play_state["PositionTicks"].as_i64().unwrap_or(0);
+            debug!("Got position ticks: {}", position_ticks);
             position_ticks /= ticks_to_seconds;
 
             let mut runtime_ticks = now_playing_item["RunTimeTicks"].as_i64().unwrap_or(0);
+            debug!("Got runtime ticks: {}", runtime_ticks);
             runtime_ticks /= ticks_to_seconds;
+
+            debug!("Got time left: {}s", runtime_ticks - position_ticks);
 
             Some(
                 std::time::SystemTime::now()
@@ -400,6 +427,7 @@ impl Content {
                     + (runtime_ticks - position_ticks),
             )
         } else {
+            debug!("play_state is paused");
             None
         }
     }
@@ -455,7 +483,7 @@ impl Content {
             .await?
             .text()
             .await
-            .unwrap_or(String::from("_"))
+            .unwrap_or(String::from("does not have an image of type Primary"))
             .contains("does not have an image of type Primary")
         {
             Ok(String::from(""))
@@ -512,11 +540,13 @@ impl ExternalServices {
                     i.get("Name").and_then(Value::as_str),
                     i.get("Url").and_then(Value::as_str),
                 ) {
+                    debug!("Found external service: {}: {}", name, url);
                     external_services.push(Self {
                         name: name.into(),
                         url: url.into(),
                     });
                     if external_services.len() == 2 {
+                        debug!("Found 2 external services, stopping search for more");
                         break;
                     }
                 }
@@ -684,6 +714,7 @@ pub async fn library_check(
 
     for i in parents {
         if let Some(name) = i.get("Name").and_then(Value::as_str) {
+            debug!("{} has parent {}", item_id, name);
             if name.to_lowercase() == library.to_lowercase() {
                 return Ok(false);
             }

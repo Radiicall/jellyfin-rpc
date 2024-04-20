@@ -9,38 +9,22 @@ pub mod prelude;
 /// External connections
 pub mod services;
 pub use crate::core::error;
+use colored::Colorize;
 pub use core::rpc::setactivity;
+pub use discord_rich_presence;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
+use log::info;
 use retry::retry_with_index;
 #[cfg(test)]
 mod tests;
 
-#[cfg(not(feature = "cli"))]
 /// Function for connecting to the Discord Ipc.
 pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
-    retry_with_index(
-        retry::delay::Exponential::from_millis(1000),
-        |_| match rich_presence_client.connect() {
-            Ok(result) => retry::OperationResult::Ok(result),
-            Err(_) => retry::OperationResult::Retry(()),
-        },
-    )
-    .unwrap();
-}
-
-#[cfg(feature = "cli")]
-/// Function for connecting to the Discord Ipc.
-pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
-    use colored::Colorize;
-    println!(
-        "{}",
-        "------------------------------------------------------------------".bold()
-    );
     retry_with_index(
         retry::delay::Exponential::from_millis(1000),
         |current_try| {
-            println!(
+            info!(
                 "{} {}{}",
                 "Attempt".bold().truecolor(225, 69, 0),
                 current_try.to_string().bold().truecolor(225, 69, 0),
@@ -49,7 +33,7 @@ pub fn connect(rich_presence_client: &mut DiscordIpcClient) {
             match rich_presence_client.connect() {
                 Ok(result) => retry::OperationResult::Ok(result),
                 Err(err) => {
-                    eprintln!(
+                    log::error!(
                         "{}\nError: {}",
                         "Failed to connect, retrying soon".red().bold(),
                         err

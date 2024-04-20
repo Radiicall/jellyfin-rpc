@@ -24,7 +24,7 @@ fn load_example_config() {
             self_signed_cert: Some(false),
             show_simple: Some(false),
             append_prefix: Some(false),
-            add_divider: Some(false)
+            add_divider: Some(false),
         },
         discord: Some(Discord {
             application_id: Some("1053747938519679018".to_string()),
@@ -68,7 +68,7 @@ fn try_get_content() {
             self_signed_cert: None,
             show_simple: Some(false),
             append_prefix: Some(false),
-            add_divider: Some(false)
+            add_divider: Some(false),
         },
         discord: None,
         imgur: None,
@@ -108,8 +108,5 @@ fn media_type_is_none() {
     let media_type_1 = MediaType::Movie;
     let media_type_2 = MediaType::None;
 
-    assert_eq!(
-        media_type_1.is_none() == false,
-        media_type_2.is_none() == true
-    )
+    assert_eq!(!media_type_1.is_none(), media_type_2.is_none())
 }

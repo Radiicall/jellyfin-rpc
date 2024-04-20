@@ -1,6 +1,6 @@
 [package]
 name         = "jellyfin-rpc-cli"
-version      = "1.0.4"
+version      = "1.1.0"
 edition      = "2021"
 description  = "Displays the content you're currently watching on Discord!"
 license      = "GPL-3.0-or-later"
@@ -21,18 +21,20 @@ default = ["updates"]
 updates = ["dep:reqwest"]
 
 [dependencies]
-discord-rich-presence = "0.2"
-colored               = "2.0"
+colored               = "2.1"
 retry                 = "2.0"
+log                   = "0.4"
+simple_logger         = "4.3"
+time                  = "0.3"
 
 [dependencies.jellyfin-rpc]
-features = ["imgur", "cli"]
-version  = "1.0.4"
-#path = "../jellyfin-rpc"
+features = ["imgur"]
+#version  = "1.0.3"
+path = "../jellyfin-rpc"
 
 [dependencies.clap]
 features = ["derive"]
-version  = "4.1"
+version  = "4.5"
 
 [dependencies.tokio]
 features = ["full"]
@@ -41,7 +43,7 @@ version  = "1"
 [dependencies.reqwest]
 default-features = false
 features = ["rustls-tls", "json"]
-version  = "0.11"
+version  = "0.12"
 optional = true
 
 [profile.release]
