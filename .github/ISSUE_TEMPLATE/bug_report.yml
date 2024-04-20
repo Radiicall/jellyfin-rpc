@@ -11,7 +11,7 @@ body:
         required: true
   - type: checkboxes
     attributes:
-      label: Have you ran the program with `--log-level=debug`?
+      label: Have you ran the program with debug logging?
       description: "`--log-level=debug` provides better logging when reporting issues, it should be used when reporting bugs."
       options:
       - label: I used `--log-level=debug` when running the program
