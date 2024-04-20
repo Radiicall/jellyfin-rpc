@@ -166,7 +166,7 @@ impl Config {
 
         let data = std::fs::read_to_string(path)?;
         let config: Config = serde_json::from_str(&data)?;
-        
+
         debug!("Config loaded successfully");
 
         Ok(config)

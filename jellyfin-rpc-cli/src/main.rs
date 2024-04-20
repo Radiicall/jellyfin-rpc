@@ -5,8 +5,8 @@ pub use jellyfin_rpc::core::rpc::show_paused;
 pub use jellyfin_rpc::prelude::*;
 pub use jellyfin_rpc::services::imgur::*;
 use log::{error, info, warn};
-use simple_logger::SimpleLogger;
 use retry::retry_with_index;
+use simple_logger::SimpleLogger;
 use time::macros::format_description;
 #[cfg(feature = "updates")]
 mod updates;
@@ -60,13 +60,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("RUST_LOG").is_err() {
         let _ = tokio::task::spawn_blocking(move || {
             std::env::set_var("RUST_LOG", &args.log_level);
-        }).await;
+        })
+        .await;
     }
 
     SimpleLogger::new()
         .with_level(log::LevelFilter::Info)
         .env()
-        .with_timestamp_format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
+        .with_timestamp_format(format_description!(
+            "[year]-[month]-[day] [hour]:[minute]:[second]"
+        ))
         .init()
         .unwrap();
 
@@ -90,26 +93,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .ok();
 
     let config = Config::load(&config_path).unwrap_or_else(|e| {
+        error!("{} {:?}", "Config can't be loaded:".bold().red(), e);
         error!(
             "{} {}",
-            format!(
-                "Config can't be loaded: {:?}.\nConfig file should be located at:",
-                e
-            )
-            .red()
-            .bold(),
+            "Config file should be located at:".bold().red(),
             config_path
         );
         std::process::exit(2)
     });
 
     if !args.suppress_warnings && config.jellyfin.self_signed_cert.is_some_and(|val| val) {
-        warn!(
-            "{}",
-            "Self-signed certificates are enabled!"
-                .bold()
-                .red()
-        );
+        warn!("{}", "Self-signed certificates are enabled!".bold().red());
     }
 
     if !args.suppress_warnings
@@ -230,14 +224,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             // Print what we're watching
             if !connected {
-                info!(
-                    "{}",
-                    content.details.bright_cyan().bold()
-                );
-                info!(
-                    "{}",
-                    content.state_message.bright_cyan().bold()
-                );
+                info!("{}", content.details.bright_cyan().bold());
+                info!("{}", content.state_message.bright_cyan().bold());
                 // Set connected to true so that we don't try to connect again
                 connected = true;
             }
@@ -338,14 +326,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .bright_green()
                             .bold(),
                     );
-                    info!(
-                        "{}",
-                        content.details.bright_cyan().bold()
-                    );
-                    info!(
-                        "{}",
-                        content.state_message.bright_cyan().bold()
-                    );
+                    info!("{}", content.details.bright_cyan().bold());
+                    info!("{}", content.state_message.bright_cyan().bold());
                 });
         } else if connected {
             // Disconnect from the client
@@ -354,10 +336,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .expect("Failed to clear activity");
             // Set connected to false so that we dont try to disconnect again
             connected = false;
-            info!(
-                "{}",
-                "Cleared Rich Presence".bright_red().bold(),
-            );
+            info!("{}", "Cleared Rich Presence".bright_red().bold(),);
         }
 
         tokio::time::sleep(tokio::time::Duration::from_secs(args.wait_time as u64)).await;

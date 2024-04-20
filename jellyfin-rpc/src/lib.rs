@@ -8,12 +8,12 @@ pub mod core;
 pub mod prelude;
 /// External connections
 pub mod services;
-use log::info;
-use colored::Colorize;
 pub use crate::core::error;
+use colored::Colorize;
 pub use core::rpc::setactivity;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
+use log::info;
 use retry::retry_with_index;
 #[cfg(test)]
 mod tests;

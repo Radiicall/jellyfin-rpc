@@ -53,6 +53,7 @@ impl Imgur {
 
         let mut json = Imgur::read_file(file.clone())?;
         if let Some(value) = json.get(item_id).and_then(Value::as_str) {
+            debug!("Found imgur url {} for item id {}", value, item_id);
             return Ok(Self {
                 url: value.to_string(),
             });
@@ -129,6 +130,9 @@ impl Imgur {
             .await?
             .bytes()
             .await?;
+
+        debug!("Got image bytes from url: {}", image_url);
+
         let client = reqwest::Client::new();
         let response = client
             .post("https://api.imgur.com/3/image")
@@ -139,11 +143,17 @@ impl Imgur {
             .body(img)
             .send()
             .await?;
-        let val: Value = serde_json::from_str(&response.text().await?)?;
+        let val: Value = response.json().await?;
 
-        Ok(val["data"]["link"]
+        debug!("Imgur response after upload: {:#?}", val);
+
+        let image_url = val["data"]["link"]
             .as_str()
             .ok_or(ImgurError::InvalidResponse)?
-            .to_string())
+            .to_string();
+
+        debug!("Image uploaded to {}", image_url);
+
+        Ok(image_url)
     }
 }

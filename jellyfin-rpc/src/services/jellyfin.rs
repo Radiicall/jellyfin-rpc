@@ -1,9 +1,9 @@
 use crate::core::config::{Config, Display, Username};
 use crate::core::error::ContentError;
 use async_recursion::async_recursion;
+use log::{debug, error};
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
-use log::{debug, error};
 
 #[derive(Default, Clone)]
 struct ContentBuilder {
@@ -248,23 +248,23 @@ impl Content {
             debug!("Season {}, episode {}", season, first_episode_number);
 
             let mut state;
-            
+
             if config.jellyfin.show_simple.unwrap_or(false) {
                 name = ""
             };
 
             if config.jellyfin.append_prefix.unwrap_or(false) {
                 if config.jellyfin.add_divider.unwrap_or(false) {
-                  state = format!("S{:02} - E{:02}", season, first_episode_number);
+                    state = format!("S{:02} - E{:02}", season, first_episode_number);
                 } else {
                     state = format!("S{:02}E{:02}", season, first_episode_number);
                 }
             } else {
-              if config.jellyfin.add_divider.unwrap_or(false) {
-                state = format!("S{} - E{}", season, first_episode_number);
-              } else {
-                state = format!("S{}E{}", season, first_episode_number);
-              }
+                if config.jellyfin.add_divider.unwrap_or(false) {
+                    state = format!("S{} - E{}", season, first_episode_number);
+                } else {
+                    state = format!("S{}E{}", season, first_episode_number);
+                }
             };
 
             // Does this if statement work?
@@ -287,7 +287,7 @@ impl Content {
             }
 
             if !config.jellyfin.show_simple.unwrap_or(false) {
-              state += &(" ".to_string() + name);
+                state += &(" ".to_string() + name);
             }
 
             content.media_type(MediaType::Episode);
