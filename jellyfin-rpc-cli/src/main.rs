@@ -1,7 +1,7 @@
 use clap::Parser;
 use colored::Colorize;
-use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 pub use jellyfin_rpc::core::rpc::show_paused;
+use jellyfin_rpc::discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 pub use jellyfin_rpc::prelude::*;
 pub use jellyfin_rpc::services::imgur::*;
 use log::{error, info, warn};

@@ -108,8 +108,5 @@ fn media_type_is_none() {
     let media_type_1 = MediaType::Movie;
     let media_type_2 = MediaType::None;
 
-    assert_eq!(
-        !media_type_1.is_none(),
-        media_type_2.is_none()
-    )
+    assert_eq!(!media_type_1.is_none(), media_type_2.is_none())
 }

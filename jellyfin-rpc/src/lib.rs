@@ -11,6 +11,7 @@ pub mod services;
 pub use crate::core::error;
 use colored::Colorize;
 pub use core::rpc::setactivity;
+pub use discord_rich_presence;
 use discord_rich_presence::DiscordIpc;
 use discord_rich_presence::DiscordIpcClient;
 use log::info;
