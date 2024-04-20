@@ -9,6 +9,13 @@ body:
       options:
       - label: I have searched the existing issues
         required: true
+  - type: checkboxes
+    attributes:
+      label: Have you ran the program with `--log-level=debug`?
+      description: `--log-level=debug` provides better logging when reporting issues, it should be used when reporting bugs.
+      options:
+      - label: I used `--log-level=debug` when running the program
+        required: false
   - type: textarea
     id: describe
     attributes:
