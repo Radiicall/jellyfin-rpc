@@ -259,12 +259,10 @@ impl Content {
                 } else {
                     state = format!("S{:02}E{:02}", season, first_episode_number);
                 }
+            } else if config.jellyfin.add_divider.unwrap_or(false) {
+                state = format!("S{} - E{}", season, first_episode_number);
             } else {
-                if config.jellyfin.add_divider.unwrap_or(false) {
-                    state = format!("S{} - E{}", season, first_episode_number);
-                } else {
-                    state = format!("S{}E{}", season, first_episode_number);
-                }
+                state = format!("S{}E{}", season, first_episode_number);
             };
 
             // Does this if statement work?
