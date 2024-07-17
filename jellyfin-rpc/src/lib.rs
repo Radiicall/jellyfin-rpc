@@ -3,7 +3,6 @@ use jellyfin::Session;
 use url::Url;
 
 mod jellyfin;
-mod core;
 
 type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 

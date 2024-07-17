@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "jellyfin-rpc",
-    "jellyfin-rpc-cli", "jftest",
+    "jellyfin-rpc-cli",
 ]
 
 default-members = [
