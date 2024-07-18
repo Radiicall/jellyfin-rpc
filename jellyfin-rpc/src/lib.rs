@@ -106,15 +106,18 @@ impl Client {
                 .state(&state)
                 .timestamps(Timestamps::new().start(0));
 
-            self.discord_ipc_client.set_activity(activity).unwrap();
+            self.discord_ipc_client.set_activity(activity)?;
         }
         Ok(())
     }
 
     pub fn get_buttons(&self) -> Option<Vec<Button>> {
+        let session = self.session.as_ref()?;
+
         let mut activity_buttons: Vec<Button> = Vec::new();
+
         if let (Some(ext_urls), Some(buttons))
-            = (&self.session.as_ref().unwrap().now_playing_item.external_urls, self.buttons.as_ref()) {
+            = (&session.now_playing_item.external_urls, self.buttons.as_ref()) {
             let mut i = 0;
             for button in buttons {
                 if activity_buttons.len() == 2 {
@@ -129,7 +132,7 @@ impl Client {
                 }
             }
             return Some(activity_buttons)
-        } else if let Some(ext_urls) = &self.session.as_ref().unwrap().now_playing_item.external_urls {
+        } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
             for ext_url in ext_urls {
                 if activity_buttons.len() == 2 {
                     break
@@ -155,6 +158,7 @@ impl Client {
 
     pub fn get_image(&self) -> Result<Url, ParseError> {
         let session = self.session.as_ref().unwrap();
+
         match session.now_playing_item.media_type {
             MediaType::Episode => {
                 let path = "Items/".to_string() 

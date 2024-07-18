@@ -34,6 +34,7 @@ impl Session {
         }
     }
 
+    /// Formats artists with comma separation and a final "and" before the last name.
     pub fn format_artists(&self) -> String {
         // let default is to create a longer lived value for artists_vec
         let default = vec!["".to_string()];
