@@ -18,6 +18,7 @@ pub struct Client {
     reqwest: reqwest::Client,
     session: Option<Session>,
     buttons: Option<Vec<Button>>,
+    episode_display_options: EpisodeDisplayOptions
 }
 
 impl Client {
@@ -98,9 +99,11 @@ impl Client {
                 activity = activity.buttons(buttons.iter().map(|b| ActButton::new(&b.name, &b.url)).collect());
             }
 
+            let state = self.get_state();
+
             activity = activity.clone()
                 .details(session.get_details())
-                .state("test")
+                .state(&state)
                 .timestamps(Timestamps::new().start(0));
 
             self.discord_ipc_client.set_activity(activity).unwrap();
@@ -177,39 +180,63 @@ impl Client {
         }
     }
 
-    pub fn get_state(&self) -> &str {
+    pub fn get_state(&self) -> String {
         let session = self.session.as_ref().unwrap();
 
         match session.now_playing_item.media_type {
             MediaType::Episode => {
                 let episode = (session.now_playing_item.index_number.unwrap_or(0), session.now_playing_item.index_number_end);
-                let mut state = "";
+                let mut state = String::new();
 
                 if let Some(season) = session.now_playing_item.parent_index_number {
-                    
-                    state = &format!("S{}", season);
+                    if self.episode_display_options.prefix {
+                        state += &format!("S{:02}", season);
+                    } else {
+                        state += &format!("S{}", season);
+                    }
+                }
+
+                if !state.is_empty() && self.episode_display_options.divider {
+                    state += " - "
                 }
 
                 if let (first, Some(last)) = episode {
-
+                    if self.episode_display_options.prefix {
+                        state += &format!("E{:02} - {:02}", first, last)
+                    } else {
+                        state += &format!("E{} - {}", first, last)
+                    }
                 } else {
-
+                    let (episode, _) = episode;
+                    if self.episode_display_options.prefix {
+                        state += &format!("E{:02}", episode)
+                    } else {
+                        state += &format!("E{}", episode)
+                    }
                 }
                 
-                todo!()
+                if !self.episode_display_options.simple {
+                    state += &format!(" {}", session.now_playing_item.name)
+                }
+
+                state
             },
-            MediaType::LiveTv => "Live TV",
+            MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => todo!(),
             MediaType::Book => todo!(),
             MediaType::AudioBook => todo!(),
-            _ => {
-                // I swear this is temporary
-                "let genres = self.now_playing_item.genres.as_ref().unwrap_or(&vec![\"\".to_string()]);"
-            }
+            _ => session.now_playing_item.genres.as_ref().unwrap_or(&vec!["".to_string()]).join(", ")
         }
     }
 }
 
+struct EpisodeDisplayOptions {
+    divider: bool,
+    prefix: bool,
+    simple: bool,
+}
+
+#[derive(Default)]
 pub struct ClientBuilder {
     url: String,
     client_id: String,
@@ -217,17 +244,16 @@ pub struct ClientBuilder {
     self_signed: bool,
     usernames: Vec<String>,
     buttons: Option<Vec<Button>>,
+    episode_divider: bool,
+    episode_prefix: bool,
+    episode_simple: bool,
 }
 
 impl ClientBuilder {
     pub fn new() -> Self {
         Self {
-            url: "http://example.com".to_string(),
             client_id: "1053747938519679018".to_string(),
-            api_key: "placeholder".to_string(),
-            self_signed: false,
-            usernames: vec![],
-            buttons: None,
+            ..Default::default()
         }
     }
 
@@ -275,6 +301,11 @@ impl ClientBuilder {
             usernames: self.usernames,
             buttons: self.buttons,
             session: None,
+            episode_display_options: EpisodeDisplayOptions {
+                divider: self.episode_divider,
+                prefix: self.episode_prefix,
+                simple: self.episode_simple,
+            }
         })
     }
 }
