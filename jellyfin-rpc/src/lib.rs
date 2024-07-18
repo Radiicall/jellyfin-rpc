@@ -1,10 +1,14 @@
-use discord_rich_presence::{DiscordIpc, DiscordIpcClient};
-use jellyfin::Session;
+use std::str::FromStr;
+
+use discord_rich_presence::{activity::{Activity, Assets, Timestamps}, DiscordIpc, DiscordIpcClient};
+use discord_rich_presence::activity::Button as ActButton;
+use jellyfin::{Button, MediaType, RawSession, Session};
 use url::Url;
 
 mod jellyfin;
+mod external;
 
-type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
+pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub struct Client {
     discord_ipc_client: DiscordIpcClient,
@@ -12,6 +16,7 @@ pub struct Client {
     api_key: String,
     usernames: Vec<String>,
     reqwest: reqwest::Client,
+    buttons: Option<Vec<Button>>,
 }
 
 impl Client {
@@ -23,8 +28,12 @@ impl Client {
         self.discord_ipc_client.connect()
     }
 
+    pub async fn reconnect(&mut self) -> JfResult<()> {
+        self.discord_ipc_client.reconnect()
+    }
+
     async fn get_session(&self) -> Result<Option<Session>, reqwest::Error> {
-        let sessions: Vec<Session> = self.reqwest.get(
+        let sessions: Vec<RawSession> = self.reqwest.get(
             format!(
                 "{}Sessions?api_key={}",
                 self.url,
@@ -44,25 +53,48 @@ impl Client {
                 continue;
             }
 
-            return Ok(Some(session));
+            return Ok(Some(session.build()));
         }
         Ok(None)
     }
 
-    pub async fn set_activity(&self) {
-        let session = self.get_session().await.unwrap();
+    pub async fn set_activity(&mut self) -> JfResult<()> {
+        let session = self.get_session().await?;
 
         if let Some(session) = session {
-            match session.now_playing_item().media_type {
-                jellyfin::MediaType::Movie => {},
-                jellyfin::MediaType::Episode => {},
-                jellyfin::MediaType::LiveTv => {},
-                jellyfin::MediaType::Music => {},
-                jellyfin::MediaType::Book => {},
-                jellyfin::MediaType::AudioBook => {},
-                jellyfin::MediaType::None => (),
+            let mut activity = Activity::new();
+
+            let mut image_url = Url::from_str("https://i.imgur.com/oX6vcds.png")?;
+
+            if session.now_playing_item.media_type == MediaType::LiveTv {
+                //TODO: Add LiveTv image "https://i.imgur.com/XxdHOqm.png" and turn if/else to if/else if
+            } else {
+                image_url = session.get_image(&self.url)?;
             }
+
+            if session.play_state.is_paused {
+                activity = activity.clone().assets(Assets::new()
+                    .large_image(image_url.as_str())
+                    .small_image("https://i.imgur.com/wlHSvYy.png")
+                    .small_text("Paused"));
+            } else {
+                activity = activity.assets(Assets::new()
+                    .large_image(image_url.as_str()));
+            }
+
+            let buttons: Vec<Button>;
+
+            if let Some(b) = session.get_buttons(self.buttons.clone()) {
+                // This gets around the value being dropped immediately at the end of this if statement
+                buttons = b;
+                activity = activity.buttons(buttons.iter().map(|b| ActButton::new(&b.name, &b.url)).collect());
+            }
+
+            activity = activity.clone().state("test").details("test").timestamps(Timestamps::new().start(0));
+
+            self.discord_ipc_client.set_activity(activity).unwrap();
         }
+        Ok(())
     }
 }
 
@@ -72,6 +104,7 @@ pub struct ClientBuilder {
     api_key: String,
     self_signed: bool,
     usernames: Vec<String>,
+    buttons: Option<Vec<Button>>,
 }
 
 impl ClientBuilder {
@@ -81,7 +114,8 @@ impl ClientBuilder {
             client_id: "1053747938519679018".to_string(),
             api_key: "placeholder".to_string(),
             self_signed: false,
-            usernames: vec![]
+            usernames: vec![],
+            buttons: None,
         }
     }
 
@@ -105,15 +139,18 @@ impl ClientBuilder {
         self
     }
 
-    pub fn usernames(mut self, username: Option<String>, usernames: Option<Vec<String>>) -> Self {
-        if let Some(username) = username {
-            self.usernames = vec![username]
-        } else if let Some(usernames) = usernames {
-            self.usernames = usernames
-        } else {
-            eprintln!("usernames function called but nothing was provided!")
-        }
+    pub fn usernames(mut self, usernames: Vec<String>) -> Self {
+        self.usernames = usernames;
+        self
+    }
 
+    pub fn username<T: Into<String>>(mut self, username: T) -> Self {
+        self.usernames = vec![username.into()];
+        self
+    }
+
+    pub fn buttons(mut self, buttons: Vec<Button>) -> Self {
+        self.buttons = Some(buttons);
         self
     }
 
@@ -124,6 +161,7 @@ impl ClientBuilder {
             api_key: self.api_key,
             reqwest: reqwest::Client::builder().danger_accept_invalid_certs(self.self_signed).build()?,
             usernames: self.usernames,
+            buttons: self.buttons,
         })
     }
 }

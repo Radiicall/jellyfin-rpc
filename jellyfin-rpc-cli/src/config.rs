@@ -99,17 +99,6 @@ pub struct Discord {
     pub show_paused: Option<bool>,
 }
 
-/// Button struct
-///
-/// Contains information about buttons
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct Button {
-    /// What the name should be showed as in Discord.
-    pub name: String,
-    /// What clicking it should point to in Discord.
-    pub url: String,
-}
-
 impl Default for Button {
     fn default() -> Self {
         Self {

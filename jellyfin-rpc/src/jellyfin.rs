@@ -1,22 +1,129 @@
 use serde::{de::Visitor, Deserialize, Serialize};
+use url::{ParseError, Url};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
-pub struct Session {
+pub struct RawSession {
     pub user_name: String,
     pub now_playing_item: Option<NowPlayingItem>,
-    pub play_state: Option<PlayState>,
+    pub play_state: PlayState,
+}
+
+impl RawSession {
+    pub fn build(self) -> Session {
+        Session {
+            user_name: self.user_name,
+            now_playing_item: self.now_playing_item.unwrap(),
+            play_state: self.play_state
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Session {
+    pub user_name: String,
+    pub now_playing_item: NowPlayingItem,
+    pub play_state: PlayState,
 }
 
 impl Session {
-    pub fn now_playing_item(self) -> NowPlayingItem {
-        self.now_playing_item.unwrap()
+    pub fn get_image(&self, url: &Url) -> Result<Url, ParseError> {
+        match self.now_playing_item.media_type {
+            MediaType::Episode => {
+                let path = "Items/".to_string() 
+                    + self.now_playing_item.series_id.as_ref()
+                        .unwrap_or(&self.now_playing_item.id) 
+                    + "/Images/Primary";
+
+                url.join(&path)
+            },
+            MediaType::Music => {
+                let path = "Items/".to_string() 
+                    + self.now_playing_item.album_id.as_ref()
+                        .unwrap_or(&self.now_playing_item.id) 
+                    + "/Images/Primary";
+
+                url.join(&path)
+            },
+            _ => {
+                let path = "Items/".to_string() + &self.now_playing_item.id + "/Images/Primary";
+
+                url.join(&path)
+            }
+        }
+    }
+
+    pub fn get_buttons(&self, buttons: Option<Vec<Button>>) -> Option<Vec<Button>> {
+        let mut activity_buttons: Vec<Button> = Vec::new();
+        if let Some(ext_urls) = &self.now_playing_item.external_urls {
+            if let Some(buttons) = buttons {
+                let mut i = 0;
+                for button in buttons {
+                    if activity_buttons.len() == 2 {
+                        break
+                    }
+
+                    if button.is_dynamic() {
+                        activity_buttons.push(Button::new(ext_urls[i].name.clone(), ext_urls[i].url.clone()));
+                        i += 1;
+                    } else {
+                        activity_buttons.push(button)
+                    }
+                }
+            } else {
+                for ext_url in ext_urls {
+                    if activity_buttons.len() == 2 {
+                        break
+                    }
+
+                    activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
+                }
+            }
+            return Some(activity_buttons)
+        } else if let Some(buttons) = buttons {
+            for button in buttons {
+                if activity_buttons.len() == 2 {
+                    break
+                }
+
+                if !button.is_dynamic() {
+                    activity_buttons.push(button)
+                }
+            }
+            return Some(activity_buttons)
+        }
+        None
+    }
+}
+
+/// Button struct
+///
+/// Contains information about buttons
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Button {
+    /// What the name should be showed as in Discord.
+    pub name: String,
+    /// What clicking it should point to in Discord.
+    pub url: String,
+}
+
+impl Button {
+    fn new(name: String, url: String) -> Self {
+        Self {
+            name,
+            url,
+        }
+    }
+
+    fn is_dynamic(&self) -> bool {
+        self.name == "dynamic" && self.url == "dynamic"
     }
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct NowPlayingItem {
+    // Generic
     pub name: String,
     #[serde(rename = "Type")]
     pub media_type: MediaType,
@@ -46,7 +153,7 @@ pub struct ExternalUrl {
 }
 
 /// The type of the currently playing content.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MediaType {
     /// If the content playing is a Movie.
     Movie,
@@ -142,13 +249,6 @@ impl Default for MediaType {
     }
 }
 
-impl MediaType {
-    /// Check if the MediaType is none, returns `true` if it is.
-    pub fn is_none(&self) -> bool {
-        self == &Self::None
-    }
-}
-
 impl From<&'static str> for MediaType {
     fn from(value: &'static str) -> Self {
         match value {
@@ -182,6 +282,6 @@ impl From<String> for MediaType {
 #[serde(rename_all = "PascalCase")]
 pub struct PlayState {
     pub is_paused: bool,
-    pub position_ticks: i64,
+    pub position_ticks: Option<i64>,
 
 }
