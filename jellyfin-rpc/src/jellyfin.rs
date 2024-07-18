@@ -33,6 +33,29 @@ impl Session {
             _ => &self.now_playing_item.name,
         }
     }
+
+    pub fn format_artists(&self) -> String {
+        // let default is to create a longer lived value for artists_vec
+        let default = vec!["".to_string()];
+        let artists_vec = self.now_playing_item.artists.as_ref().unwrap_or(&default);
+        let mut artists = String::new();
+
+        for i in 0..artists_vec.len() {
+            if artists_vec.len() == 1 {
+                artists += &artists_vec[i];
+                continue
+            }
+
+            if i == artists_vec.len() - 1 {
+                artists += &format!(" and {}", artists_vec[i]);
+                continue
+            }
+
+            artists += &format!(", {}", artists_vec[i]);
+        }
+
+        artists
+    }
 }
 
 /// Button struct
@@ -194,7 +217,7 @@ impl From<&'static str> for MediaType {
             "episode" => Self::Episode,
             "movie" => Self::Movie,
             "music" | "audio" => Self::Music,
-            "livetv" => Self::LiveTv,
+            "livetv" | "tvchannel" => Self::LiveTv,
             "book" => Self::Book,
             "audiobook" => Self::AudioBook,
             _ => Self::None,
@@ -208,7 +231,7 @@ impl From<String> for MediaType {
             "episode" => Self::Episode,
             "movie" => Self::Movie,
             "music" | "audio" => Self::Music,
-            "livetv" => Self::LiveTv,
+            "livetv" | "tvchannel" => Self::LiveTv,
             "book" => Self::Book,
             "audiobook" => Self::AudioBook,
             _ => Self::None,

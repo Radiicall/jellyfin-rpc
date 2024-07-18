@@ -224,7 +224,23 @@ impl Client {
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => todo!(),
             MediaType::Book => todo!(),
-            MediaType::AudioBook => todo!(),
+            MediaType::AudioBook => {
+                let mut state = String::new();
+
+                let artists = session.format_artists();
+                
+                if !artists.is_empty() {
+                    state += &format!("By {}", artists)
+                }
+
+                if !state.is_empty() {
+                    state += " - "
+                }
+
+                state += &session.now_playing_item.genres.as_ref().unwrap_or(&vec!["".to_string()]).join(", ");
+
+                state
+            },
             _ => session.now_playing_item.genres.as_ref().unwrap_or(&vec!["".to_string()]).join(", ")
         }
     }
