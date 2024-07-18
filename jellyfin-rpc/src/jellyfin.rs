@@ -1,5 +1,4 @@
 use serde::{de::Visitor, Deserialize, Serialize};
-use url::{ParseError, Url};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -27,72 +26,12 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn get_image(&self, url: &Url) -> Result<Url, ParseError> {
+    pub fn get_details(&self) -> &str {
         match self.now_playing_item.media_type {
-            MediaType::Episode => {
-                let path = "Items/".to_string() 
-                    + self.now_playing_item.series_id.as_ref()
-                        .unwrap_or(&self.now_playing_item.id) 
-                    + "/Images/Primary";
-
-                url.join(&path)
-            },
-            MediaType::Music => {
-                let path = "Items/".to_string() 
-                    + self.now_playing_item.album_id.as_ref()
-                        .unwrap_or(&self.now_playing_item.id) 
-                    + "/Images/Primary";
-
-                url.join(&path)
-            },
-            _ => {
-                let path = "Items/".to_string() + &self.now_playing_item.id + "/Images/Primary";
-
-                url.join(&path)
-            }
+            MediaType::Episode => self.now_playing_item.series_name.as_ref().unwrap_or(&self.now_playing_item.name),
+            MediaType::AudioBook => self.now_playing_item.album.as_ref().unwrap_or(&self.now_playing_item.name),
+            _ => &self.now_playing_item.name,
         }
-    }
-
-    pub fn get_buttons(&self, buttons: Option<Vec<Button>>) -> Option<Vec<Button>> {
-        let mut activity_buttons: Vec<Button> = Vec::new();
-        if let Some(ext_urls) = &self.now_playing_item.external_urls {
-            if let Some(buttons) = buttons {
-                let mut i = 0;
-                for button in buttons {
-                    if activity_buttons.len() == 2 {
-                        break
-                    }
-
-                    if button.is_dynamic() {
-                        activity_buttons.push(Button::new(ext_urls[i].name.clone(), ext_urls[i].url.clone()));
-                        i += 1;
-                    } else {
-                        activity_buttons.push(button)
-                    }
-                }
-            } else {
-                for ext_url in ext_urls {
-                    if activity_buttons.len() == 2 {
-                        break
-                    }
-
-                    activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
-                }
-            }
-            return Some(activity_buttons)
-        } else if let Some(buttons) = buttons {
-            for button in buttons {
-                if activity_buttons.len() == 2 {
-                    break
-                }
-
-                if !button.is_dynamic() {
-                    activity_buttons.push(button)
-                }
-            }
-            return Some(activity_buttons)
-        }
-        None
     }
 }
 
@@ -108,14 +47,14 @@ pub struct Button {
 }
 
 impl Button {
-    fn new(name: String, url: String) -> Self {
+    pub fn new(name: String, url: String) -> Self {
         Self {
             name,
             url,
         }
     }
 
-    fn is_dynamic(&self) -> bool {
+    pub fn is_dynamic(&self) -> bool {
         self.name == "dynamic" && self.url == "dynamic"
     }
 }
