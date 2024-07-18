@@ -18,7 +18,8 @@ pub struct Client {
     reqwest: reqwest::Client,
     session: Option<Session>,
     buttons: Option<Vec<Button>>,
-    episode_display_options: EpisodeDisplayOptions
+    episode_display_options: EpisodeDisplayOptions,
+    music_display_options: MusicDisplayOptions,
 }
 
 impl Client {
@@ -103,8 +104,7 @@ impl Client {
 
             activity = activity.clone()
                 .details(session.get_details())
-                .state(&state)
-                .timestamps(Timestamps::new().start(0));
+                .state(&state);
 
             self.discord_ipc_client.set_activity(activity)?;
         }
@@ -226,9 +226,7 @@ impl Client {
                 state
             },
             MediaType::LiveTv => "Live TV".to_string(),
-            MediaType::Music => todo!(),
-            MediaType::Book => todo!(),
-            MediaType::AudioBook => {
+            MediaType::Music => {
                 let mut state = String::new();
 
                 let artists = session.format_artists();
@@ -236,12 +234,75 @@ impl Client {
                 if !artists.is_empty() {
                     state += &format!("By {}", artists)
                 }
+                
+                for data in &self.music_display_options.display {
+                    match data.as_str() {
+                        "genres" => {
+                            let genres = session.now_playing_item.genres
+                                .as_ref()
+                                .unwrap_or(&vec!["".to_string()])
+                                .join(", ");
+                            if !state.is_empty() && !genres.is_empty() {
+                                state += &format!(" {} ", self.music_display_options.separator);
+                            }
+                            state += &genres
+                        },
+                        "year" => {
+                            if let Some(year) = session.now_playing_item.production_year {
+                                if !state.is_empty() {
+                                    state += &format!(" {} ", self.music_display_options.separator);
+                                }
 
-                if !state.is_empty() {
+                                state += &year.to_string();
+                            }
+                        },
+                        "album" => {
+                            if let Some(album) = &session.now_playing_item.album {
+                                if !state.is_empty() {
+                                    state += &format!(" {} ", self.music_display_options.separator);
+                                }
+
+                                state += album;
+                            }
+                        }
+                        _ => ()
+                    }
+                }
+
+                state
+            },
+            MediaType::Book => {
+                let mut state = String::new();
+                
+                if let Some(position_ticks) = session.play_state.position_ticks {
+                    let ticks_to_pages = 10000;
+
+                    let page = position_ticks / ticks_to_pages;
+
+                    state += &format!("Reading page {}", page);
+                }
+                
+                state
+            },
+            MediaType::AudioBook => {
+                let mut state = String::new();
+
+                let artists = session.format_artists();
+
+                let genres = session.now_playing_item.genres
+                    .as_ref()
+                    .unwrap_or(&vec!["".to_string()])
+                    .join(", ");
+                
+                if !artists.is_empty() {
+                    state += &format!("By {}", artists)
+                }
+
+                if !state.is_empty() && !genres.is_empty() {
                     state += " - "
                 }
 
-                state += &session.now_playing_item.genres.as_ref().unwrap_or(&vec!["".to_string()]).join(", ");
+                state += &genres;
 
                 state
             },
@@ -256,6 +317,11 @@ struct EpisodeDisplayOptions {
     simple: bool,
 }
 
+struct MusicDisplayOptions {
+    separator: String,
+    display: Vec<String>,
+}
+
 #[derive(Default)]
 pub struct ClientBuilder {
     url: String,
@@ -267,12 +333,16 @@ pub struct ClientBuilder {
     episode_divider: bool,
     episode_prefix: bool,
     episode_simple: bool,
+    music_separator: String,
+    music_display: Vec<String>,
 }
 
 impl ClientBuilder {
     pub fn new() -> Self {
         Self {
             client_id: "1053747938519679018".to_string(),
+            music_separator: "-".to_string(),
+            music_display: vec!["genres".to_string()],
             ..Default::default()
         }
     }
@@ -325,7 +395,11 @@ impl ClientBuilder {
                 divider: self.episode_divider,
                 prefix: self.episode_prefix,
                 simple: self.episode_simple,
-            }
+            },
+            music_display_options: MusicDisplayOptions {
+                separator: self.music_separator,
+                display: self.music_display,
+            },
         })
     }
 }
