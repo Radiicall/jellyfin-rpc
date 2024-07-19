@@ -37,34 +37,6 @@ impl Client {
         self.discord_ipc_client.reconnect()
     }
 
-    async fn get_session(&mut self) -> Result<(), reqwest::Error> {
-        let sessions: Vec<RawSession> = self.reqwest.get(
-            format!(
-                "{}Sessions?api_key={}",
-                self.url,
-                self.api_key
-            ))
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        for session in sessions {
-            if self.usernames.iter().all(|u| session.user_name.to_lowercase() != *u) {
-                continue;
-            }
-
-            if let None = session.now_playing_item {
-                continue;
-            }
-
-            self.session = Some(session.build());
-            return Ok(());
-        }
-        self.session = None;
-        Ok(())
-    }
-
     pub async fn set_activity(&mut self) -> JfResult<()> {
         self.get_session().await?;
 
@@ -141,6 +113,34 @@ impl Client {
         Ok(())
     }
 
+    async fn get_session(&mut self) -> Result<(), reqwest::Error> {
+        let sessions: Vec<RawSession> = self.reqwest.get(
+            format!(
+                "{}Sessions?api_key={}",
+                self.url,
+                self.api_key
+            ))
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        for session in sessions {
+            if self.usernames.iter().all(|u| session.user_name.to_lowercase() != *u) {
+                continue;
+            }
+
+            if let None = session.now_playing_item {
+                continue;
+            }
+
+            self.session = Some(session.build());
+            return Ok(());
+        }
+        self.session = None;
+        Ok(())
+    }
+
     pub fn get_buttons(&self) -> Option<Vec<Button>> {
         let session = self.session.as_ref()?;
 
@@ -212,6 +212,7 @@ impl Client {
                 self.url.join(&path)
             }
         }
+        // Call something related to imgur here
     }
 
     pub fn get_state(&self) -> String {
