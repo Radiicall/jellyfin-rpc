@@ -22,6 +22,9 @@ pub struct Client {
     music_display_options: MusicDisplayOptions,
     blacklist: Blacklist,
     show_paused: bool,
+    show_images: bool,
+    #[cfg(feature = "imgur")]
+    imgur_options: ImgurOptions,
 }
 
 impl Client {
@@ -58,8 +61,12 @@ impl Client {
             if session.now_playing_item.media_type == MediaType::LiveTv {
                 //TODO: Add LiveTv image "https://i.imgur.com/XxdHOqm.png" and turn if/else to if/else if
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
-            } else if let Ok(iu) = self.get_image() {
-                image_url = iu;
+            } else if self.show_images {
+                if let Ok(iu) = self.get_image() {
+                    image_url = iu;
+                } else {
+                    eprintln!("get_image() didnt return an image, using default..")
+                }
             }
 
             let mut assets = Assets::new()
@@ -385,6 +392,12 @@ struct Blacklist {
     libraries: Vec<String>,
 }
 
+#[cfg(feature = "imgur")]
+struct ImgurOptions {
+    enabled: bool,
+    client_id: String,
+}
+
 #[derive(Default)]
 pub struct ClientBuilder {
     url: String,
@@ -401,6 +414,11 @@ pub struct ClientBuilder {
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
+    show_images: bool,
+    #[cfg(feature = "imgur")]
+    use_imgur: bool,
+    #[cfg(feature = "imgur")]
+    imgur_client_id: String,
 }
 
 impl ClientBuilder {
@@ -489,6 +507,23 @@ impl ClientBuilder {
         self
     }
 
+    pub fn show_images(mut self, val: bool) -> Self {
+        self.show_images = val;
+        self
+    }
+
+    #[cfg(feature = "imgur")]
+    pub fn use_imgur(mut self, val: bool) -> Self {
+        self.use_imgur = val;
+        self
+    }
+
+    #[cfg(feature = "imgur")]
+    pub fn imgur_client_id<T: Into<String>>(mut self, client_id: T) -> Self {
+        self.imgur_client_id = client_id.into();
+        self
+    }
+
     pub fn build(self) -> JfResult<Client> {
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
@@ -512,6 +547,12 @@ impl ClientBuilder {
                 libraries: self.blacklist_libraries,
             },
             show_paused: self.show_paused,
+            show_images: self.show_images,
+            #[cfg(feature = "imgur")]
+            imgur_options: ImgurOptions {
+                enabled: self.use_imgur,
+                client_id: self.imgur_client_id,
+            }
         })
     }
 }
