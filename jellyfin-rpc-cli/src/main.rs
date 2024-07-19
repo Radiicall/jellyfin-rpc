@@ -1,3 +1,4 @@
+use std::time::Duration;
 use clap::Parser;
 use colored::Colorize;
 use config::{get_config_path, Config, Username};
@@ -6,6 +7,7 @@ use log::{error, info, warn};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
 use time::macros::format_description;
+use tokio::time::sleep;
 #[cfg(feature = "updates")]
 mod updates;
 mod config;
@@ -36,13 +38,6 @@ struct Args {
         default_value_t = 3
     )]
     wait_time: usize,
-    #[arg(
-        short = 's',
-        long = "suppress-warnings",
-        help = "Stops warnings from showing on startup",
-        default_value_t = false
-    )]
-    suppress_warnings: bool,
     #[arg(
         short = 'v',
         long = "log-level",
@@ -122,7 +117,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         builder.imgur_client_id(client_id);
     }
     
-    let client = builder.build()?;
+    let mut client = builder.build()?;
 
-    Ok(())
+    client.connect().await?;
+
+    loop {
+        client.set_activity().await.unwrap_or({
+            client.reconnect().await?;
+            client.set_activity().await?;
+        });
+        sleep(Duration::from_secs(args.wait_time as u64)).await;
+    }
 }
