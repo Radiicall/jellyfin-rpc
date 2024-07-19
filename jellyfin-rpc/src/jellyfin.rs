@@ -1,4 +1,5 @@
 use serde::{de::Visitor, Deserialize, Serialize};
+use std::time::{SystemTime, SystemTimeError, UNIX_EPOCH};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -57,6 +58,39 @@ impl Session {
 
         artists
     }
+
+    pub fn get_endtime(&self) -> Result<EndTime, SystemTimeError> {
+        match self.now_playing_item.media_type {
+            MediaType::Book => return Ok(EndTime::NoEndTime),
+            MediaType::LiveTv => return Ok(EndTime::NoEndTime),
+            _ => {}
+        }
+
+        if !self.play_state.is_paused {
+            let ticks_to_seconds = 10000000;
+
+            if let Some(mut position_ticks) = self.play_state.position_ticks {
+                position_ticks /= ticks_to_seconds;
+
+                let runtime_ticks = self.now_playing_item.run_time_ticks / ticks_to_seconds;
+
+                return Ok(
+                    EndTime::Some(SystemTime::now()
+                        .duration_since(UNIX_EPOCH)?
+                        .as_secs() as i64
+                        + (runtime_ticks - position_ticks))
+                )
+            }
+        }
+        Ok(EndTime::Paused)
+    }
+}
+
+#[derive(PartialEq)]
+pub enum EndTime {
+    Some(i64),
+    NoEndTime,
+    Paused,
 }
 
 /// Button struct
@@ -247,4 +281,12 @@ pub struct PlayState {
     pub is_paused: bool,
     pub position_ticks: Option<i64>,
 
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Item {
+    pub name: String,
+    pub id: String,
+    // Sort name is not needed but might be useful in future
+    pub sort_name: String,
 }
