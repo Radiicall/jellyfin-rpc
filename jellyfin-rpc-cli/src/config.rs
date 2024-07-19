@@ -216,15 +216,15 @@ impl ConfigBuilder {
     }
 
     /// Loads the config from the given path.
-    pub fn load(mut self, path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load(self, path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         debug!("Config path is: {}", path);
 
         let data = std::fs::read_to_string(path)?;
-        self = serde_json::from_str(&data)?;
+        let config = serde_json::from_str(&data)?;
 
         debug!("Config loaded successfully");
 
-        Ok(self)
+        Ok(config)
     }
 
     pub fn build(self) -> Config {

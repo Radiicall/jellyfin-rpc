@@ -77,24 +77,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "updates")]
     updates::checker().await;
 
-    let conf = Config::load(&args.config.unwrap_or(get_config_path()?))?;
+    let conf = Config::builder()
+        .load(&args.config.unwrap_or(get_config_path()?))?
+        .build();
 
     let mut builder = Client::builder();
     builder
         .api_key(conf.jellyfin.api_key)
-        .url(conf.jellyfin.url);
+        .url(conf.jellyfin.url)
+        .usernames(conf.jellyfin.username)
+        .self_signed(conf.jellyfin.self_signed_cert)
+        .episode_simple(conf.jellyfin.show_simple)
+        .episode_divider(conf.jellyfin.add_divider)
+        .episode_prefix(conf.jellyfin.append_prefix)
+        .show_paused(conf.discord.show_paused)
+        .show_images(conf.images.enable_images)
+        .use_imgur(conf.images.imgur_images);
 
-    match conf.jellyfin.username {
-        Username::Vec(usernames) => builder.usernames(usernames),
-        Username::String(username) => builder.username(username),
-    };
+    if let Some(display) = conf.jellyfin.music.display {
+        builder.music_display(display);
+    }
 
-    if let Some(music) = conf.jellyfin.music {
-        if let Some(display) = music.display {
-            // I think config needs to be a builder
-        }
+    if let Some(separator) = conf.jellyfin.music.separator {
+        builder.music_separator(separator);
+    }
 
+    if let Some(media_types) = conf.jellyfin.blacklist.media_types {
+        builder.blacklist_media_types(media_types);
+    }
+
+    if let Some(libraries) = conf.jellyfin.blacklist.libraries {
+        builder.blacklist_libraries(libraries);
+    }
+
+    if let Some(application_id) = conf.discord.application_id {
+        builder.client_id(application_id);
+    }
+
+    if let Some(buttons) = conf.discord.buttons {
+        builder.buttons(buttons);
+    }
+
+    if let Some(client_id) = conf.imgur.client_id {
+        builder.imgur_client_id(client_id);
     }
     
+    let client = builder.build()?;
+
     Ok(())
 }
