@@ -2,8 +2,9 @@ use std::str::FromStr;
 
 use discord_rich_presence::{activity::{Activity, Assets, Timestamps}, DiscordIpc, DiscordIpcClient};
 use discord_rich_presence::activity::Button as ActButton;
-use jellyfin::{Button, EndTime, Item, MediaType, RawSession, Session};
+use jellyfin::{EndTime, Item, RawSession, Session};
 use url::{ParseError, Url};
+pub use jellyfin::{MediaType, Button};
 
 mod jellyfin;
 mod external;
@@ -432,94 +433,94 @@ impl ClientBuilder {
         }
     }
 
-    pub fn url<T: Into<String>>(mut self, url: T) -> Self {
+    pub fn url<T: Into<String>>(&mut self, url: T) -> &mut Self {
         self.url = url.into();
         self
     }
 
-    pub fn client_id<T: Into<String>>(mut self, client_id: T) -> Self {
+    pub fn client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.client_id = client_id.into();
         self
     }
 
-    pub fn api_key<T: Into<String>>(mut self, api_key: T) -> Self {
+    pub fn api_key<T: Into<String>>(&mut self, api_key: T) -> &mut Self {
         self.api_key = api_key.into();
         self
     }
 
-    pub fn self_signed(mut self, self_signed: bool) -> Self {
+    pub fn self_signed(&mut self, self_signed: bool) -> &mut Self {
         self.self_signed = self_signed;
         self
     }
 
-    pub fn usernames(mut self, usernames: Vec<String>) -> Self {
+    pub fn usernames(&mut self, usernames: Vec<String>) -> &mut Self {
         self.usernames = usernames;
         self
     }
 
-    pub fn username<T: Into<String>>(mut self, username: T) -> Self {
+    pub fn username<T: Into<String>>(&mut self, username: T) -> &mut Self {
         self.usernames = vec![username.into()];
         self
     }
 
-    pub fn buttons(mut self, buttons: Vec<Button>) -> Self {
+    pub fn buttons(&mut self, buttons: Vec<Button>) -> &mut Self {
         self.buttons = Some(buttons);
         self
     }
 
-    pub fn episode_divider(mut self, val: bool) -> Self {
+    pub fn episode_divider(&mut self, val: bool) -> &mut Self {
         self.episode_divider = val;
         self
     }
 
-    pub fn episode_prefix(mut self, val: bool) -> Self {
+    pub fn episode_prefix(&mut self, val: bool) -> &mut Self {
         self.episode_prefix = val;
         self
     }
 
-    pub fn episode_simple(mut self, val: bool) -> Self {
+    pub fn episode_simple(&mut self, val: bool) -> &mut Self {
         self.episode_simple = val;
         self
     }
 
-    pub fn music_separator<T: Into<String>>(mut self, separator: T) -> Self {
+    pub fn music_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
         self.music_separator = separator.into();
         self
     }
 
-    pub fn music_display(mut self, display: Vec<String>) -> Self {
+    pub fn music_display(&mut self, display: Vec<String>) -> &mut Self {
         self.music_display = display;
         self
     }
 
-    pub fn blacklist_media_types(mut self, media_types: Vec<MediaType>) -> Self {
+    pub fn blacklist_media_types(&mut self, media_types: Vec<MediaType>) -> &mut Self {
         self.blacklist_media_types = media_types;
         self
     }
 
-    pub fn blacklist_libraries(mut self, libraries: Vec<String>) -> Self {
+    pub fn blacklist_libraries(&mut self, libraries: Vec<String>) -> &mut Self {
         self.blacklist_libraries = libraries;
         self
     }
 
-    pub fn show_paused(mut self, val: bool) -> Self {
+    pub fn show_paused(&mut self, val: bool) -> &mut Self {
         self.show_paused = val;
         self
     }
 
-    pub fn show_images(mut self, val: bool) -> Self {
+    pub fn show_images(&mut self, val: bool) -> &mut Self {
         self.show_images = val;
         self
     }
 
     #[cfg(feature = "imgur")]
-    pub fn use_imgur(mut self, val: bool) -> Self {
+    pub fn use_imgur(&mut self, val: bool) -> &mut Self {
         self.use_imgur = val;
         self
     }
 
     #[cfg(feature = "imgur")]
-    pub fn imgur_client_id<T: Into<String>>(mut self, client_id: T) -> Self {
+    pub fn imgur_client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.imgur_client_id = client_id.into();
         self
     }

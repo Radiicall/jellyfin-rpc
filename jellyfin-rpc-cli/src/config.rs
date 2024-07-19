@@ -1,5 +1,4 @@
-use super::error::ConfigError;
-use crate::prelude::MediaType;
+use jellyfin_rpc::{MediaType, Button};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -99,15 +98,6 @@ pub struct Discord {
     pub show_paused: Option<bool>,
 }
 
-impl Default for Button {
-    fn default() -> Self {
-        Self {
-            name: String::from("dynamic"),
-            url: String::from("dynamic"),
-        }
-    }
-}
-
 /// Imgur configuration
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Imgur {
@@ -131,7 +121,7 @@ pub struct Images {
 /// Default config path depends on OS
 /// Windows: `%appdata%\jellyfin-rpc\config.json`
 /// Linux/macOS: `~/.config/jellyfin-rpc/config.json`
-pub fn get_config_path() -> Result<String, ConfigError> {
+pub fn get_config_path() -> Result<String, Box<dyn std::error::Error>> {
     debug!("Getting config path");
     if cfg!(not(windows)) {
         debug!("Platform is not Windows");
@@ -150,7 +140,7 @@ pub fn get_config_path() -> Result<String, ConfigError> {
 
 impl Config {
     /// Loads the config from the given path.
-    pub fn load(path: &str) -> Result<Config, ConfigError> {
+    pub fn load(path: &str) -> Result<Config, Box<dyn std::error::Error>> {
         debug!("Config path is: {}", path);
 
         let data = std::fs::read_to_string(path)?;

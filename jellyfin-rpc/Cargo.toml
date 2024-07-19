@@ -19,9 +19,6 @@ tokio                 = "1"
 log                   = "0.4"
 url                   = "2.5"
 
-[dependencies.colored]
-version  = "2.1"
-
 [dependencies.serde]
 features = ["derive"]
 version  = "1.0"

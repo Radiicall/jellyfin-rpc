@@ -104,6 +104,15 @@ pub struct Button {
     pub url: String,
 }
 
+impl Default for Button {
+    fn default() -> Self {
+        Self {
+            name: String::from("dynamic"),
+            url: String::from("dynamic"),
+        }
+    }
+}
+
 impl Button {
     pub fn new(name: String, url: String) -> Self {
         Self {
