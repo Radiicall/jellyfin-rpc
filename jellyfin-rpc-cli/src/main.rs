@@ -122,10 +122,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client.connect().await?;
 
     loop {
-        client.set_activity().await.unwrap_or({
+        if let Err(err) = client.set_activity().await {
+            error!("{}", err);
+            warn!("Retrying...");
             client.reconnect().await?;
             client.set_activity().await?;
-        });
+        }
         sleep(Duration::from_secs(args.wait_time as u64)).await;
     }
 }

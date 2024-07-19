@@ -1,8 +1,8 @@
 use std::str::FromStr;
-
 use discord_rich_presence::{activity::{Activity, Assets, Timestamps}, DiscordIpc, DiscordIpcClient};
 use discord_rich_presence::activity::Button as ActButton;
 use jellyfin::{EndTime, Item, RawSession, Session};
+use log::error;
 use url::{ParseError, Url};
 pub use jellyfin::{MediaType, Button};
 
@@ -46,12 +46,12 @@ impl Client {
 
         if let Some(session) = &self.session {
             if session.now_playing_item.media_type == MediaType::None {
-                eprintln!("Unrecognized media type, returning...");
+                error!("Unrecognized media type, returning...");
                 return Ok(())
             }
 
             if self.check_blacklist().await? {
-                eprintln!("Content is in blacklist, returning...");
+                error!("Content is in blacklist, returning...");
                 return Ok(())
             }
 
@@ -60,13 +60,12 @@ impl Client {
             let mut image_url = Url::from_str("https://i.imgur.com/oX6vcds.png")?;
 
             if session.now_playing_item.media_type == MediaType::LiveTv {
-                //TODO: Add LiveTv image "https://i.imgur.com/XxdHOqm.png" and turn if/else to if/else if
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
             } else if self.show_images {
-                if let Ok(iu) = self.get_image() {
+                if let Ok(iu) = self.get_image().await {
                     image_url = iu;
                 } else {
-                    eprintln!("get_image() didnt return an image, using default..")
+                    error!("get_image() didnt return an image, using default..")
                 }
             }
 
@@ -75,7 +74,7 @@ impl Client {
 
             let mut timestamps = Timestamps::new();
 
-            match session.get_endtime()? {
+            match session.get_endtime().await? {
                 EndTime::Some(end) => timestamps = timestamps.end(end),
                 EndTime::NoEndTime => (),
                 EndTime::Paused if self.show_paused => {
@@ -88,26 +87,26 @@ impl Client {
 
             let buttons: Vec<Button>;
 
-            if let Some(b) = self.get_buttons() {
+            if let Some(b) = self.get_buttons().await {
                 // This gets around the value being dropped immediately at the end of this if statement
                 buttons = b;
                 activity = activity.buttons(buttons.iter().map(|b| ActButton::new(&b.name, &b.url)).collect());
             }
 
-            let mut state = self.get_state();
+            let mut state = self.get_state().await;
 
             if state.len() > 128 {
                 state = state.chars().take(128).collect();
             } else if state.len() < 3 {
-                state += "‎‎";
+                state += "‎‎‎";
             }
 
-            let mut details = session.get_details().to_string();
+            let mut details = session.get_details().await.to_string();
 
             if details.len() > 128 {
                 details = details.chars().take(128).collect();
             } else if details.len() < 3 {
-                details += "‎‎";
+                details += "‎‎‎";
             }
 
             activity = activity
@@ -149,7 +148,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn get_buttons(&self) -> Option<Vec<Button>> {
+    pub async fn get_buttons(&self) -> Option<Vec<Button>> {
         let session = self.session.as_ref()?;
 
         let mut activity_buttons: Vec<Button> = Vec::new();
@@ -194,7 +193,7 @@ impl Client {
         None
     }
 
-    pub fn get_image(&self) -> Result<Url, ParseError> {
+    pub async fn get_image(&self) -> Result<Url, ParseError> {
         let session = self.session.as_ref().unwrap();
 
         match session.now_playing_item.media_type {
@@ -223,7 +222,7 @@ impl Client {
         // Call something related to imgur here
     }
 
-    pub fn get_state(&self) -> String {
+    pub async fn get_state(&self) -> String {
         let session = self.session.as_ref().unwrap();
 
         match session.now_playing_item.media_type {
@@ -369,7 +368,7 @@ impl Client {
             return Ok(true)
         }
 
-        if self.blacklist.libraries.iter().any(|l| ancestors.iter().any(|a| l == &a.name)) {
+        if self.blacklist.libraries.iter().any(|l| ancestors.iter().any(|a| l == a.name.as_ref().unwrap_or(&"".to_string()))) {
             return Ok(true)
         }
         

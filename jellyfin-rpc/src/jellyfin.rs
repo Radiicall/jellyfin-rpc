@@ -27,7 +27,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn get_details(&self) -> &str {
+    pub async fn get_details(&self) -> &str {
         match self.now_playing_item.media_type {
             MediaType::Episode => self.now_playing_item.series_name.as_ref().unwrap_or(&self.now_playing_item.name),
             MediaType::AudioBook => self.now_playing_item.album.as_ref().unwrap_or(&self.now_playing_item.name),
@@ -59,7 +59,7 @@ impl Session {
         artists
     }
 
-    pub fn get_endtime(&self) -> Result<EndTime, SystemTimeError> {
+    pub async fn get_endtime(&self) -> Result<EndTime, SystemTimeError> {
         match self.now_playing_item.media_type {
             MediaType::Book => return Ok(EndTime::NoEndTime),
             MediaType::LiveTv => return Ok(EndTime::NoEndTime),
@@ -294,8 +294,5 @@ pub struct PlayState {
 
 #[derive(Deserialize, Debug)]
 pub struct Item {
-    pub name: String,
-    pub id: String,
-    // Sort name is not needed but might be useful in future
-    pub sort_name: String,
+    pub name: Option<String>,
 }
