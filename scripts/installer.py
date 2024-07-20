@@ -110,6 +110,36 @@ if current == "n" or current == "":
         break
 
     while True:
+        val = input("Do you want to customize movie display? (y/N): ").lower()
+
+        if val == "n" or val == "":
+            movies = None
+            break
+        elif val != "y":
+            print("Invalid input, please type y or n")
+            continue
+
+        print("Enter what you would like to be shown in a comma seperated list")
+        print("Remember that it will show in the order you type it in")
+        print("Valid options are year, critic-score, community-score and/or genres")
+        display = input("[Default: genres]: ").split(",")
+
+        print("Choose the separator between the artist name and the info")
+        separator = input("[Default: -]: ")
+
+        if display == "":
+            display = None
+        if separator == "":
+            separator = None
+
+        movies = {
+            "display": display,
+            "separator": separator
+        }
+
+        break
+
+    while True:
         val = input("Do you want to blacklist media types or libraries? (y/N): ").lower()
 
         if val == "n" or val == "":
@@ -146,7 +176,7 @@ if current == "n" or current == "":
     else:
         show_simple = False
 
-    append_prefix = input("Do you want to add a leading 0 to season and episode numbers? (Y/n): ").lower()
+    append_prefix = input("Do you want to add a leading 0 to season and episode numbers? (y/N): ").lower()
 
     if append_prefix == "y":
         append_prefix = True
@@ -155,7 +185,7 @@ if current == "n" or current == "":
     else:
         append_prefix = False
 
-    add_divider = input("Do you want to add a divider between numbers, ex. S01 - E01? (Y/n): ").lower()
+    add_divider = input("Do you want to add a divider between numbers, ex. S01 - E01? (y/N): ").lower()
 
     if add_divider == "y":
         add_divider = True
@@ -169,6 +199,7 @@ if current == "n" or current == "":
         "api_key": api_key,
         "username": username,
         "music": music,
+        "movies": movies,
         "blacklist": blacklist,
         "self_signed_cert": self_signed_cert,
         "show_simple": show_simple,
@@ -189,7 +220,7 @@ if current == "n" or current == "":
     elif show_paused == "n":
         show_paused = False
     else:
-        show_paused = None
+        show_paused = True
 
     print("----------Buttons----------")
 
