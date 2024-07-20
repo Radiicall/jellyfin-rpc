@@ -54,7 +54,7 @@ pub async fn get_image(client: &Client) -> JfResult<Url> {
 
         file.write_all(serde_json::to_string(&image_urls)?.as_bytes())?;
 
-        file.flush();
+        let _ = file.flush();
         
         Ok(imgur_url)
     }
@@ -77,6 +77,8 @@ async fn read_file(client: &Client) -> JfResult<Vec<ImageUrl>> {
     let new: Vec<ImageUrl> = vec![];
 
     file.write_all(serde_json::to_string(&new)?.as_bytes())?;
+
+    let _ = file.flush();
 
     Ok(new)
 }

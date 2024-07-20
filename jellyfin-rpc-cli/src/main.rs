@@ -1,7 +1,6 @@
 use std::time::Duration;
 use clap::Parser;
-use colored::Colorize;
-use config::{get_config_path, get_urls_path, Config, Username};
+use config::{get_config_path, get_urls_path, Config};
 use jellyfin_rpc::Client;
 use log::{debug, error, info, warn};
 use retry::retry_with_index;
