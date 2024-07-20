@@ -1,1 +1,41 @@
-./jellyfin-rpc/example.json
+{
+    "jellyfin": {
+        "url": "https://example.com",
+        "api_key": "sadasodsapasdskd",
+        "username": "your_username_here",
+        "music": {
+            "display": "genres",
+            "separator": "-"
+        },
+        "self_signed_cert": false,
+        "show_simple": false,
+        "append_prefix": false,
+        "add_divider": false,
+        "_comment": "the 4 lines below and this line arent needed and should be removed, by default nothing will display if these are present",
+        "blacklist": {
+            "media_types": ["music", "movie", "episode", "livetv"],
+            "libraries": ["Anime", "Anime Movies"]
+        }
+    },
+    "discord": {
+        "application_id": "1053747938519679018",
+        "buttons": [
+            {
+                "name": "dynamic",
+                "url": "dynamic"
+            },
+            {
+                "name": "dynamic",
+                "url": "dynamic"
+            }
+        ],
+        "show_paused": true
+    },
+    "imgur": {
+        "client_id": "asdjdjdg394209fdjs093"
+    },
+    "images": {
+        "enable_images": true,
+        "imgur_images": true
+    }
+}
