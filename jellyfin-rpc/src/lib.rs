@@ -2,7 +2,7 @@ use std::str::FromStr;
 use discord_rich_presence::{activity::{Activity, Assets, Timestamps}, DiscordIpc, DiscordIpcClient};
 use discord_rich_presence::activity::Button as ActButton;
 use jellyfin::{EndTime, Item, RawSession, Session};
-use log::error;
+use log::{debug, error};
 use url::{ParseError, Url};
 pub use jellyfin::{MediaType, Button};
 pub use error::JfError;
@@ -27,6 +27,7 @@ pub struct Client {
     show_paused: bool,
     show_images: bool,
     imgur_options: ImgurOptions,
+    large_image_text: String,
 }
 
 impl Client {
@@ -68,18 +69,22 @@ impl Client {
                 if let Ok(imgur_url) = external::imgur::get_image(&self).await {
                     image_url = imgur_url;
                 } else {
-                    error!("imgur::get_image() didnt return an image, using default..")
+                    debug!("imgur::get_image() didnt return an image, using default..")
                 }
             } else if self.show_images {
                 if let Ok(iu) = self.get_image().await {
                     image_url = iu;
                 } else {
-                    error!("self.get_image() didnt return an image, using default..")
+                    debug!("self.get_image() didnt return an image, using default..")
                 }
             }
 
             let mut assets = Assets::new()
                 .large_image(image_url.as_str());
+
+            if !self.large_image_text.is_empty() {
+                assets = assets.large_text(&self.large_image_text);
+            }
 
             let mut timestamps = Timestamps::new();
 
@@ -416,6 +421,7 @@ pub struct ClientBuilder {
     use_imgur: bool,
     imgur_client_id: String,
     imgur_urls_file_location: String,
+    large_image_text: String,
 }
 
 impl ClientBuilder {
@@ -524,6 +530,11 @@ impl ClientBuilder {
         self
     }
 
+    pub fn large_image_text<T: Into<String>>(&mut self, text: T) -> &mut Self {
+        self.large_image_text = text.into();
+        self
+    }
+
     pub fn build(self) -> JfResult<Client> {
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
@@ -552,7 +563,8 @@ impl ClientBuilder {
                 enabled: self.use_imgur,
                 client_id: self.imgur_client_id,
                 urls_location: self.imgur_urls_file_location,
-            }
+            },
+            large_image_text: self.large_image_text,
         })
     }
 }

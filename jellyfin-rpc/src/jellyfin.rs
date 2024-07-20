@@ -61,7 +61,7 @@ impl Session {
         let mut artists = String::new();
 
         for i in 0..artists_vec.len() {
-            if artists_vec.len() == 1 {
+            if i == 0 {
                 artists += &artists_vec[i];
                 continue
             }
