@@ -4,13 +4,23 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
 
+/// Main struct containing every other struct in the file.
+///
+/// The config file is parsed into this struct.
 pub struct Config {
+    /// Jellyfin configuration.
+    ///
+    /// Has every required part of the config, hence why its not an `Option<Jellyfin>`.
     pub jellyfin: Jellyfin,
+    /// Discord configuration.
     pub discord: Discord,
+    /// Imgur configuration.
     pub imgur: Imgur,
+    /// Images configuration.
     pub images: Images,
 }
 
+/// This struct contains every "required" part of the config.
 pub struct Jellyfin {
     /// URL to the jellyfin server.
     pub url: String,
@@ -34,11 +44,15 @@ pub struct Jellyfin {
     pub add_divider: bool,
 }
 
+/// Contains configuration for Music/Movie display.
 pub struct DisplayOptions {
+    /// Display is where you tell the program what should be displayed.
     pub display: Option<Vec<String>>,
+/// Separator is what should be between the artist(s) and the `display` options.
     pub separator: Option<String>,
 }
 
+/// Discord configuration
 pub struct Discord {
     /// Set a custom Application ID to be used.
     pub application_id: Option<String>,
@@ -63,50 +77,29 @@ impl Config {
     }
 }
 
-/// Main struct containing every other struct in the file.
-///
-/// The config file is parsed into this struct.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub struct ConfigBuilder {
-    /// Jellyfin configuration.
-    ///
-    /// Has every required part of the config, hence why its not an `Option<Jellyfin>`.
     pub jellyfin: JellyfinBuilder,
-    /// Discord configuration.
     pub discord: Option<DiscordBuilder>,
-    /// Imgur configuration.
     pub imgur: Option<Imgur>,
-    /// Images configuration.
     pub images: Option<ImagesBuilder>,
 }
 
-/// This struct contains every "required" part of the config.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct JellyfinBuilder {
-    /// URL to the jellyfin server.
     pub url: String,
-    /// Api key from the jellyfin server, used to gather what's being watched.
     pub api_key: String,
-    /// Username of the person that info should be gathered from.
     pub username: Username,
-    /// Contains configuration for Music display.
     pub music: Option<DisplayOptionsBuilder>,
-    /// Contains configuration for Movie display.
     pub movies: Option<DisplayOptionsBuilder>,
-    /// Blacklist configuration.
     pub blacklist: Option<Blacklist>,
-    /// Self signed certificate option
     pub self_signed_cert: Option<bool>,
-    /// Simple episode name
     pub show_simple: Option<bool>,
-    /// Add "0" before season/episode number if lower than 10.
     pub append_prefix: Option<bool>,
-    /// Add a divider between numbers
     pub add_divider: Option<bool>,
 }
 
-/// Username of the person that info should be gathered from.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum Username {
@@ -116,20 +109,12 @@ pub enum Username {
     String(String),
 }
 
-/// Contains configuration for Music display.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DisplayOptionsBuilder {
-    /// Display is where you tell the program what should be displayed.
-    ///
-    /// Example: `vec![String::from("genres"), String::from("year")]`
     pub display: Option<Display>,
-    /// Separator is what should be between the artist(s) and the `display` options.
     pub separator: Option<String>,
 }
 
-/// Display is where you tell the program what should be displayed.
-///
-/// Example: `vec![String::from("genres"), String::from("year")]`
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum Display {
@@ -148,14 +133,11 @@ pub struct Blacklist {
     pub libraries: Option<Vec<String>>,
 }
 
-/// Discord configuration
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DiscordBuilder {
-    /// Set a custom Application ID to be used.
     pub application_id: Option<String>,
-    /// Set custom buttons to be displayed.
     pub buttons: Option<Vec<Button>>,
-    /// Show status when media is paused
     pub show_paused: Option<bool>,
 }
 
@@ -166,12 +148,9 @@ pub struct Imgur {
     pub client_id: Option<String>,
 }
 
-/// Images configuration
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ImagesBuilder {
-    /// Enables images, not everyone wants them so its a toggle.
     pub enable_images: Option<bool>,
-    /// Enables imgur images.
     pub imgur_images: Option<bool>,
 }
 

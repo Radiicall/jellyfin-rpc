@@ -9,7 +9,7 @@ use crate::{Client, JfResult};
 #[derive(Deserialize, Serialize)]
 struct ImageUrl {
     id: String,
-    pub url: String,
+    url: String,
 }
 
 impl ImageUrl {

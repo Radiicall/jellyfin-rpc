@@ -13,6 +13,7 @@ mod error;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+/// Client used to interact with jellyfin and discord
 pub struct Client {
     discord_ipc_client: DiscordIpcClient,
     url: Url,
@@ -32,22 +33,61 @@ pub struct Client {
 }
 
 impl Client {
+    /// Calls the `ClientBuilder::new()` function
     pub fn builder() -> ClientBuilder {
         ClientBuilder::new()
     }
 
+    /// Connects to the discord socket
     pub fn connect(&mut self) -> JfResult<()> {
         self.discord_ipc_client.connect()
     }
 
+    /// Reconnects to the discord socket
     pub fn reconnect(&mut self) -> JfResult<()> {
         self.discord_ipc_client.reconnect()
     }
 
+    /// Clears current activity on discord if anything is being displayed
+    /// 
+    /// # Example
+    /// ```
+    /// use jellyfin_rpc::Client;
+    /// 
+    /// let mut builder = Client::builder();
+    /// builder.api_key("abcd1234")
+    ///     .url("https://jellyfin.example.com")
+    ///     .username("user");    
+    ///
+    /// let mut client = builder.build().unwrap();
+    ///
+    /// client.connect().unwrap();
+    /// 
+    /// client.set_activity().unwrap();
+    ///
+    /// client.clear_activity().unwrap();
+    /// ```
     pub fn clear_activity(&mut self) -> JfResult<()> {
         self.discord_ipc_client.clear_activity()
     }
 
+    /// Gathers information from jellyfin about what is being played and displays it according to the options supplied to the builder.
+    /// 
+    /// # Example
+    /// ```
+    /// use jellyfin_rpc::Client;
+    /// 
+    /// let mut builder = Client::builder();
+    /// builder.api_key("abcd1234")
+    ///     .url("https://jellyfin.example.com")
+    ///     .username("user");    
+    ///
+    /// let mut client = builder.build().unwrap();
+    ///
+    /// client.connect().unwrap();
+    /// 
+    /// client.set_activity().unwrap();
+    /// ```
     pub fn set_activity(&mut self) -> JfResult<String> {
         self.get_session()?;
 
@@ -169,7 +209,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn get_buttons(&self) -> Option<Vec<Button>> {
+    fn get_buttons(&self) -> Option<Vec<Button>> {
         let session = self.session.as_ref()?;
 
         let mut activity_buttons: Vec<Button> = Vec::new();
@@ -214,7 +254,7 @@ impl Client {
         None
     }
 
-    pub fn get_image(&self) -> Result<Url, ParseError> {
+    fn get_image(&self) -> Result<Url, ParseError> {
         let session = self.session.as_ref().unwrap();
 
         let path = "Items/".to_string() 
@@ -224,7 +264,7 @@ impl Client {
         self.url.join(&path)
     }
 
-    pub fn get_state(&self) -> String {
+    fn get_state(&self) -> String {
         let session = self.session.as_ref().unwrap();
 
         match session.now_playing_item.media_type {
@@ -446,6 +486,7 @@ struct ImgurOptions {
     urls_location: String,
 }
 
+/// Used to build a new Client
 #[derive(Default)]
 pub struct ClientBuilder {
     url: String,
@@ -472,6 +513,7 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
+    /// Returns a ClientBuilder with some default options set
     pub fn new() -> Self {
         Self {
             client_id: "1053747938519679018".to_string(),
@@ -484,51 +526,99 @@ impl ClientBuilder {
         }
     }
 
+    /// Jellyfin URL to be used by the client.
+    /// 
+    /// Has no default.
     pub fn url<T: Into<String>>(&mut self, url: T) -> &mut Self {
         self.url = url.into();
         self
     }
 
+    /// Discord Application ID that the client will use when connecting to Discord.
+    /// 
+    /// Defaults to `"1053747938519679018"`.
     pub fn client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.client_id = client_id.into();
         self
     }
 
+    /// Jellyfin API Key that will be used to gather data about what is being played.
+    /// 
+    /// Has no default.
     pub fn api_key<T: Into<String>>(&mut self, api_key: T) -> &mut Self {
         self.api_key = api_key.into();
         self
     }
 
+    /// Controls the use of certificate validation in reqwest.
+    /// 
+    /// Defaults to `false`.
     pub fn self_signed(&mut self, self_signed: bool) -> &mut Self {
         self.self_signed = self_signed;
         self
     }
 
+    /// Usernames that should be matched when checking Jellyfin sessions.
+    /// 
+    /// Has no default.
+    /// 
+    /// # Warning
+    /// This overwrites the value set in `ClientBuilder::Username()`,
+    /// only one of these 2 should be used
     pub fn usernames(&mut self, usernames: Vec<String>) -> &mut Self {
         self.usernames = usernames;
         self
     }
 
+    /// same as `ClientBuilder::Usernames()` but will only accept a single username
+    /// 
+    /// Has no default.
+    /// 
+    /// # Warning
+    /// This overwrites the value set in `ClientBuilder::Usernames()`,
+    /// only one of these 2 should be used
     pub fn username<T: Into<String>>(&mut self, username: T) -> &mut Self {
         self.usernames = vec![username.into()];
         self
     }
 
+    /// buttons to be displayed on the activity.
+    /// Pass an empty `Vec::new()` to display no buttons
+    /// 
+    /// Defaults to dynamic buttons generated from the Jellyfin session.
     pub fn buttons(&mut self, buttons: Vec<Button>) -> &mut Self {
         self.buttons = Some(buttons);
         self
     }
 
+    /// Splits season and episode numbers with a dash.
+    /// 
+    /// Defaults to `false`.
+    /// 
+    /// # Example
+    /// S1E1 Pilot -> S1 - E1 Pilot
     pub fn episode_divider(&mut self, val: bool) -> &mut Self {
         self.episode_divider = val;
         self
     }
 
+    /// Adds leading 0's to season and episode numbers.
+    ///
+    /// Defaults to `false`.
+    /// 
+    /// # Example
+    /// S1E1 Pilot -> S01E01 Pilot
     pub fn episode_prefix(&mut self, val: bool) -> &mut Self {
         self.episode_prefix = val;
         self
     }
 
+    /// Removes the episode name from the activity.
+    /// 
+    /// Defaults to `false`.
+    /// 
+    /// # Example
+    /// S1E1 Pilot -> S1E1
     pub fn episode_simple(&mut self, val: bool) -> &mut Self {
         self.episode_simple = val;
         self
@@ -554,46 +644,89 @@ impl ClientBuilder {
         self
     }
 
+    /// Blacklist certain `MediaType`s so they don't display.
+    /// 
+    /// Defaults to `Vec::new()`.
     pub fn blacklist_media_types(&mut self, media_types: Vec<MediaType>) -> &mut Self {
         self.blacklist_media_types = media_types;
         self
     }
 
+    /// Blacklist certain libraries so they don't display.
+    /// 
+    /// Defaults to `Vec::new()`.
     pub fn blacklist_libraries(&mut self, libraries: Vec<String>) -> &mut Self {
         self.blacklist_libraries = libraries;
         self
     }
 
+    /// Show activity when paused.
+    /// 
+    /// Defaults to `true`.
     pub fn show_paused(&mut self, val: bool) -> &mut Self {
         self.show_paused = val;
         self
     }
 
+    /// Show images from jellyfin on the activity.
+    /// 
+    /// Defaults to `false`.
     pub fn show_images(&mut self, val: bool) -> &mut Self {
         self.show_images = val;
         self
     }
 
+    /// Use imgur for images, uploads images from jellyfin to imgur and stores the imgur links in a local cache
+    /// 
+    /// Defaults to `false`.
     pub fn use_imgur(&mut self, val: bool) -> &mut Self {
         self.use_imgur = val;
         self
     }
 
+    /// Imgur client id, used to upload images through their API.
+    /// 
+    /// Empty by default.
     pub fn imgur_client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.imgur_client_id = client_id.into();
         self
     }
 
+    /// Where to store the URLs to images uploaded to imgur.
+    /// Having this cache lets you avoid uploading the same image several times to their service.
+    /// 
+    /// Empty by default.
+    /// 
+    /// # Warning
+    /// Setting this to something like `/dev/null` is **NOT** recommended,
+    /// jellyfin-rpc will upload the image every time you call `Client::set_activity()`
+    /// if it can't find the image its looking for in the cache.
     pub fn imgur_urls_file_location<T: Into<String>>(&mut self, location: T) -> &mut Self {
         self.imgur_urls_file_location = location.into();
         self
     }
 
+    /// Text to be displayed when hovering the large activity image in Discord
+    /// 
+    /// Empty by default
     pub fn large_image_text<T: Into<String>>(&mut self, text: T) -> &mut Self {
         self.large_image_text = text.into();
         self
     }
 
+    /// Builds a client from the options specified in the builder.
+    /// 
+    /// # Example
+    /// ```
+    /// use jellyfin_rpc::ClientBuilder;
+    /// 
+    /// let mut builder = ClientBuilder::new();
+    /// builder.api_key("abcd1234")
+    ///     .url("https://jellyfin.example.com")
+    ///     .username("user");    
+    ///
+    /// let mut client = builder.build().unwrap();
+    /// ```
     pub fn build(self) -> JfResult<Client> {
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,

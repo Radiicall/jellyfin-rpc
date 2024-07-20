@@ -111,14 +111,18 @@ pub enum EndTime {
     Paused,
 }
 
-/// Button struct
-///
-/// Contains information about buttons
+/// Contains information about buttons displayed in Discord
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Button {
     /// What the name should be showed as in Discord.
+    /// 
+    /// # Example
+    /// `"My personal website!"`
     pub name: String,
     /// What clicking it should point to in Discord.
+    /// 
+    /// # Example
+    /// `"https://example.com"`
     pub url: String,
 }
 
@@ -132,6 +136,17 @@ impl Default for Button {
 }
 
 impl Button {
+    /// Creates a new button with the supplied name and url.
+    /// 
+    /// # Example
+    /// ```
+    /// use jellyfin_rpc::Button;
+    /// 
+    /// let name = "My personal website!".to_string();
+    /// let url = "https://example.com".to_string();
+    /// 
+    /// let button = Button::new(name, url);
+    /// ```
     pub fn new(name: String, url: String) -> Self {
         Self {
             name,
@@ -139,7 +154,7 @@ impl Button {
         }
     }
 
-    pub fn is_dynamic(&self) -> bool {
+    pub(crate) fn is_dynamic(&self) -> bool {
         self.name == "dynamic" && self.url == "dynamic"
     }
 }
@@ -193,7 +208,7 @@ pub enum MediaType {
     Book,
     /// If the content playing is an Audio Book.
     AudioBook,
-    /// If nothing is playing.
+    /// If the content is unrecognized.
     None,
 }
 
