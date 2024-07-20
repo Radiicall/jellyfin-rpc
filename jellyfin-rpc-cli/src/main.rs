@@ -100,6 +100,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         builder.music_separator(separator);
     }
 
+    if let Some(display) = conf.jellyfin.movies.display {
+        debug!("Found config.jellyfin.music.display");
+        builder.movies_display(display);
+    }
+
+    if let Some(separator) = conf.jellyfin.movies.separator {
+        debug!("Found config.jellyfin.music.separator");
+        builder.movies_separator(separator);
+    }
+
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {
         debug!("Found config.jellyfin.blacklist.media_types");
         builder.blacklist_media_types(media_types);
@@ -139,6 +149,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         }
     }).unwrap();
+    info!("Connected!");
 
     let mut currently_playing = String::new();
 
@@ -168,6 +179,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         },
                     }
                 }).unwrap();
+                info!("Reconnected!");
             
                 client.set_activity()?;
             },

@@ -156,6 +156,8 @@ pub struct NowPlayingItem {
     pub production_year: Option<i64>,
     pub genres: Option<Vec<String>>,
     pub external_urls: Option<Vec<ExternalUrl>>,
+    pub critic_rating: Option<i64>,
+    pub community_rating: Option<f64>,
     // Episode related
     pub parent_index_number: Option<i32>,
     pub index_number: Option<i32>,

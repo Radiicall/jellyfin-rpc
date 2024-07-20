@@ -4,7 +4,11 @@
         "api_key": "sadasodsapasdskd",
         "username": "your_username_here",
         "music": {
-            "display": "genres",
+            "display": ["genres"],
+            "separator": "-"
+        },
+        "movies": {
+            "display": ["genres"],
             "separator": "-"
         },
         "self_signed_cert": false,
