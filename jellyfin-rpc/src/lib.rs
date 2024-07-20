@@ -22,7 +22,8 @@ pub struct Client {
     session: Option<Session>,
     buttons: Option<Vec<Button>>,
     episode_display_options: EpisodeDisplayOptions,
-    music_display_options: MusicDisplayOptions,
+    music_display_options: DisplayOptions,
+    movies_display_options: DisplayOptions,
     blacklist: Blacklist,
     show_paused: bool,
     show_images: bool,
@@ -345,6 +346,54 @@ impl Client {
 
                 state
             },
+            MediaType::Movie => {
+                let mut state = String::new();
+
+                for data in &self.movies_display_options.display {
+                    match data.as_str() {
+                        "genres" => {
+                            let genres = session.now_playing_item.genres
+                                .as_ref()
+                                .unwrap_or(&vec!["".to_string()])
+                                .join(", ");
+                            if !state.is_empty() && !genres.is_empty() {
+                                state += &format!(" {} ", self.movies_display_options.separator);
+                            }
+                            state += &genres
+                        },
+                        "year" => {
+                            if let Some(year) = session.now_playing_item.production_year {
+                                if !state.is_empty() {
+                                    state += &format!(" {} ", self.movies_display_options.separator);
+                                }
+
+                                state += &year.to_string();
+                            }
+                        },
+                        "critic-score" => {
+                            if let Some(critic_score) = &session.now_playing_item.critic_rating {
+                                if !state.is_empty() {
+                                    state += &format!(" {} ", self.movies_display_options.separator);
+                                }
+
+                                state += &format!("🍅{}/100", critic_score);
+                            }
+                        },
+                        "community-score" => {
+                            if let Some(community_score) = &session.now_playing_item.community_rating {
+                                if !state.is_empty() {
+                                    state += &format!(" {} ", self.movies_display_options.separator);
+                                }
+
+                                state += &format!("⭐{:.1}/10", community_score);
+                            }
+                        },
+                        _ => ()
+                    }
+                }
+
+                state
+            },
             _ => session.now_playing_item.genres.as_ref().unwrap_or(&vec!["".to_string()]).join(", ")
         }
     }
@@ -381,7 +430,7 @@ struct EpisodeDisplayOptions {
     simple: bool,
 }
 
-struct MusicDisplayOptions {
+struct DisplayOptions {
     separator: String,
     display: Vec<String>,
 }
@@ -410,6 +459,8 @@ pub struct ClientBuilder {
     episode_simple: bool,
     music_separator: String,
     music_display: Vec<String>,
+    movies_separator: String,
+    movies_display: Vec<String>,
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
@@ -426,6 +477,8 @@ impl ClientBuilder {
             client_id: "1053747938519679018".to_string(),
             music_separator: "-".to_string(),
             music_display: vec!["genres".to_string()],
+            movies_separator: "-".to_string(),
+            movies_display: vec!["genres".to_string()],
             show_paused: true,
             ..Default::default()
         }
@@ -491,6 +544,16 @@ impl ClientBuilder {
         self
     }
 
+    pub fn movies_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
+        self.movies_separator = separator.into();
+        self
+    }
+
+    pub fn movies_display(&mut self, display: Vec<String>) -> &mut Self {
+        self.movies_display = display;
+        self
+    }
+
     pub fn blacklist_media_types(&mut self, media_types: Vec<MediaType>) -> &mut Self {
         self.blacklist_media_types = media_types;
         self
@@ -545,9 +608,13 @@ impl ClientBuilder {
                 prefix: self.episode_prefix,
                 simple: self.episode_simple,
             },
-            music_display_options: MusicDisplayOptions {
+            music_display_options: DisplayOptions {
                 separator: self.music_separator,
                 display: self.music_display,
+            },
+            movies_display_options: DisplayOptions {
+                separator: self.movies_separator,
+                display: self.movies_display,
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
