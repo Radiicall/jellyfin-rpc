@@ -11,8 +11,6 @@ keywords     = ["jellyfin", "discord", "rich-presence"]
 discord-rich-presence = "0.2"
 retry                 = "2.0"
 serde_json            = "1.0"
-async-recursion       = "1.1"
-tokio                 = "1"
 log                   = "0.4"
 url                   = "2.5"
 
@@ -22,5 +20,5 @@ version  = "1.0"
 
 [dependencies.reqwest]
 default-features = false
-features         = ["rustls-tls", "json"]
+features         = ["rustls-tls", "json", "blocking"]
 version          = "0.12"

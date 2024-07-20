@@ -2,7 +2,7 @@ use std::str::FromStr;
 use discord_rich_presence::{activity::{Activity, Assets, Timestamps}, DiscordIpc, DiscordIpcClient};
 use discord_rich_presence::activity::Button as ActButton;
 use jellyfin::{EndTime, Item, RawSession, Session};
-use log::{debug, error};
+use log::debug;
 use url::{ParseError, Url};
 pub use jellyfin::{MediaType, Button};
 pub use error::JfError;
@@ -18,7 +18,7 @@ pub struct Client {
     url: Url,
     api_key: String,
     usernames: Vec<String>,
-    reqwest: reqwest::Client,
+    reqwest: reqwest::blocking::Client,
     session: Option<Session>,
     buttons: Option<Vec<Button>>,
     episode_display_options: EpisodeDisplayOptions,
@@ -35,27 +35,27 @@ impl Client {
         ClientBuilder::new()
     }
 
-    pub async fn connect(&mut self) -> JfResult<()> {
+    pub fn connect(&mut self) -> JfResult<()> {
         self.discord_ipc_client.connect()
     }
 
-    pub async fn reconnect(&mut self) -> JfResult<()> {
+    pub fn reconnect(&mut self) -> JfResult<()> {
         self.discord_ipc_client.reconnect()
     }
 
-    pub async fn clear_activity(&mut self) -> JfResult<()> {
+    pub fn clear_activity(&mut self) -> JfResult<()> {
         self.discord_ipc_client.clear_activity()
     }
 
-    pub async fn set_activity(&mut self) -> JfResult<String> {
-        self.get_session().await?;
+    pub fn set_activity(&mut self) -> JfResult<String> {
+        self.get_session()?;
 
         if let Some(session) = &self.session {
             if session.now_playing_item.media_type == MediaType::None {
                 return Err(Box::new(JfError::UnrecognizedMediaType));
             }
 
-            if self.check_blacklist().await? {
+            if self.check_blacklist()? {
                 return Err(Box::new(JfError::ContentBlacklist))
             }
 
@@ -66,13 +66,13 @@ impl Client {
             if session.now_playing_item.media_type == MediaType::LiveTv {
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
             } else if self.imgur_options.enabled {
-                if let Ok(imgur_url) = external::imgur::get_image(&self).await {
+                if let Ok(imgur_url) = external::imgur::get_image(&self) {
                     image_url = imgur_url;
                 } else {
                     debug!("imgur::get_image() didnt return an image, using default..")
                 }
             } else if self.show_images {
-                if let Ok(iu) = self.get_image().await {
+                if let Ok(iu) = self.get_image() {
                     image_url = iu;
                 } else {
                     debug!("self.get_image() didnt return an image, using default..")
@@ -88,7 +88,7 @@ impl Client {
 
             let mut timestamps = Timestamps::new();
 
-            match session.get_endtime().await? {
+            match session.get_endtime()? {
                 EndTime::Some(end) => timestamps = timestamps.end(end),
                 EndTime::NoEndTime => (),
                 EndTime::Paused if self.show_paused => {
@@ -101,13 +101,13 @@ impl Client {
 
             let buttons: Vec<Button>;
 
-            if let Some(b) = self.get_buttons().await {
+            if let Some(b) = self.get_buttons() {
                 // This gets around the value being dropped immediately at the end of this if statement
                 buttons = b;
                 activity = activity.buttons(buttons.iter().map(|b| ActButton::new(&b.name, &b.url)).collect());
             }
 
-            let mut state = self.get_state().await;
+            let mut state = self.get_state();
 
             if state.len() > 128 {
                 state = state.chars().take(128).collect();
@@ -115,7 +115,7 @@ impl Client {
                 state += "‎‎‎";
             }
 
-            let mut details = session.get_details().await.to_string();
+            let mut details = session.get_details().to_string();
 
             if details.len() > 128 {
                 details = details.chars().take(128).collect();
@@ -136,17 +136,15 @@ impl Client {
         Ok(String::new())
     }
 
-    async fn get_session(&mut self) -> Result<(), reqwest::Error> {
+    fn get_session(&mut self) -> Result<(), reqwest::Error> {
         let sessions: Vec<RawSession> = self.reqwest.get(
             format!(
                 "{}Sessions?api_key={}",
                 self.url,
                 self.api_key
             ))
-            .send()
-            .await?
-            .json()
-            .await?;
+            .send()?
+            .json()?;
 
         for session in sessions {
             if self.usernames.iter().all(|u| session.user_name.to_lowercase() != *u) {
@@ -170,7 +168,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn get_buttons(&self) -> Option<Vec<Button>> {
+    pub fn get_buttons(&self) -> Option<Vec<Button>> {
         let session = self.session.as_ref()?;
 
         let mut activity_buttons: Vec<Button> = Vec::new();
@@ -215,7 +213,7 @@ impl Client {
         None
     }
 
-    pub async fn get_image(&self) -> Result<Url, ParseError> {
+    pub fn get_image(&self) -> Result<Url, ParseError> {
         let session = self.session.as_ref().unwrap();
 
         let path = "Items/".to_string() 
@@ -225,7 +223,7 @@ impl Client {
         self.url.join(&path)
     }
 
-    pub async fn get_state(&self) -> String {
+    pub fn get_state(&self) -> String {
         let session = self.session.as_ref().unwrap();
 
         match session.now_playing_item.media_type {
@@ -351,21 +349,19 @@ impl Client {
         }
     }
 
-    async fn get_ancestors(&self) -> JfResult<Vec<Item>> {
+    fn get_ancestors(&self) -> JfResult<Vec<Item>> {
         let session = self.session.as_ref().unwrap();
 
         let ancestors: Vec<Item> = self.reqwest.get(self.url.join(&format!("Items/{}/Ancestors?api_key={}", session.now_playing_item.id, self.api_key))?)
-            .send()
-            .await?
-            .json()
-            .await?;
+            .send()?
+            .json()?;
 
         Ok(ancestors)
     }
 
-    async fn check_blacklist(&self) -> JfResult<bool> {
+    fn check_blacklist(&self) -> JfResult<bool> {
         let session = self.session.as_ref().unwrap();
-        let ancestors = self.get_ancestors().await?;
+        let ancestors = self.get_ancestors()?;
 
         if self.blacklist.media_types.iter().any(|m| m == &session.now_playing_item.media_type) {
             return Ok(true)
@@ -540,7 +536,7 @@ impl ClientBuilder {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
             url: self.url.parse()?,
             api_key: self.api_key,
-            reqwest: reqwest::Client::builder().danger_accept_invalid_certs(self.self_signed).build()?,
+            reqwest: reqwest::blocking::Client::builder().danger_accept_invalid_certs(self.self_signed).build()?,
             usernames: self.usernames,
             buttons: self.buttons,
             session: None,

@@ -2,9 +2,9 @@ use crate::VERSION;
 use colored::Colorize;
 use log::warn;
 
-pub async fn checker() {
+pub fn checker() {
     let current = VERSION.unwrap_or("0.0.0").to_string();
-    let latest = get_latest_github().await.unwrap_or(current.clone());
+    let latest = get_latest_github().unwrap_or(current.clone());
     if latest != current {
         warn!(
             "{} (Current: v{}, Latest: v{})",
@@ -28,9 +28,8 @@ pub async fn checker() {
     }
 }
 
-async fn get_latest_github() -> Result<String, reqwest::Error> {
-    let url = reqwest::get("https://github.com/Radiicall/jellyfin-rpc/releases/latest")
-        .await?
+fn get_latest_github() -> Result<String, reqwest::Error> {
+    let url = reqwest::blocking::get("https://github.com/Radiicall/jellyfin-rpc/releases/latest")?
         .url()
         .as_str()
         .trim_start_matches("https://github.com/Radiicall/jellyfin-rpc/releases/tag/")

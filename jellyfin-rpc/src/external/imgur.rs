@@ -31,14 +31,14 @@ struct Data {
     link: String,
 }
 
-pub async fn get_image(client: &Client) -> JfResult<Url> {
-    let mut image_urls = read_file(client).await?;
+pub fn get_image(client: &Client) -> JfResult<Url> {
+    let mut image_urls = read_file(client)?;
 
 
     if let Some(image_url) = image_urls.iter().find(|image_url|  client.session.as_ref().unwrap().item_id == image_url.id) {
         Ok(Url::parse(&image_url.url)?)
     } else {
-        let imgur_url = upload(client).await?;
+        let imgur_url = upload(client)?;
 
         let image_url = ImageUrl::new(
             &client.session.as_ref().unwrap().item_id,
@@ -60,7 +60,7 @@ pub async fn get_image(client: &Client) -> JfResult<Url> {
     }
 }
 
-async fn read_file(client: &Client) -> JfResult<Vec<ImageUrl>> {
+fn read_file(client: &Client) -> JfResult<Vec<ImageUrl>> {
     if let Ok(contents_raw) = fs::read_to_string(&client.imgur_options.urls_location) {
         if let Ok(contents) = serde_json::from_str::<Vec<ImageUrl>>(&contents_raw) {
             return Ok(contents)
@@ -83,12 +83,10 @@ async fn read_file(client: &Client) -> JfResult<Vec<ImageUrl>> {
     Ok(new)
 }
 
-async fn upload(client: &Client) -> JfResult<Url> {
-    let image_bytes = client.reqwest.get(client.get_image().await?)
-        .send()
-        .await?
-        .bytes()
-        .await?;
+fn upload(client: &Client) -> JfResult<Url> {
+    let image_bytes = client.reqwest.get(client.get_image()?)
+        .send()?
+        .bytes()?;
 
     let res: ImgurResponse = client.reqwest
         .post("https://api.imgur.com/3/image")
@@ -97,10 +95,8 @@ async fn upload(client: &Client) -> JfResult<Url> {
             format!("Client-ID {}", client.imgur_options.client_id)
         )
         .body(image_bytes)
-        .send()
-        .await?
-        .json()
-        .await?;
+        .send()?
+        .json()?;
 
     Ok(Url::parse(res.data.link.as_str())?)
 }

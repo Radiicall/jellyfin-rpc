@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    thread::sleep,
+    time::Duration
+};
 use clap::Parser;
 use config::{get_config_path, get_urls_path, Config};
 use jellyfin_rpc::Client;
@@ -6,7 +9,6 @@ use log::{debug, error, info, warn};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
 use time::macros::format_description;
-use tokio::time::sleep;
 #[cfg(feature = "updates")]
 mod updates;
 mod config;
@@ -46,15 +48,11 @@ struct Args {
     log_level: String,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     if std::env::var("RUST_LOG").is_err() {
-        let _ = tokio::task::spawn_blocking(move || {
-            std::env::set_var("RUST_LOG", args.log_level);
-        })
-        .await;
+        let _ = std::env::set_var("RUST_LOG", args.log_level);
     }
 
     SimpleLogger::new()
@@ -69,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Initializing Jellyfin-RPC");
 
     #[cfg(feature = "updates")]
-    updates::checker().await;
+    updates::checker();
 
     let conf = Config::builder()
         .load(&args.config.unwrap_or(get_config_path()?))?
@@ -131,15 +129,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = builder.build()?;
 
     info!("Connecting to Discord");
-    client.connect().await?;
+    retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
+        info!("Attempt {}: Trying to connect", current_try);
+        match client.connect() {
+            Ok(_) => retry::OperationResult::Ok(()),
+            Err(err) => {
+                error!("{}", err);
+                retry::OperationResult::Retry(())
+            },
+        }
+    }).unwrap();
 
     let mut currently_playing = String::new();
 
     loop {
-        match client.set_activity().await {
+        match client.set_activity() {
             Ok(activity) => {
                 if activity.is_empty() && !currently_playing.is_empty() {
-                    let _ = client.clear_activity().await;
+                    let _ = client.clear_activity();
                     info!("Cleared activity");
                     currently_playing = activity;
                 } else if activity != currently_playing {
@@ -151,12 +158,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
             Err(err) => {
                 error!("{}", err);
-                warn!("Retrying...");
-                client.reconnect().await?;
-                client.set_activity().await?;
+                retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
+                    info!("Attempt {}: Trying to reconnect", current_try);
+                    match client.reconnect() {
+                        Ok(_) => retry::OperationResult::Ok(()),
+                        Err(err) => {
+                            error!("{}", err);
+                            retry::OperationResult::Retry(())
+                        },
+                    }
+                }).unwrap();
+            
+                client.set_activity()?;
             },
         }
 
-        sleep(Duration::from_secs(args.wait_time as u64)).await;
+        sleep(Duration::from_secs(args.wait_time as u64));
     }
 }

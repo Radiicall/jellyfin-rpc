@@ -36,13 +36,9 @@ path = "../jellyfin-rpc"
 features = ["derive"]
 version  = "4.5"
 
-[dependencies.tokio]
-features = ["full"]
-version  = "1"
-
 [dependencies.reqwest]
 default-features = false
-features = ["rustls-tls", "json"]
+features = ["rustls-tls", "json", "blocking"]
 version  = "0.12"
 optional = true
 
