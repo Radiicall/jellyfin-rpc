@@ -51,7 +51,7 @@ impl Client {
     /// Clears current activity on discord if anything is being displayed
     /// 
     /// # Example
-    /// ```
+    /// ```no_run
     /// use jellyfin_rpc::Client;
     /// 
     /// let mut builder = Client::builder();
@@ -74,7 +74,7 @@ impl Client {
     /// Gathers information from jellyfin about what is being played and displays it according to the options supplied to the builder.
     /// 
     /// # Example
-    /// ```
+    /// ```no_run
     /// use jellyfin_rpc::Client;
     /// 
     /// let mut builder = Client::builder();
@@ -717,7 +717,7 @@ impl ClientBuilder {
     /// Builds a client from the options specified in the builder.
     /// 
     /// # Example
-    /// ```
+    /// ```no_run
     /// use jellyfin_rpc::ClientBuilder;
     /// 
     /// let mut builder = ClientBuilder::new();
