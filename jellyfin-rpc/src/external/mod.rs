@@ -1,2 +1,1 @@
-#[cfg(feature = "imgur")]
-mod imgur;
+pub mod imgur;

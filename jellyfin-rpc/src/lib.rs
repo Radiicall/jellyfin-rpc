@@ -5,9 +5,11 @@ use jellyfin::{EndTime, Item, RawSession, Session};
 use log::error;
 use url::{ParseError, Url};
 pub use jellyfin::{MediaType, Button};
+pub use error::JfError;
 
 mod jellyfin;
 mod external;
+mod error;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -24,7 +26,6 @@ pub struct Client {
     blacklist: Blacklist,
     show_paused: bool,
     show_images: bool,
-    #[cfg(feature = "imgur")]
     imgur_options: ImgurOptions,
 }
 
@@ -41,18 +42,20 @@ impl Client {
         self.discord_ipc_client.reconnect()
     }
 
-    pub async fn set_activity(&mut self) -> JfResult<()> {
+    pub async fn clear_activity(&mut self) -> JfResult<()> {
+        self.discord_ipc_client.clear_activity()
+    }
+
+    pub async fn set_activity(&mut self) -> JfResult<String> {
         self.get_session().await?;
 
         if let Some(session) = &self.session {
             if session.now_playing_item.media_type == MediaType::None {
-                error!("Unrecognized media type, returning...");
-                return Ok(())
+                return Err(Box::new(JfError::UnrecognizedMediaType));
             }
 
             if self.check_blacklist().await? {
-                error!("Content is in blacklist, returning...");
-                return Ok(())
+                return Err(Box::new(JfError::ContentBlacklist))
             }
 
             let mut activity = Activity::new();
@@ -61,11 +64,18 @@ impl Client {
 
             if session.now_playing_item.media_type == MediaType::LiveTv {
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
+            } else if self.imgur_options.enabled {
+                external::imgur::get_image(&self).await.unwrap();
+                if let Ok(imgur_url) = external::imgur::get_image(&self).await {
+                    image_url = imgur_url;
+                } else {
+                    error!("imgur::get_image() didnt return an image, using default..")
+                }
             } else if self.show_images {
                 if let Ok(iu) = self.get_image().await {
                     image_url = iu;
                 } else {
-                    error!("get_image() didnt return an image, using default..")
+                    error!("self.get_image() didnt return an image, using default..")
                 }
             }
 
@@ -82,7 +92,7 @@ impl Client {
                         .small_image("https://i.imgur.com/wlHSvYy.png")
                         .small_text("Paused");
                 },
-                EndTime::Paused => return Ok(()),
+                EndTime::Paused => return Ok(String::new()),
             }
 
             let buttons: Vec<Button>;
@@ -116,8 +126,10 @@ impl Client {
                 .state(&state);
 
             self.discord_ipc_client.set_activity(activity)?;
+
+            return Ok(format!("{} | {}", details, state))
         }
-        Ok(())
+        Ok(String::new())
     }
 
     async fn get_session(&mut self) -> Result<(), reqwest::Error> {
@@ -141,7 +153,13 @@ impl Client {
                 continue;
             }
 
-            self.session = Some(session.build());
+            let session = session.build();
+
+            if session.now_playing_item.extra_type.as_ref().is_some_and(|et| et == "ThemeSong") {
+                continue;
+            }
+
+            self.session = Some(session);
             return Ok(());
         }
         self.session = None;
@@ -196,30 +214,11 @@ impl Client {
     pub async fn get_image(&self) -> Result<Url, ParseError> {
         let session = self.session.as_ref().unwrap();
 
-        match session.now_playing_item.media_type {
-            MediaType::Episode => {
-                let path = "Items/".to_string() 
-                    + session.now_playing_item.series_id.as_ref()
-                        .unwrap_or(&session.now_playing_item.id) 
-                    + "/Images/Primary";
+        let path = "Items/".to_string() 
+            + &session.item_id
+            + "/Images/Primary";
 
-                self.url.join(&path)
-            },
-            MediaType::Music => {
-                let path = "Items/".to_string() 
-                    + session.now_playing_item.album_id.as_ref()
-                        .unwrap_or(&session.now_playing_item.id) 
-                    + "/Images/Primary";
-
-                self.url.join(&path)
-            },
-            _ => {
-                let path = "Items/".to_string() + &session.now_playing_item.id + "/Images/Primary";
-
-                self.url.join(&path)
-            }
-        }
-        // Call something related to imgur here
+        self.url.join(&path)
     }
 
     pub async fn get_state(&self) -> String {
@@ -392,10 +391,10 @@ struct Blacklist {
     libraries: Vec<String>,
 }
 
-#[cfg(feature = "imgur")]
 struct ImgurOptions {
     enabled: bool,
     client_id: String,
+    urls_location: String,
 }
 
 #[derive(Default)]
@@ -415,10 +414,9 @@ pub struct ClientBuilder {
     blacklist_libraries: Vec<String>,
     show_paused: bool,
     show_images: bool,
-    #[cfg(feature = "imgur")]
     use_imgur: bool,
-    #[cfg(feature = "imgur")]
     imgur_client_id: String,
+    imgur_urls_file_location: String,
 }
 
 impl ClientBuilder {
@@ -512,15 +510,18 @@ impl ClientBuilder {
         self
     }
 
-    #[cfg(feature = "imgur")]
     pub fn use_imgur(&mut self, val: bool) -> &mut Self {
         self.use_imgur = val;
         self
     }
 
-    #[cfg(feature = "imgur")]
     pub fn imgur_client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.imgur_client_id = client_id.into();
+        self
+    }
+
+    pub fn imgur_urls_file_location<T: Into<String>>(&mut self, location: T) -> &mut Self {
+        self.imgur_urls_file_location = location.into();
         self
     }
 
@@ -548,10 +549,10 @@ impl ClientBuilder {
             },
             show_paused: self.show_paused,
             show_images: self.show_images,
-            #[cfg(feature = "imgur")]
             imgur_options: ImgurOptions {
                 enabled: self.use_imgur,
                 client_id: self.imgur_client_id,
+                urls_location: self.imgur_urls_file_location,
             }
         })
     }

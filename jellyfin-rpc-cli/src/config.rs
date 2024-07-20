@@ -171,6 +171,30 @@ pub struct ImagesBuilder {
     pub imgur_images: Option<bool>,
 }
 
+
+/// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
+///
+/// This is to avoid the user having to specify a filepath on launch.
+///
+/// Default urls.json path depends on OS
+/// Windows: `%appdata%\jellyfin-rpc\urls.json`
+/// Linux/macOS: `~/.config/jellyfin-rpc/urls.json`
+pub fn get_urls_path() -> Result<String, Box<dyn std::error::Error>> {
+    if cfg!(not(windows)) {
+        debug!("Platform is not Windows");
+        let xdg_config_home = match env::var("XDG_CONFIG_HOME") {
+            Ok(xdg_config_home) => xdg_config_home,
+            Err(_) => env::var("HOME")? + "/.config",
+        };
+
+        Ok(xdg_config_home + ("/jellyfin-rpc/urls.json"))
+    } else {
+        debug!("Platform is Windows");
+        let app_data = env::var("APPDATA")?;
+        Ok(app_data + r"\jellyfin-rpc\urls.json")
+    }
+}
+
 /// Find config.json in filesystem.
 ///
 /// This is to avoid the user having to specify a filepath on launch.

@@ -7,9 +7,6 @@ license     = "GPL-3.0-or-later"
 repository  = "https://github.com/Radiicall/jellyfin-rpc"
 keywords     = ["jellyfin", "discord", "rich-presence"]
 
-[features]
-imgur = []
-
 [dependencies]
 discord-rich-presence = "0.2"
 retry                 = "2.0"
@@ -27,6 +24,3 @@ version  = "1.0"
 default-features = false
 features         = ["rustls-tls", "json"]
 version          = "0.12"
-
-[package.metadata.docs.rs]
-features = ["imgur"]

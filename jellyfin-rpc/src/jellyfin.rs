@@ -11,19 +11,37 @@ pub struct RawSession {
 
 impl RawSession {
     pub fn build(self) -> Session {
+        //TODO: Figure out how to avoid this clone
+        let now_playing_item = self.now_playing_item.clone().unwrap();
+        let id;
+
+        match now_playing_item.media_type {
+            MediaType::Episode => {
+                id = now_playing_item.series_id
+                    .unwrap_or(now_playing_item.id)
+            },
+            MediaType::Music => {
+                id = now_playing_item.album_id
+                    .unwrap_or(now_playing_item.id)
+            },
+            _ => {
+                id = now_playing_item.id
+            }
+        };
+
         Session {
-            user_name: self.user_name,
             now_playing_item: self.now_playing_item.unwrap(),
-            play_state: self.play_state
+            play_state: self.play_state,
+            item_id: id.to_string(),
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Session {
-    pub user_name: String,
     pub now_playing_item: NowPlayingItem,
     pub play_state: PlayState,
+    pub item_id: String,
 }
 
 impl Session {
@@ -126,7 +144,7 @@ impl Button {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct NowPlayingItem {
     // Generic
@@ -151,7 +169,7 @@ pub struct NowPlayingItem {
     pub album: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ExternalUrl {
     pub name: String,

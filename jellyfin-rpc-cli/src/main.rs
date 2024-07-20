@@ -1,9 +1,9 @@
 use std::time::Duration;
 use clap::Parser;
 use colored::Colorize;
-use config::{get_config_path, Config, Username};
+use config::{get_config_path, get_urls_path, Config, Username};
 use jellyfin_rpc::Client;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
 use time::macros::format_description;
@@ -76,7 +76,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .load(&args.config.unwrap_or(get_config_path()?))?
         .build();
 
+    debug!("Creating jellyfin-rpc client builder");
     let mut builder = Client::builder();
+
     builder
         .api_key(conf.jellyfin.api_key)
         .url(conf.jellyfin.url)
@@ -87,47 +89,73 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .episode_prefix(conf.jellyfin.append_prefix)
         .show_paused(conf.discord.show_paused)
         .show_images(conf.images.enable_images)
-        .use_imgur(conf.images.imgur_images);
+        .use_imgur(conf.images.imgur_images)
+        .imgur_urls_file_location(args.image_urls.unwrap_or(get_urls_path()?));
 
     if let Some(display) = conf.jellyfin.music.display {
+        debug!("Found config.jellyfin.music.display");
         builder.music_display(display);
     }
 
     if let Some(separator) = conf.jellyfin.music.separator {
+        debug!("Found config.jellyfin.music.separator");
         builder.music_separator(separator);
     }
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {
+        debug!("Found config.jellyfin.blacklist.media_types");
         builder.blacklist_media_types(media_types);
     }
 
     if let Some(libraries) = conf.jellyfin.blacklist.libraries {
+        debug!("Found config.jellyfin.blacklist.libraries");
         builder.blacklist_libraries(libraries);
     }
 
     if let Some(application_id) = conf.discord.application_id {
+        debug!("Found config.discord.application_id");
         builder.client_id(application_id);
     }
 
     if let Some(buttons) = conf.discord.buttons {
+        debug!("Found config.discord.buttons");
         builder.buttons(buttons);
     }
 
     if let Some(client_id) = conf.imgur.client_id {
+        debug!("Found config.imgur.client_id");
         builder.imgur_client_id(client_id);
     }
     
+    debug!("Building client");
     let mut client = builder.build()?;
 
+    info!("Connecting to Discord");
     client.connect().await?;
 
+    let mut currently_playing = String::new();
+
     loop {
-        if let Err(err) = client.set_activity().await {
-            error!("{}", err);
-            warn!("Retrying...");
-            client.reconnect().await?;
-            client.set_activity().await?;
+        match client.set_activity().await {
+            Ok(activity) => {
+                if activity.is_empty() && !currently_playing.is_empty() {
+                    let _ = client.clear_activity();
+                    info!("Cleared activity");
+                } else if !activity.is_empty() && currently_playing.is_empty() {
+                    currently_playing = activity;
+
+                    info!("{}", currently_playing);
+                }
+
+            },
+            Err(err) => {
+                error!("{}", err);
+                warn!("Retrying...");
+                client.reconnect().await?;
+                client.set_activity().await?;
+            },
         }
+
         sleep(Duration::from_secs(args.wait_time as u64)).await;
     }
 }
