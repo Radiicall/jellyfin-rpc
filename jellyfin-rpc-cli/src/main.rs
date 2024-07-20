@@ -5,7 +5,7 @@ use std::{
 use clap::Parser;
 use config::{get_config_path, get_urls_path, Config};
 use jellyfin_rpc::Client;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
 use time::macros::format_description;
