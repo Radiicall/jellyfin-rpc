@@ -19,7 +19,9 @@ pub struct Jellyfin {
     /// Username of the person that info should be gathered from.
     pub username: Vec<String>,
     /// Contains configuration for Music display.
-    pub music: Music,
+    pub music: DisplayOptions,
+    /// Contains configuration for Movie display.
+    pub movies: DisplayOptions,
     /// Blacklist configuration.
     pub blacklist: Blacklist,
     /// Self signed certificate option
@@ -32,7 +34,7 @@ pub struct Jellyfin {
     pub add_divider: bool,
 }
 
-pub struct Music {
+pub struct DisplayOptions {
     pub display: Option<Vec<String>>,
     pub separator: Option<String>,
 }
@@ -89,7 +91,9 @@ pub struct JellyfinBuilder {
     /// Username of the person that info should be gathered from.
     pub username: Username,
     /// Contains configuration for Music display.
-    pub music: Option<MusicBuilder>,
+    pub music: Option<DisplayOptionsBuilder>,
+    /// Contains configuration for Movie display.
+    pub movies: Option<DisplayOptionsBuilder>,
     /// Blacklist configuration.
     pub blacklist: Option<Blacklist>,
     /// Self signed certificate option
@@ -114,7 +118,7 @@ pub enum Username {
 
 /// Contains configuration for Music display.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct MusicBuilder {
+pub struct DisplayOptionsBuilder {
     /// Display is where you tell the program what should be displayed.
     ///
     /// Example: `vec![String::from("genres"), String::from("year")]`
@@ -227,6 +231,7 @@ impl ConfigBuilder {
                 username: Username::String("".to_string()),
                 api_key: "".to_string(),
                 music: None,
+                movies: None,
                 blacklist: None,
                 self_signed_cert: None,
                 show_simple: Some(false),
@@ -260,12 +265,12 @@ impl ConfigBuilder {
                 .collect(),
         };
 
-        let display;
-        let separator;
+        let music_display;
+        let music_separator;
 
         if let Some(music) = self.jellyfin.music {
             if let Some(disp) = music.display {
-                display = Some(match disp {
+                music_display = Some(match disp {
                     Display::Vec(display) => display,
                     Display::String(display) => display
                         .split(",")
@@ -273,14 +278,37 @@ impl ConfigBuilder {
                         .collect(),
                 })
             } else {
-                display = None;
+                music_display = None;
             }
 
-            separator = music.separator;
+            music_separator = music.separator;
         } else {
-            display = None;
-            separator = None;
+            music_display = None;
+            music_separator = None;
         }
+
+        let movie_display;
+        let movie_separator;
+
+        if let Some(movies) = self.jellyfin.movies {
+            if let Some(disp) = movies.display {
+                movie_display = Some(match disp {
+                    Display::Vec(display) => display,
+                    Display::String(display) => display
+                        .split(",")
+                        .map(|d| d.to_string())
+                        .collect(),
+                })
+            } else {
+                movie_display = None;
+            }
+
+            movie_separator = movies.separator;
+        } else {
+            movie_display = None;
+            movie_separator = None;
+        }
+
 
         let media_types;
         let libraries;
@@ -331,9 +359,13 @@ impl ConfigBuilder {
                 url: self.jellyfin.url,
                 api_key: self.jellyfin.api_key,
                 username,
-                music: Music {
-                    display,
-                    separator,
+                music: DisplayOptions {
+                    display: music_display,
+                    separator: music_separator,
+                },
+                movies: DisplayOptions {
+                    display: movie_display,
+                    separator: movie_separator,
                 },
                 blacklist: Blacklist {
                     media_types,
