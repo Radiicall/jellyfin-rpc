@@ -15,17 +15,9 @@ impl RawSession {
         let now_playing_item = self.now_playing_item.clone().unwrap();
 
         let id = match now_playing_item.media_type {
-            MediaType::Episode => {
-                now_playing_item.series_id
-                    .unwrap_or(now_playing_item.id)
-            },
-            MediaType::Music => {
-                now_playing_item.album_id
-                    .unwrap_or(now_playing_item.id)
-            },
-            _ => {
-                now_playing_item.id
-            }
+            MediaType::Episode => now_playing_item.series_id.unwrap_or(now_playing_item.id),
+            MediaType::Music => now_playing_item.album_id.unwrap_or(now_playing_item.id),
+            _ => now_playing_item.id,
         };
 
         Session {
@@ -46,8 +38,16 @@ pub struct Session {
 impl Session {
     pub fn get_details(&self) -> &str {
         match self.now_playing_item.media_type {
-            MediaType::Episode => self.now_playing_item.series_name.as_ref().unwrap_or(&self.now_playing_item.name),
-            MediaType::AudioBook => self.now_playing_item.album.as_ref().unwrap_or(&self.now_playing_item.name),
+            MediaType::Episode => self
+                .now_playing_item
+                .series_name
+                .as_ref()
+                .unwrap_or(&self.now_playing_item.name),
+            MediaType::AudioBook => self
+                .now_playing_item
+                .album
+                .as_ref()
+                .unwrap_or(&self.now_playing_item.name),
             _ => &self.now_playing_item.name,
         }
     }
@@ -62,12 +62,12 @@ impl Session {
         for i in 0..artists_vec.len() {
             if i == 0 {
                 artists += &artists_vec[i];
-                continue
+                continue;
             }
 
             if i == artists_vec.len() - 1 {
                 artists += &format!(" and {}", artists_vec[i]);
-                continue
+                continue;
             }
 
             artists += &format!(", {}", artists_vec[i]);
@@ -91,12 +91,10 @@ impl Session {
 
                 let runtime_ticks = self.now_playing_item.run_time_ticks / ticks_to_seconds;
 
-                return Ok(
-                    EndTime::Some(SystemTime::now()
-                        .duration_since(UNIX_EPOCH)?
-                        .as_secs() as i64
-                        + (runtime_ticks - position_ticks))
-                )
+                return Ok(EndTime::Some(
+                    SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
+                        + (runtime_ticks - position_ticks),
+                ));
             }
         }
         Ok(EndTime::Paused)
@@ -114,12 +112,12 @@ pub enum EndTime {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Button {
     /// What the name should be showed as in Discord.
-    /// 
+    ///
     /// # Example
     /// `"My personal website!"`
     pub name: String,
     /// What clicking it should point to in Discord.
-    /// 
+    ///
     /// # Example
     /// `"https://example.com"`
     pub url: String,
@@ -136,21 +134,18 @@ impl Default for Button {
 
 impl Button {
     /// Creates a new button with the supplied name and url.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use jellyfin_rpc::Button;
-    /// 
+    ///
     /// let name = "My personal website!".to_string();
     /// let url = "https://example.com".to_string();
-    /// 
+    ///
     /// let button = Button::new(name, url);
     /// ```
     pub fn new(name: String, url: String) -> Self {
-        Self {
-            name,
-            url,
-        }
+        Self { name, url }
     }
 
     pub(crate) fn is_dynamic(&self) -> bool {
@@ -317,13 +312,11 @@ impl From<String> for MediaType {
     }
 }
 
-
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct PlayState {
     pub is_paused: bool,
     pub position_ticks: Option<i64>,
-
 }
 
 #[derive(Deserialize, Debug)]

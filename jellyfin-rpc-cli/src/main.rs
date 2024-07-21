@@ -1,17 +1,14 @@
-use std::{
-    thread::sleep,
-    time::Duration
-};
 use clap::Parser;
 use config::{get_config_path, get_urls_path, Config};
 use jellyfin_rpc::Client;
 use log::{debug, error, info};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
+use std::{thread::sleep, time::Duration};
 use time::macros::format_description;
+mod config;
 #[cfg(feature = "updates")]
 mod updates;
-mod config;
 
 /*
     TODO: Comments
@@ -134,21 +131,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         debug!("Found config.imgur.client_id");
         builder.imgur_client_id(client_id);
     }
-    
+
     debug!("Building client");
     let mut client = builder.build()?;
 
     info!("Connecting to Discord");
-    retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
-        info!("Attempt {}: Trying to connect", current_try);
-        match client.connect() {
-            Ok(_) => retry::OperationResult::Ok(()),
-            Err(err) => {
-                error!("{}", err);
-                retry::OperationResult::Retry(())
-            },
-        }
-    }).unwrap();
+    retry_with_index(
+        retry::delay::Exponential::from_millis(1000),
+        |current_try| {
+            info!("Attempt {}: Trying to connect", current_try);
+            match client.connect() {
+                Ok(_) => retry::OperationResult::Ok(()),
+                Err(err) => {
+                    error!("{}", err);
+                    retry::OperationResult::Retry(())
+                }
+            }
+        },
+    )
+    .unwrap();
     info!("Connected!");
 
     let mut currently_playing = String::new();
@@ -165,24 +166,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     info!("{}", currently_playing);
                 }
-
-            },
+            }
             Err(err) => {
                 error!("{}", err);
-                retry_with_index(retry::delay::Exponential::from_millis(1000), |current_try| {
-                    info!("Attempt {}: Trying to reconnect", current_try);
-                    match client.reconnect() {
-                        Ok(_) => retry::OperationResult::Ok(()),
-                        Err(err) => {
-                            error!("{}", err);
-                            retry::OperationResult::Retry(())
-                        },
-                    }
-                }).unwrap();
+                retry_with_index(
+                    retry::delay::Exponential::from_millis(1000),
+                    |current_try| {
+                        info!("Attempt {}: Trying to reconnect", current_try);
+                        match client.reconnect() {
+                            Ok(_) => retry::OperationResult::Ok(()),
+                            Err(err) => {
+                                error!("{}", err);
+                                retry::OperationResult::Retry(())
+                            }
+                        }
+                    },
+                )
+                .unwrap();
                 info!("Reconnected!");
-            
+
                 client.set_activity()?;
-            },
+            }
         }
 
         sleep(Duration::from_secs(args.wait_time as u64));

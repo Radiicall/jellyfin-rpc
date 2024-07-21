@@ -1,4 +1,4 @@
-use jellyfin_rpc::{MediaType, Button};
+use jellyfin_rpc::{Button, MediaType};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -47,7 +47,7 @@ pub struct Jellyfin {
 pub struct DisplayOptions {
     /// Display is where you tell the program what should be displayed.
     pub display: Option<Vec<String>>,
-/// Separator is what should be between the artist(s) and the `display` options.
+    /// Separator is what should be between the artist(s) and the `display` options.
     pub separator: Option<String>,
 }
 
@@ -132,7 +132,6 @@ pub struct Blacklist {
     pub libraries: Option<Vec<String>>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DiscordBuilder {
     pub application_id: Option<String>,
@@ -152,7 +151,6 @@ pub struct ImagesBuilder {
     pub enable_images: Option<bool>,
     pub imgur_images: Option<bool>,
 }
-
 
 /// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
 ///
@@ -237,10 +235,7 @@ impl ConfigBuilder {
     pub fn build(self) -> Config {
         let username = match self.jellyfin.username {
             Username::Vec(usernames) => usernames,
-            Username::String(username) => username
-                .split(',')
-                .map(|u| u.to_string())
-                .collect(),
+            Username::String(username) => username.split(',').map(|u| u.to_string()).collect(),
         };
 
         let music_display;
@@ -250,10 +245,7 @@ impl ConfigBuilder {
             if let Some(disp) = music.display {
                 music_display = Some(match disp {
                     Display::Vec(display) => display,
-                    Display::String(display) => display
-                        .split(',')
-                        .map(|d| d.to_string())
-                        .collect(),
+                    Display::String(display) => display.split(',').map(|d| d.to_string()).collect(),
                 })
             } else {
                 music_display = None;
@@ -272,10 +264,7 @@ impl ConfigBuilder {
             if let Some(disp) = movies.display {
                 movie_display = Some(match disp {
                     Display::Vec(display) => display,
-                    Display::String(display) => display
-                        .split(',')
-                        .map(|d| d.to_string())
-                        .collect(),
+                    Display::String(display) => display.split(',').map(|d| d.to_string()).collect(),
                 })
             } else {
                 movie_display = None;
@@ -286,7 +275,6 @@ impl ConfigBuilder {
             movie_display = None;
             movie_separator = None;
         }
-
 
         let media_types;
         let libraries;
@@ -359,9 +347,7 @@ impl ConfigBuilder {
                 buttons,
                 show_paused,
             },
-            imgur: Imgur {
-                client_id,
-            },
+            imgur: Imgur { client_id },
             images: Images {
                 enable_images,
                 imgur_images,

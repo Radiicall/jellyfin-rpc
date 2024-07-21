@@ -1,15 +1,18 @@
-use std::str::FromStr;
-use discord_rich_presence::{activity::{Activity, Assets, Timestamps}, DiscordIpc, DiscordIpcClient};
 use discord_rich_presence::activity::Button as ActButton;
+use discord_rich_presence::{
+    activity::{Activity, Assets, Timestamps},
+    DiscordIpc, DiscordIpcClient,
+};
+pub use error::JfError;
+pub use jellyfin::{Button, MediaType};
 use jellyfin::{EndTime, Item, RawSession, Session};
 use log::debug;
+use std::str::FromStr;
 use url::{ParseError, Url};
-pub use jellyfin::{MediaType, Button};
-pub use error::JfError;
 
-mod jellyfin;
-mod external;
 mod error;
+mod external;
+mod jellyfin;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -49,11 +52,11 @@ impl Client {
     }
 
     /// Clears current activity on discord if anything is being displayed
-    /// 
+    ///
     /// # Example
     /// ```no_run
     /// use jellyfin_rpc::Client;
-    /// 
+    ///
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
@@ -62,7 +65,7 @@ impl Client {
     /// let mut client = builder.build().unwrap();
     ///
     /// client.connect().unwrap();
-    /// 
+    ///
     /// client.set_activity().unwrap();
     ///
     /// client.clear_activity().unwrap();
@@ -72,11 +75,11 @@ impl Client {
     }
 
     /// Gathers information from jellyfin about what is being played and displays it according to the options supplied to the builder.
-    /// 
+    ///
     /// # Example
     /// ```no_run
     /// use jellyfin_rpc::Client;
-    /// 
+    ///
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
@@ -85,7 +88,7 @@ impl Client {
     /// let mut client = builder.build().unwrap();
     ///
     /// client.connect().unwrap();
-    /// 
+    ///
     /// client.set_activity().unwrap();
     /// ```
     pub fn set_activity(&mut self) -> JfResult<String> {
@@ -97,7 +100,7 @@ impl Client {
             }
 
             if self.check_blacklist()? {
-                return Err(Box::new(JfError::ContentBlacklist))
+                return Err(Box::new(JfError::ContentBlacklist));
             }
 
             let mut activity = Activity::new();
@@ -120,8 +123,7 @@ impl Client {
                 }
             }
 
-            let mut assets = Assets::new()
-                .large_image(image_url.as_str());
+            let mut assets = Assets::new().large_image(image_url.as_str());
 
             if !self.large_image_text.is_empty() {
                 assets = assets.large_text(&self.large_image_text);
@@ -136,7 +138,7 @@ impl Client {
                     assets = assets
                         .small_image("https://i.imgur.com/wlHSvYy.png")
                         .small_text("Paused");
-                },
+                }
                 EndTime::Paused => return Ok(String::new()),
             }
 
@@ -145,7 +147,12 @@ impl Client {
             if let Some(b) = self.get_buttons() {
                 // This gets around the value being dropped immediately at the end of this if statement
                 buttons = b;
-                activity = activity.buttons(buttons.iter().map(|b| ActButton::new(&b.name, &b.url)).collect());
+                activity = activity.buttons(
+                    buttons
+                        .iter()
+                        .map(|b| ActButton::new(&b.name, &b.url))
+                        .collect(),
+                );
             }
 
             let mut state = self.get_state();
@@ -172,23 +179,24 @@ impl Client {
 
             self.discord_ipc_client.set_activity(activity)?;
 
-            return Ok(format!("{} | {}", details, state))
+            return Ok(format!("{} | {}", details, state));
         }
         Ok(String::new())
     }
 
     fn get_session(&mut self) -> Result<(), reqwest::Error> {
-        let sessions: Vec<RawSession> = self.reqwest.get(
-            format!(
-                "{}Sessions?api_key={}",
-                self.url,
-                self.api_key
-            ))
+        let sessions: Vec<RawSession> = self
+            .reqwest
+            .get(format!("{}Sessions?api_key={}", self.url, self.api_key))
             .send()?
             .json()?;
 
         for session in sessions {
-            if self.usernames.iter().all(|u| session.user_name.to_lowercase() != *u) {
+            if self
+                .usernames
+                .iter()
+                .all(|u| session.user_name.to_lowercase() != *u)
+            {
                 continue;
             }
 
@@ -198,7 +206,12 @@ impl Client {
 
             let session = session.build();
 
-            if session.now_playing_item.extra_type.as_ref().is_some_and(|et| et == "ThemeSong") {
+            if session
+                .now_playing_item
+                .extra_type
+                .as_ref()
+                .is_some_and(|et| et == "ThemeSong")
+            {
                 continue;
             }
 
@@ -214,42 +227,47 @@ impl Client {
 
         let mut activity_buttons: Vec<Button> = Vec::new();
 
-        if let (Some(ext_urls), Some(buttons))
-            = (&session.now_playing_item.external_urls, self.buttons.as_ref()) {
+        if let (Some(ext_urls), Some(buttons)) = (
+            &session.now_playing_item.external_urls,
+            self.buttons.as_ref(),
+        ) {
             let mut i = 0;
             for button in buttons {
                 if activity_buttons.len() == 2 {
-                    break
+                    break;
                 }
 
                 if button.is_dynamic() {
-                    activity_buttons.push(Button::new(ext_urls[i].name.clone(), ext_urls[i].url.clone()));
+                    activity_buttons.push(Button::new(
+                        ext_urls[i].name.clone(),
+                        ext_urls[i].url.clone(),
+                    ));
                     i += 1;
                 } else {
                     activity_buttons.push(button.clone())
                 }
             }
-            return Some(activity_buttons)
+            return Some(activity_buttons);
         } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
             for ext_url in ext_urls {
                 if activity_buttons.len() == 2 {
-                    break
+                    break;
                 }
 
                 activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
             }
-            return Some(activity_buttons)
+            return Some(activity_buttons);
         } else if let Some(buttons) = self.buttons.as_ref() {
             for button in buttons {
                 if activity_buttons.len() == 2 {
-                    break
+                    break;
                 }
 
                 if !button.is_dynamic() {
                     activity_buttons.push(button.clone())
                 }
             }
-            return Some(activity_buttons)
+            return Some(activity_buttons);
         }
         None
     }
@@ -257,9 +275,7 @@ impl Client {
     fn get_image(&self) -> Result<Url, ParseError> {
         let session = self.session.as_ref().unwrap();
 
-        let path = "Items/".to_string() 
-            + &session.item_id
-            + "/Images/Primary";
+        let path = "Items/".to_string() + &session.item_id + "/Images/Primary";
 
         self.url.join(&path)
     }
@@ -269,7 +285,10 @@ impl Client {
 
         match session.now_playing_item.media_type {
             MediaType::Episode => {
-                let episode = (session.now_playing_item.index_number.unwrap_or(0), session.now_playing_item.index_number_end);
+                let episode = (
+                    session.now_playing_item.index_number.unwrap_or(0),
+                    session.now_playing_item.index_number_end,
+                );
                 let mut state = String::new();
 
                 if let Some(season) = session.now_playing_item.parent_index_number {
@@ -298,27 +317,29 @@ impl Client {
                         state += &format!("E{}", episode)
                     }
                 }
-                
+
                 if !self.episode_display_options.simple {
                     state += &format!(" {}", session.now_playing_item.name)
                 }
 
                 state
-            },
+            }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
                 let mut state = String::new();
 
                 let artists = session.format_artists();
-                
+
                 if !artists.is_empty() {
                     state += &format!("By {}", artists)
                 }
-                
+
                 for data in &self.music_display_options.display {
                     match data.as_str() {
                         "genres" => {
-                            let genres = session.now_playing_item.genres
+                            let genres = session
+                                .now_playing_item
+                                .genres
                                 .as_ref()
                                 .unwrap_or(&vec!["".to_string()])
                                 .join(", ");
@@ -326,7 +347,7 @@ impl Client {
                                 state += &format!(" {} ", self.music_display_options.separator);
                             }
                             state += &genres
-                        },
+                        }
                         "year" => {
                             if let Some(year) = session.now_playing_item.production_year {
                                 if !state.is_empty() {
@@ -335,7 +356,7 @@ impl Client {
 
                                 state += &year.to_string();
                             }
-                        },
+                        }
                         "album" => {
                             if let Some(album) = &session.now_playing_item.album {
                                 if !state.is_empty() {
@@ -345,12 +366,12 @@ impl Client {
                                 state += album;
                             }
                         }
-                        _ => ()
+                        _ => (),
                     }
                 }
 
                 state
-            },
+            }
             MediaType::Book => {
                 let mut state = String::new();
 
@@ -361,19 +382,21 @@ impl Client {
 
                     state += &format!("Reading page {}", page);
                 }
-                
+
                 state
-            },
+            }
             MediaType::AudioBook => {
                 let mut state = String::new();
 
                 let artists = session.format_artists();
 
-                let genres = session.now_playing_item.genres
+                let genres = session
+                    .now_playing_item
+                    .genres
                     .as_ref()
                     .unwrap_or(&vec!["".to_string()])
                     .join(", ");
-                
+
                 if !artists.is_empty() {
                     state += &format!("By {}", artists)
                 }
@@ -385,14 +408,16 @@ impl Client {
                 state += &genres;
 
                 state
-            },
+            }
             MediaType::Movie => {
                 let mut state = String::new();
 
                 for data in &self.movies_display_options.display {
                     match data.as_str() {
                         "genres" => {
-                            let genres = session.now_playing_item.genres
+                            let genres = session
+                                .now_playing_item
+                                .genres
                                 .as_ref()
                                 .unwrap_or(&vec!["".to_string()])
                                 .join(", ");
@@ -400,48 +425,63 @@ impl Client {
                                 state += &format!(" {} ", self.movies_display_options.separator);
                             }
                             state += &genres
-                        },
+                        }
                         "year" => {
                             if let Some(year) = session.now_playing_item.production_year {
                                 if !state.is_empty() {
-                                    state += &format!(" {} ", self.movies_display_options.separator);
+                                    state +=
+                                        &format!(" {} ", self.movies_display_options.separator);
                                 }
 
                                 state += &year.to_string();
                             }
-                        },
+                        }
                         "critic-score" => {
                             if let Some(critic_score) = &session.now_playing_item.critic_rating {
                                 if !state.is_empty() {
-                                    state += &format!(" {} ", self.movies_display_options.separator);
+                                    state +=
+                                        &format!(" {} ", self.movies_display_options.separator);
                                 }
 
                                 state += &format!("🍅{}/100", critic_score);
                             }
-                        },
+                        }
                         "community-score" => {
-                            if let Some(community_score) = &session.now_playing_item.community_rating {
+                            if let Some(community_score) =
+                                &session.now_playing_item.community_rating
+                            {
                                 if !state.is_empty() {
-                                    state += &format!(" {} ", self.movies_display_options.separator);
+                                    state +=
+                                        &format!(" {} ", self.movies_display_options.separator);
                                 }
 
                                 state += &format!("⭐{:.1}/10", community_score);
                             }
-                        },
-                        _ => ()
+                        }
+                        _ => (),
                     }
                 }
 
                 state
-            },
-            _ => session.now_playing_item.genres.as_ref().unwrap_or(&vec!["".to_string()]).join(", ")
+            }
+            _ => session
+                .now_playing_item
+                .genres
+                .as_ref()
+                .unwrap_or(&vec!["".to_string()])
+                .join(", "),
         }
     }
 
     fn get_ancestors(&self) -> JfResult<Vec<Item>> {
         let session = self.session.as_ref().unwrap();
 
-        let ancestors: Vec<Item> = self.reqwest.get(self.url.join(&format!("Items/{}/Ancestors?api_key={}", session.now_playing_item.id, self.api_key))?)
+        let ancestors: Vec<Item> = self
+            .reqwest
+            .get(self.url.join(&format!(
+                "Items/{}/Ancestors?api_key={}",
+                session.now_playing_item.id, self.api_key
+            ))?)
             .send()?
             .json()?;
 
@@ -452,14 +492,23 @@ impl Client {
         let session = self.session.as_ref().unwrap();
         let ancestors = self.get_ancestors()?;
 
-        if self.blacklist.media_types.iter().any(|m| m == &session.now_playing_item.media_type) {
-            return Ok(true)
+        if self
+            .blacklist
+            .media_types
+            .iter()
+            .any(|m| m == &session.now_playing_item.media_type)
+        {
+            return Ok(true);
         }
 
-        if self.blacklist.libraries.iter().any(|l| ancestors.iter().any(|a| l == a.name.as_ref().unwrap_or(&"".to_string()))) {
-            return Ok(true)
+        if self.blacklist.libraries.iter().any(|l| {
+            ancestors
+                .iter()
+                .any(|a| l == a.name.as_ref().unwrap_or(&"".to_string()))
+        }) {
+            return Ok(true);
         }
-        
+
         Ok(false)
     }
 }
@@ -527,7 +576,7 @@ impl ClientBuilder {
     }
 
     /// Jellyfin URL to be used by the client.
-    /// 
+    ///
     /// Has no default.
     pub fn url<T: Into<String>>(&mut self, url: T) -> &mut Self {
         self.url = url.into();
@@ -535,7 +584,7 @@ impl ClientBuilder {
     }
 
     /// Discord Application ID that the client will use when connecting to Discord.
-    /// 
+    ///
     /// Defaults to `"1053747938519679018"`.
     pub fn client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.client_id = client_id.into();
@@ -543,7 +592,7 @@ impl ClientBuilder {
     }
 
     /// Jellyfin API Key that will be used to gather data about what is being played.
-    /// 
+    ///
     /// Has no default.
     pub fn api_key<T: Into<String>>(&mut self, api_key: T) -> &mut Self {
         self.api_key = api_key.into();
@@ -551,7 +600,7 @@ impl ClientBuilder {
     }
 
     /// Controls the use of certificate validation in reqwest.
-    /// 
+    ///
     /// Defaults to `false`.
     pub fn self_signed(&mut self, self_signed: bool) -> &mut Self {
         self.self_signed = self_signed;
@@ -559,9 +608,9 @@ impl ClientBuilder {
     }
 
     /// Usernames that should be matched when checking Jellyfin sessions.
-    /// 
+    ///
     /// Has no default.
-    /// 
+    ///
     /// # Warning
     /// This overwrites the value set in `ClientBuilder::Username()`,
     /// only one of these 2 should be used
@@ -571,9 +620,9 @@ impl ClientBuilder {
     }
 
     /// same as `ClientBuilder::Usernames()` but will only accept a single username
-    /// 
+    ///
     /// Has no default.
-    /// 
+    ///
     /// # Warning
     /// This overwrites the value set in `ClientBuilder::Usernames()`,
     /// only one of these 2 should be used
@@ -584,7 +633,7 @@ impl ClientBuilder {
 
     /// buttons to be displayed on the activity.
     /// Pass an empty `Vec::new()` to display no buttons
-    /// 
+    ///
     /// Defaults to dynamic buttons generated from the Jellyfin session.
     pub fn buttons(&mut self, buttons: Vec<Button>) -> &mut Self {
         self.buttons = Some(buttons);
@@ -592,9 +641,9 @@ impl ClientBuilder {
     }
 
     /// Splits season and episode numbers with a dash.
-    /// 
+    ///
     /// Defaults to `false`.
-    /// 
+    ///
     /// # Example
     /// S1E1 Pilot -> S1 - E1 Pilot
     pub fn episode_divider(&mut self, val: bool) -> &mut Self {
@@ -605,7 +654,7 @@ impl ClientBuilder {
     /// Adds leading 0's to season and episode numbers.
     ///
     /// Defaults to `false`.
-    /// 
+    ///
     /// # Example
     /// S1E1 Pilot -> S01E01 Pilot
     pub fn episode_prefix(&mut self, val: bool) -> &mut Self {
@@ -614,9 +663,9 @@ impl ClientBuilder {
     }
 
     /// Removes the episode name from the activity.
-    /// 
+    ///
     /// Defaults to `false`.
-    /// 
+    ///
     /// # Example
     /// S1E1 Pilot -> S1E1
     pub fn episode_simple(&mut self, val: bool) -> &mut Self {
@@ -645,7 +694,7 @@ impl ClientBuilder {
     }
 
     /// Blacklist certain `MediaType`s so they don't display.
-    /// 
+    ///
     /// Defaults to `Vec::new()`.
     pub fn blacklist_media_types(&mut self, media_types: Vec<MediaType>) -> &mut Self {
         self.blacklist_media_types = media_types;
@@ -653,7 +702,7 @@ impl ClientBuilder {
     }
 
     /// Blacklist certain libraries so they don't display.
-    /// 
+    ///
     /// Defaults to `Vec::new()`.
     pub fn blacklist_libraries(&mut self, libraries: Vec<String>) -> &mut Self {
         self.blacklist_libraries = libraries;
@@ -661,7 +710,7 @@ impl ClientBuilder {
     }
 
     /// Show activity when paused.
-    /// 
+    ///
     /// Defaults to `true`.
     pub fn show_paused(&mut self, val: bool) -> &mut Self {
         self.show_paused = val;
@@ -669,7 +718,7 @@ impl ClientBuilder {
     }
 
     /// Show images from jellyfin on the activity.
-    /// 
+    ///
     /// Defaults to `false`.
     pub fn show_images(&mut self, val: bool) -> &mut Self {
         self.show_images = val;
@@ -677,7 +726,7 @@ impl ClientBuilder {
     }
 
     /// Use imgur for images, uploads images from jellyfin to imgur and stores the imgur links in a local cache
-    /// 
+    ///
     /// Defaults to `false`.
     pub fn use_imgur(&mut self, val: bool) -> &mut Self {
         self.use_imgur = val;
@@ -685,7 +734,7 @@ impl ClientBuilder {
     }
 
     /// Imgur client id, used to upload images through their API.
-    /// 
+    ///
     /// Empty by default.
     pub fn imgur_client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
         self.imgur_client_id = client_id.into();
@@ -694,9 +743,9 @@ impl ClientBuilder {
 
     /// Where to store the URLs to images uploaded to imgur.
     /// Having this cache lets you avoid uploading the same image several times to their service.
-    /// 
+    ///
     /// Empty by default.
-    /// 
+    ///
     /// # Warning
     /// Setting this to something like `/dev/null` is **NOT** recommended,
     /// jellyfin-rpc will upload the image every time you call `Client::set_activity()`
@@ -707,7 +756,7 @@ impl ClientBuilder {
     }
 
     /// Text to be displayed when hovering the large activity image in Discord
-    /// 
+    ///
     /// Empty by default
     pub fn large_image_text<T: Into<String>>(&mut self, text: T) -> &mut Self {
         self.large_image_text = text.into();
@@ -715,11 +764,11 @@ impl ClientBuilder {
     }
 
     /// Builds a client from the options specified in the builder.
-    /// 
+    ///
     /// # Example
     /// ```no_run
     /// use jellyfin_rpc::ClientBuilder;
-    /// 
+    ///
     /// let mut builder = ClientBuilder::new();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
@@ -732,7 +781,9 @@ impl ClientBuilder {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
             url: self.url.parse()?,
             api_key: self.api_key,
-            reqwest: reqwest::blocking::Client::builder().danger_accept_invalid_certs(self.self_signed).build()?,
+            reqwest: reqwest::blocking::Client::builder()
+                .danger_accept_invalid_certs(self.self_signed)
+                .build()?,
             usernames: self.usernames,
             buttons: self.buttons,
             session: None,
