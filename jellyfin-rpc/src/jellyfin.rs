@@ -13,19 +13,18 @@ impl RawSession {
     pub fn build(self) -> Session {
         //TODO: Figure out how to avoid this clone
         let now_playing_item = self.now_playing_item.clone().unwrap();
-        let id;
 
-        match now_playing_item.media_type {
+        let id = match now_playing_item.media_type {
             MediaType::Episode => {
-                id = now_playing_item.series_id
+                now_playing_item.series_id
                     .unwrap_or(now_playing_item.id)
             },
             MediaType::Music => {
-                id = now_playing_item.album_id
+                now_playing_item.album_id
                     .unwrap_or(now_playing_item.id)
             },
             _ => {
-                id = now_playing_item.id
+                now_playing_item.id
             }
         };
 
@@ -79,8 +78,8 @@ impl Session {
 
     pub fn get_endtime(&self) -> Result<EndTime, SystemTimeError> {
         match self.now_playing_item.media_type {
-            MediaType::Book => return Ok(EndTime::NoEndTime),
-            MediaType::LiveTv => return Ok(EndTime::NoEndTime),
+            MediaType::Book => return Ok(EndTime::None),
+            MediaType::LiveTv => return Ok(EndTime::None),
             _ => {}
         }
 
@@ -107,7 +106,7 @@ impl Session {
 #[derive(PartialEq)]
 pub enum EndTime {
     Some(i64),
-    NoEndTime,
+    None,
     Paused,
 }
 

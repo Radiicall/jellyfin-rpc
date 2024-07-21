@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     if std::env::var("RUST_LOG").is_err() {
-        let _ = std::env::set_var("RUST_LOG", args.log_level);
+        std::env::set_var("RUST_LOG", args.log_level);
     }
 
     SimpleLogger::new()

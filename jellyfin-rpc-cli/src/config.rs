@@ -1,7 +1,6 @@
 use jellyfin_rpc::{MediaType, Button};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::env;
 
 /// Main struct containing every other struct in the file.
@@ -239,7 +238,7 @@ impl ConfigBuilder {
         let username = match self.jellyfin.username {
             Username::Vec(usernames) => usernames,
             Username::String(username) => username
-                .split(",")
+                .split(',')
                 .map(|u| u.to_string())
                 .collect(),
         };
@@ -252,7 +251,7 @@ impl ConfigBuilder {
                 music_display = Some(match disp {
                     Display::Vec(display) => display,
                     Display::String(display) => display
-                        .split(",")
+                        .split(',')
                         .map(|d| d.to_string())
                         .collect(),
                 })
@@ -274,7 +273,7 @@ impl ConfigBuilder {
                 movie_display = Some(match disp {
                     Display::Vec(display) => display,
                     Display::String(display) => display
-                        .split(",")
+                        .split(',')
                         .map(|d| d.to_string())
                         .collect(),
                 })
@@ -361,7 +360,7 @@ impl ConfigBuilder {
                 show_paused,
             },
             imgur: Imgur {
-                client_id: client_id,
+                client_id,
             },
             images: Images {
                 enable_images,

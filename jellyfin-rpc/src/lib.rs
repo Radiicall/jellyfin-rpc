@@ -107,7 +107,7 @@ impl Client {
             if session.now_playing_item.media_type == MediaType::LiveTv {
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
             } else if self.imgur_options.enabled {
-                if let Ok(imgur_url) = external::imgur::get_image(&self) {
+                if let Ok(imgur_url) = external::imgur::get_image(self) {
                     image_url = imgur_url;
                 } else {
                     debug!("imgur::get_image() didnt return an image, using default..")
@@ -131,7 +131,7 @@ impl Client {
 
             match session.get_endtime()? {
                 EndTime::Some(end) => timestamps = timestamps.end(end),
-                EndTime::NoEndTime => (),
+                EndTime::None => (),
                 EndTime::Paused if self.show_paused => {
                     assets = assets
                         .small_image("https://i.imgur.com/wlHSvYy.png")
@@ -192,7 +192,7 @@ impl Client {
                 continue;
             }
 
-            if let None = session.now_playing_item {
+            if session.now_playing_item.is_none() {
                 continue;
             }
 
