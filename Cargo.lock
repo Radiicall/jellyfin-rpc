@@ -415,7 +415,6 @@ dependencies = [
  "discord-rich-presence",
  "log",
  "reqwest",
- "retry",
  "serde",
  "serde_json",
  "url",

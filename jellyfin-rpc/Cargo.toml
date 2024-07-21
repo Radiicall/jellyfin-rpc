@@ -9,7 +9,6 @@ keywords     = ["jellyfin", "discord", "rich-presence"]
 
 [dependencies]
 discord-rich-presence = "0.2"
-retry                 = "2.0"
 serde_json            = "1.0"
 log                   = "0.4"
 url                   = "2.5"
