@@ -1,6 +1,6 @@
 [package]
 name         = "jellyfin-rpc-cli"
-version      = "1.2.0"
+version      = "1.2.1"
 edition      = "2021"
 description  = "Displays the content you're currently watching on Discord!"
 license      = "GPL-3.0-or-later"
@@ -29,8 +29,8 @@ time                  = "0.3"
 serde_json            = "1.0"
 
 [dependencies.jellyfin-rpc]
-#version  = "1.2.0"
-path = "../jellyfin-rpc"
+version  = "1.2.1"
+#path = "../jellyfin-rpc"
 
 [dependencies.clap]
 features = ["derive"]
