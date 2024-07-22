@@ -4,9 +4,9 @@ use std::time::{SystemTime, SystemTimeError, UNIX_EPOCH};
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct RawSession {
-    pub user_name: String,
+    pub user_name: Option<String>,
     pub now_playing_item: Option<NowPlayingItem>,
-    pub play_state: PlayState,
+    pub play_state: Option<PlayState>,
 }
 
 impl RawSession {
@@ -22,7 +22,7 @@ impl RawSession {
 
         Session {
             now_playing_item: self.now_playing_item.unwrap(),
-            play_state: self.play_state,
+            play_state: self.play_state.unwrap(),
             item_id: id.to_string(),
         }
     }

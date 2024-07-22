@@ -194,34 +194,41 @@ impl Client {
         debug!("Found {} sessions", sessions.len());
 
         for session in sessions {
-            debug!("Session username is {}", session.user_name);
-            if self
-                .usernames
-                .iter()
-                .all(|u| session.user_name.to_lowercase() != *u.to_lowercase())
-            {
-                continue;
+            debug!("Session username is {:?}", session.user_name);
+            if let Some(username) = session.user_name.as_ref() {
+                if self
+                    .usernames
+                    .iter()
+                    .all(|u| username.to_lowercase() != u.to_lowercase())
+                {
+                    continue;
+                }
+
+                if session.now_playing_item.is_none() {
+                    continue;
+                }
+                debug!("NowPlayingItem exists");
+
+                if session.play_state.is_none() {
+                    continue;
+                }
+                debug!("PlayState exists");
+
+                let session = session.build();
+
+                if session
+                    .now_playing_item
+                    .extra_type
+                    .as_ref()
+                    .is_some_and(|et| et == "ThemeSong")
+                {
+                    debug!("Session is playing a theme song, continuing loop");
+                    continue;
+                }
+
+                self.session = Some(session);
+                return Ok(());
             }
-
-            if session.now_playing_item.is_none() {
-                continue;
-            }
-            debug!("NowPlayingItem exists");
-
-            let session = session.build();
-
-            if session
-                .now_playing_item
-                .extra_type
-                .as_ref()
-                .is_some_and(|et| et == "ThemeSong")
-            {
-                debug!("Session is playing a theme song, continuing loop");
-                continue;
-            }
-
-            self.session = Some(session);
-            return Ok(());
         }
         self.session = None;
         Ok(())
