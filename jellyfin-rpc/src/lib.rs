@@ -191,7 +191,10 @@ impl Client {
             .send()?
             .json()?;
 
+        debug!("Found {} sessions", sessions.len());
+
         for session in sessions {
+            debug!("Session username is {}", session.user_name);
             if self
                 .usernames
                 .iter()
@@ -203,6 +206,7 @@ impl Client {
             if session.now_playing_item.is_none() {
                 continue;
             }
+            debug!("NowPlayingItem exists");
 
             let session = session.build();
 
@@ -212,6 +216,7 @@ impl Client {
                 .as_ref()
                 .is_some_and(|et| et == "ThemeSong")
             {
+                debug!("Session is playing a theme song, continuing loop");
                 continue;
             }
 

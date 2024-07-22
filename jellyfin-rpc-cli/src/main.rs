@@ -169,6 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             Err(err) => {
                 error!("{}", err);
+                debug!("{:?}", err);
                 retry_with_index(
                     retry::delay::Exponential::from_millis(1000),
                     |current_try| {
