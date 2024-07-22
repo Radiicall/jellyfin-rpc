@@ -238,11 +238,13 @@ impl Client {
                 }
 
                 if button.is_dynamic() {
-                    activity_buttons.push(Button::new(
-                        ext_urls[i].name.clone(),
-                        ext_urls[i].url.clone(),
-                    ));
-                    i += 1;
+                    if ext_urls.len() - 1 == i {
+                        activity_buttons.push(Button::new(
+                            ext_urls[i].name.clone(),
+                            ext_urls[i].url.clone(),
+                        ));
+                        i += 1;
+                    }
                 } else {
                     activity_buttons.push(button.clone())
                 }
