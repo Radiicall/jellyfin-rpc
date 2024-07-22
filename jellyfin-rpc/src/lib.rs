@@ -198,7 +198,7 @@ impl Client {
             if self
                 .usernames
                 .iter()
-                .all(|u| session.user_name.to_lowercase() != *u)
+                .all(|u| session.user_name.to_lowercase() != *u.to_lowercase())
             {
                 continue;
             }
