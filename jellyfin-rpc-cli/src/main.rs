@@ -185,8 +185,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .unwrap();
                 info!("Reconnected!");
-
-                client.set_activity()?;
             }
         }
 
