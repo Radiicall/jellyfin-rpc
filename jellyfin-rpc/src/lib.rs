@@ -189,7 +189,7 @@ impl Client {
         let sessions: Vec<RawSession> = self
             .reqwest
             .get(format!("{}Sessions", self.url))
-            .header(AUTHORIZATION, format!("Token=\"{}\"", self.api_key))
+            .header(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key))
             .header("X-Emby-Token", &self.api_key)
             .send()?
             .json()?;
@@ -499,7 +499,7 @@ impl Client {
                 "Items/{}/Ancestors",
                 session.now_playing_item.id
             ))?)
-            .header(AUTHORIZATION, format!("Token=\"{}\"", self.api_key))
+            .header(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key))
             .header("X-Emby-Token", &self.api_key)
             .send()?
             .json()?;
