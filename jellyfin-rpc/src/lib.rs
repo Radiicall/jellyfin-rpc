@@ -13,6 +13,8 @@ use url::{ParseError, Url};
 mod error;
 mod external;
 mod jellyfin;
+#[cfg(test)]
+mod tests;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
