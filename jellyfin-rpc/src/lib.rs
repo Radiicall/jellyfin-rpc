@@ -7,6 +7,7 @@ pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
 use jellyfin::{EndTime, Item, RawSession, Session};
 use log::debug;
+use reqwest::header::AUTHORIZATION;
 use std::str::FromStr;
 use url::{ParseError, Url};
 
@@ -187,7 +188,9 @@ impl Client {
     fn get_session(&mut self) -> Result<(), reqwest::Error> {
         let sessions: Vec<RawSession> = self
             .reqwest
-            .get(format!("{}Sessions?api_key={}", self.url, self.api_key))
+            .get(format!("{}Sessions", self.url))
+            .header(AUTHORIZATION, format!("Token=\"{}\"", self.api_key))
+            .header("X-Emby-Token", &self.api_key)
             .send()?
             .json()?;
 
@@ -493,9 +496,11 @@ impl Client {
         let ancestors: Vec<Item> = self
             .reqwest
             .get(self.url.join(&format!(
-                "Items/{}/Ancestors?api_key={}",
-                session.now_playing_item.id, self.api_key
+                "Items/{}/Ancestors",
+                session.now_playing_item.id
             ))?)
+            .header(AUTHORIZATION, format!("Token=\"{}\"", self.api_key))
+            .header("X-Emby-Token", &self.api_key)
             .send()?
             .json()?;
 
