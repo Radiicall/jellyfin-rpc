@@ -780,13 +780,13 @@ impl ClientBuilder {
     /// Builds a client from the options specified in the builder.
     ///
     /// # Example
-    /// ```no_run
+    /// ```
     /// use jellyfin_rpc::ClientBuilder;
     ///
     /// let mut builder = ClientBuilder::new();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
-    ///     .username("user");    
+    ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
     /// ```
