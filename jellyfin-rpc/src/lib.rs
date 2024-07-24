@@ -791,6 +791,10 @@ impl ClientBuilder {
     /// let mut client = builder.build().unwrap();
     /// ```
     pub fn build(self) -> JfResult<Client> {
+        if self.url.is_empty() || self.usernames.is_empty() || self.api_key.is_empty() {
+            return Err(Box::new(JfError::MissingRequiredValues))
+        }
+
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
             url: self.url.parse()?,
