@@ -14,6 +14,8 @@ use url::{ParseError, Url};
 mod error;
 mod external;
 mod jellyfin;
+#[cfg(test)]
+mod tests;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -785,17 +787,21 @@ impl ClientBuilder {
     /// Builds a client from the options specified in the builder.
     ///
     /// # Example
-    /// ```no_run
+    /// ```
     /// use jellyfin_rpc::ClientBuilder;
     ///
     /// let mut builder = ClientBuilder::new();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
-    ///     .username("user");    
+    ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
     /// ```
     pub fn build(self) -> JfResult<Client> {
+        if self.url.is_empty() || self.usernames.is_empty() || self.api_key.is_empty() {
+            return Err(Box::new(JfError::MissingRequiredValues))
+        }
+
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
             url: self.url.parse()?,
