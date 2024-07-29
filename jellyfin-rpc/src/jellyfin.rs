@@ -86,10 +86,10 @@ impl Session {
         if !self.play_state.is_paused {
             let ticks_to_seconds = 10000000;
 
-            if let Some(mut position_ticks) = self.play_state.position_ticks {
+            if let (Some(mut position_ticks), Some(mut runtime_ticks)) = (self.play_state.position_ticks, self.now_playing_item.run_time_ticks) {
                 position_ticks /= ticks_to_seconds;
 
-                let runtime_ticks = self.now_playing_item.run_time_ticks / ticks_to_seconds;
+                runtime_ticks /= ticks_to_seconds;
 
                 return Ok(EndTime::Some(
                     SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
