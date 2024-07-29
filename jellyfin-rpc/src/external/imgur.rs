@@ -95,8 +95,9 @@ fn read_file(client: &Client) -> JfResult<Vec<ImageUrl>> {
 fn upload(client: &Client) -> JfResult<Url> {
     let image_bytes = client.reqwest.get(client.get_image()?).send()?.bytes()?;
 
-    let res: ImgurResponse = client
-        .reqwest
+    let imgur_client = reqwest::blocking::Client::builder().build()?;
+
+    let res: ImgurResponse = imgur_client
         .post("https://api.imgur.com/3/image")
         .header(
             reqwest::header::AUTHORIZATION,
