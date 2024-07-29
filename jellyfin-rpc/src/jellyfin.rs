@@ -83,21 +83,28 @@ impl Session {
             _ => {}
         }
 
-        if !self.play_state.is_paused {
-            let ticks_to_seconds = 10000000;
-
-            if let (Some(mut position_ticks), Some(mut runtime_ticks)) = (self.play_state.position_ticks, self.now_playing_item.run_time_ticks) {
-                position_ticks /= ticks_to_seconds;
-
-                runtime_ticks /= ticks_to_seconds;
-
-                return Ok(EndTime::Some(
-                    SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
-                        + (runtime_ticks - position_ticks),
-                ));
-            }
+        if self.play_state.is_paused
+            || self.play_state.position_ticks.is_none()
+            || self.now_playing_item.run_time_ticks.is_none()
+        {
+            return Ok(EndTime::Paused);
         }
-        Ok(EndTime::Paused)
+
+        let ticks_to_seconds = 10000000;
+
+        let position_ticks =
+            self.play_state.position_ticks.expect("Unreachable error") / ticks_to_seconds;
+
+        let runtime_ticks = self
+            .now_playing_item
+            .run_time_ticks
+            .expect("Unreachable error")
+            / ticks_to_seconds;
+
+        Ok(EndTime::Some(
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
+                + (runtime_ticks - position_ticks),
+        ))
     }
 }
 
