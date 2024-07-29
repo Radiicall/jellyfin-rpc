@@ -161,7 +161,7 @@ pub struct NowPlayingItem {
     #[serde(rename = "Type")]
     pub media_type: MediaType,
     pub id: String,
-    pub run_time_ticks: i64,
+    pub run_time_ticks: Option<i64>,
     pub production_year: Option<i64>,
     pub genres: Option<Vec<String>>,
     pub external_urls: Option<Vec<ExternalUrl>>,
