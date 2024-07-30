@@ -175,6 +175,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             Err(err) => {
+                // TODO: There has to be a better way to check this..
+                if err.to_string() == "content is blacklisted" {
+                    debug!("{}", err);
+                    continue;
+                }
+
                 error!("{}", err);
                 debug!("{:?}", err);
                 retry_with_index(
