@@ -1,4 +1,4 @@
-use discord_rich_presence::activity::Button as ActButton;
+use discord_rich_presence::activity::{ActivityType, Button as ActButton};
 use discord_rich_presence::{
     activity::{Activity, Assets, Timestamps},
     DiscordIpc, DiscordIpcClient,
@@ -171,6 +171,13 @@ impl Client {
                 details = details.chars().take(128).collect();
             } else if details.len() < 3 {
                 details += "‎‎‎";
+            }
+
+            match session.now_playing_item.media_type {
+                MediaType::Book => (),
+                MediaType::Music => activity = activity.activity_type(ActivityType::Listening),
+                MediaType::AudioBook => activity = activity.activity_type(ActivityType::Listening),
+                _ => activity = activity.activity_type(ActivityType::Watching),
             }
 
             activity = activity
