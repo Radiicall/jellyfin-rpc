@@ -114,11 +114,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {
         debug!("Found config.jellyfin.blacklist.media_types");
+        debug!("Blacklisted MediaTypes: {:?}", media_types);
         builder.blacklist_media_types(media_types);
     }
 
     if let Some(libraries) = conf.jellyfin.blacklist.libraries {
         debug!("Found config.jellyfin.blacklist.libraries");
+        debug!("Blacklisted libraries: {:?}", libraries);
         builder.blacklist_libraries(libraries);
     }
 
@@ -160,6 +162,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut currently_playing = String::new();
 
     loop {
+        sleep(Duration::from_secs(args.wait_time as u64));
+
         match client.set_activity() {
             Ok(activity) => {
                 if activity.is_empty() && !currently_playing.is_empty() {
@@ -173,6 +177,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             Err(err) => {
+                // TODO: There has to be a better way to check this..
+                if err.to_string() == "content is blacklisted" {
+                    debug!("{}", err);
+                    continue;
+                }
+
                 error!("{}", err);
                 debug!("{:?}", err);
                 retry_with_index(
@@ -192,7 +202,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 info!("Reconnected!");
             }
         }
-
-        sleep(Duration::from_secs(args.wait_time as u64));
     }
 }
