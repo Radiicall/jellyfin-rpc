@@ -175,8 +175,9 @@ impl Client {
 
             match session.now_playing_item.media_type {
                 MediaType::Book => (),
-                MediaType::Music => activity = activity.activity_type(ActivityType::Listening),
-                MediaType::AudioBook => activity = activity.activity_type(ActivityType::Listening),
+                MediaType::Music | MediaType::AudioBook => {
+                    activity = activity.activity_type(ActivityType::Listening)
+                }
                 _ => activity = activity.activity_type(ActivityType::Watching),
             }
 
@@ -501,10 +502,10 @@ impl Client {
 
         let ancestors: Vec<Item> = self
             .reqwest
-            .get(self.url.join(&format!(
-                "Items/{}/Ancestors",
-                session.now_playing_item.id
-            ))?)
+            .get(
+                self.url
+                    .join(&format!("Items/{}/Ancestors", session.now_playing_item.id))?,
+            )
             .send()?
             .json()?;
 
@@ -803,12 +804,15 @@ impl ClientBuilder {
     /// ```
     pub fn build(self) -> JfResult<Client> {
         if self.url.is_empty() || self.usernames.is_empty() || self.api_key.is_empty() {
-            return Err(Box::new(JfError::MissingRequiredValues))
+            return Err(Box::new(JfError::MissingRequiredValues));
         }
 
         let mut headers = HeaderMap::new();
 
-        headers.insert(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key).parse()?);
+        headers.insert(
+            AUTHORIZATION,
+            format!("MediaBrowser Token=\"{}\"", self.api_key).parse()?,
+        );
         headers.insert("X-Emby-Token", self.api_key.parse()?);
 
         Ok(Client {
