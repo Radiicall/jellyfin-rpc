@@ -327,6 +327,7 @@ pub struct PlayState {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
 pub struct Item {
     pub name: Option<String>,
 }

@@ -501,6 +501,8 @@ impl Client {
             .send()?
             .json()?;
 
+        debug!("Ancestors: {:?}", ancestors);
+
         Ok(ancestors)
     }
 
