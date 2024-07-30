@@ -7,7 +7,7 @@ pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
 use jellyfin::{EndTime, Item, RawSession, Session};
 use log::debug;
-use reqwest::header::AUTHORIZATION;
+use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
 use url::{ParseError, Url};
 
@@ -23,7 +23,6 @@ pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 pub struct Client {
     discord_ipc_client: DiscordIpcClient,
     url: Url,
-    api_key: String,
     usernames: Vec<String>,
     reqwest: reqwest::blocking::Client,
     session: Option<Session>,
@@ -191,8 +190,6 @@ impl Client {
         let sessions: Vec<RawSession> = self
             .reqwest
             .get(format!("{}Sessions", self.url))
-            .header(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key))
-            .header("X-Emby-Token", &self.api_key)
             .send()?
             .json()?;
 
@@ -501,8 +498,6 @@ impl Client {
                 "Items/{}/Ancestors",
                 session.now_playing_item.id
             ))?)
-            .header(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key))
-            .header("X-Emby-Token", &self.api_key)
             .send()?
             .json()?;
 
@@ -802,11 +797,16 @@ impl ClientBuilder {
             return Err(Box::new(JfError::MissingRequiredValues))
         }
 
+        let mut headers = HeaderMap::new();
+
+        headers.insert(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key).parse()?);
+        headers.insert("X-Emby-Token", self.api_key.parse()?);
+
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
             url: self.url.parse()?,
-            api_key: self.api_key,
             reqwest: reqwest::blocking::Client::builder()
+                .default_headers(headers)
                 .danger_accept_invalid_certs(self.self_signed)
                 .build()?,
             usernames: self.usernames,

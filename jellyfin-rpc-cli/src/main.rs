@@ -67,7 +67,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     updates::checker();
 
     let conf = Config::builder()
-        .load(&args.config.unwrap_or(get_config_path()?))?
+        .load(
+            &args
+                .config
+                .unwrap_or(get_config_path().expect("default config path couldn't be determined")),
+        )
+        .expect("config not found")
         .build();
 
     debug!("Creating jellyfin-rpc client builder");
