@@ -114,11 +114,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {
         debug!("Found config.jellyfin.blacklist.media_types");
+        debug!("Blacklisted MediaTypes: {:?}", media_types);
         builder.blacklist_media_types(media_types);
     }
 
     if let Some(libraries) = conf.jellyfin.blacklist.libraries {
         debug!("Found config.jellyfin.blacklist.libraries");
+        debug!("Blacklisted libraries: {:?}", libraries);
         builder.blacklist_libraries(libraries);
     }
 
