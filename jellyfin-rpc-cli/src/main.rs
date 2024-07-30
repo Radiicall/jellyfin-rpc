@@ -162,6 +162,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut currently_playing = String::new();
 
     loop {
+        sleep(Duration::from_secs(args.wait_time as u64));
+
         match client.set_activity() {
             Ok(activity) => {
                 if activity.is_empty() && !currently_playing.is_empty() {
@@ -200,7 +202,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 info!("Reconnected!");
             }
         }
-
-        sleep(Duration::from_secs(args.wait_time as u64));
     }
 }
