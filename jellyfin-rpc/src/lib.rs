@@ -252,7 +252,10 @@ impl Client {
                 }
 
                 if button.is_dynamic() {
-                    if ext_urls.len() - 1 == i {
+                    if ext_urls.len() - 1 >= i {
+                        if ext_urls[i].url.starts_with("http://localhost") || ext_urls[i].url.starts_with("https://localhost") {
+                            continue;
+                        }
                         activity_buttons.push(Button::new(
                             ext_urls[i].name.clone(),
                             ext_urls[i].url.clone(),
@@ -264,15 +267,6 @@ impl Client {
                 }
             }
             return Some(activity_buttons);
-        } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
-            for ext_url in ext_urls {
-                if activity_buttons.len() == 2 {
-                    break;
-                }
-
-                activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
-            }
-            return Some(activity_buttons);
         } else if let Some(buttons) = self.buttons.as_ref() {
             for button in buttons {
                 if activity_buttons.len() == 2 {
@@ -282,6 +276,19 @@ impl Client {
                 if !button.is_dynamic() {
                     activity_buttons.push(button.clone())
                 }
+            }
+            return Some(activity_buttons);
+        } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
+            for ext_url in ext_urls {
+                if ext_url.url.starts_with("http://localhost") || ext_url.url.starts_with("https://localhost") {
+                    continue;
+                }
+
+                if activity_buttons.len() == 2 {
+                    break;
+                }
+
+                activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
             }
             return Some(activity_buttons);
         }
