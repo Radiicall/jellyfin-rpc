@@ -288,12 +288,21 @@ impl Client {
         None
     }
 
-    fn get_image(&self) -> Result<Url, ParseError> {
+    fn get_image(&self) -> JfResult<Url> {
         let session = self.session.as_ref().unwrap();
 
         let path = "Items/".to_string() + &session.item_id + "/Images/Primary";
 
-        self.url.join(&path)
+        let image_url = self.url.join(&path)?;
+
+        if self.reqwest.get(image_url.as_ref())
+            .send()?
+            .text()?
+            .contains("does not have an image of type Primary") {
+                Err(Box::new(JfError::NoImage))
+        } else {
+            Ok(image_url)
+        }
     }
 
     fn get_state(&self) -> String {
