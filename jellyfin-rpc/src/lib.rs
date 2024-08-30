@@ -9,7 +9,7 @@ use jellyfin::{EndTime, Item, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
-use url::{ParseError, Url};
+use url::Url;
 
 mod error;
 mod external;
