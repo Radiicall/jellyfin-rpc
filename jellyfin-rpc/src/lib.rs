@@ -5,7 +5,7 @@ use discord_rich_presence::{
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{EndTime, Item, RawSession, Session};
+use jellyfin::{EndTime, ExternalUrl, Item, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
@@ -245,6 +245,10 @@ impl Client {
             &session.now_playing_item.external_urls,
             self.buttons.as_ref(),
         ) {
+            let ext_urls: Vec<&ExternalUrl> = ext_urls
+                .iter()
+                .filter(|eu| !eu.url.starts_with("http://localhost") && !eu.url.starts_with("https://localhost"))
+                .collect();
             let mut i = 0;
             for button in buttons {
                 if activity_buttons.len() == 2 {
@@ -252,10 +256,7 @@ impl Client {
                 }
 
                 if button.is_dynamic() {
-                    if ext_urls.len() - 1 >= i {
-                        if ext_urls[i].url.starts_with("http://localhost") || ext_urls[i].url.starts_with("https://localhost") {
-                            continue;
-                        }
+                    if ext_urls.len() > i {
                         activity_buttons.push(Button::new(
                             ext_urls[i].name.clone(),
                             ext_urls[i].url.clone(),
@@ -279,11 +280,11 @@ impl Client {
             }
             return Some(activity_buttons);
         } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
+            let ext_urls: Vec<&ExternalUrl> = ext_urls
+                .iter()
+                .filter(|eu| !eu.url.starts_with("http://localhost") && !eu.url.starts_with("https://localhost"))
+                .collect();
             for ext_url in ext_urls {
-                if ext_url.url.starts_with("http://localhost") || ext_url.url.starts_with("https://localhost") {
-                    continue;
-                }
-
                 if activity_buttons.len() == 2 {
                     break;
                 }
