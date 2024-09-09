@@ -9,6 +9,7 @@ pub enum JfError {
     /// Content is in blacklist
     ContentBlacklist,
     MissingRequiredValues,
+    NoImage,
 }
 
 impl Error for JfError {}
@@ -19,6 +20,7 @@ impl Display for JfError {
             JfError::MissingRequiredValues => write!(f, "missing required values to build client"),
             JfError::UnrecognizedMediaType => write!(f, "unrecognized media type"),
             JfError::ContentBlacklist => write!(f, "content is blacklisted"),
+            JfError::NoImage => write!(f, "media does not have an image"),
         }
     }
 }

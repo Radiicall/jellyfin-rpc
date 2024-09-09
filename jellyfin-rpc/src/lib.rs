@@ -5,11 +5,11 @@ use discord_rich_presence::{
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{EndTime, Item, RawSession, Session};
+use jellyfin::{EndTime, ExternalUrl, Item, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
-use url::{ParseError, Url};
+use url::Url;
 
 mod error;
 mod external;
@@ -253,6 +253,10 @@ impl Client {
             &session.now_playing_item.external_urls,
             self.buttons.as_ref(),
         ) {
+            let ext_urls: Vec<&ExternalUrl> = ext_urls
+                .iter()
+                .filter(|eu| !eu.url.starts_with("http://localhost") && !eu.url.starts_with("https://localhost"))
+                .collect();
             let mut i = 0;
             for button in buttons {
                 if activity_buttons.len() == 2 {
@@ -260,7 +264,7 @@ impl Client {
                 }
 
                 if button.is_dynamic() {
-                    if ext_urls.len() - 1 == i {
+                    if ext_urls.len() > i {
                         activity_buttons.push(Button::new(
                             ext_urls[i].name.clone(),
                             ext_urls[i].url.clone(),
@@ -270,15 +274,6 @@ impl Client {
                 } else {
                     activity_buttons.push(button.clone())
                 }
-            }
-            return Some(activity_buttons);
-        } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
-            for ext_url in ext_urls {
-                if activity_buttons.len() == 2 {
-                    break;
-                }
-
-                activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
             }
             return Some(activity_buttons);
         } else if let Some(buttons) = self.buttons.as_ref() {
@@ -292,16 +287,38 @@ impl Client {
                 }
             }
             return Some(activity_buttons);
+        } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
+            let ext_urls: Vec<&ExternalUrl> = ext_urls
+                .iter()
+                .filter(|eu| !eu.url.starts_with("http://localhost") && !eu.url.starts_with("https://localhost"))
+                .collect();
+            for ext_url in ext_urls {
+                if activity_buttons.len() == 2 {
+                    break;
+                }
+
+                activity_buttons.push(Button::new(ext_url.name.clone(), ext_url.url.clone()))
+            }
+            return Some(activity_buttons);
         }
         None
     }
 
-    fn get_image(&self) -> Result<Url, ParseError> {
+    fn get_image(&self) -> JfResult<Url> {
         let session = self.session.as_ref().unwrap();
 
         let path = "Items/".to_string() + &session.item_id + "/Images/Primary";
 
-        self.url.join(&path)
+        let image_url = self.url.join(&path)?;
+
+        if self.reqwest.get(image_url.as_ref())
+            .send()?
+            .text()?
+            .contains("does not have an image of type Primary") {
+                Err(Box::new(JfError::NoImage))
+        } else {
+            Ok(image_url)
+        }
     }
 
     fn get_state(&self) -> String {
