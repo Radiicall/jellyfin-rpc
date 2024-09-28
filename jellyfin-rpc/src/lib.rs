@@ -111,7 +111,7 @@ impl Client {
 
             if session.now_playing_item.media_type == MediaType::LiveTv {
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
-            } else if self.imgur_options.enabled {
+            } else if self.imgur_options.enabled && self.show_images {
                 if let Ok(imgur_url) = external::imgur::get_image(self) {
                     image_url = imgur_url;
                 } else {
