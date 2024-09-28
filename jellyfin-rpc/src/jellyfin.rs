@@ -76,10 +76,10 @@ impl Session {
         artists
     }
 
-    pub fn get_endtime(&self) -> Result<EndTime, SystemTimeError> {
+    pub fn get_time(&self) -> Result<PlayTime, SystemTimeError> {
         match self.now_playing_item.media_type {
-            MediaType::Book => return Ok(EndTime::None),
-            MediaType::LiveTv => return Ok(EndTime::None),
+            MediaType::Book => return Ok(PlayTime::None),
+            MediaType::LiveTv => return Ok(PlayTime::None),
             _ => {}
         }
 
@@ -87,7 +87,7 @@ impl Session {
             || self.play_state.position_ticks.is_none()
             || self.now_playing_item.run_time_ticks.is_none()
         {
-            return Ok(EndTime::Paused);
+            return Ok(PlayTime::Paused);
         }
 
         let ticks_to_seconds = 10000000;
@@ -101,7 +101,9 @@ impl Session {
             .expect("Unreachable error")
             / ticks_to_seconds;
 
-        Ok(EndTime::Some(
+        Ok(PlayTime::Some(
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
+                - position_ticks,
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
                 + (runtime_ticks - position_ticks),
         ))
@@ -109,10 +111,10 @@ impl Session {
 }
 
 #[derive(PartialEq)]
-pub enum EndTime {
-    Some(i64),
-    None,
+pub enum PlayTime {
+    Some(i64, i64),
     Paused,
+    None
 }
 
 /// Contains information about buttons displayed in Discord

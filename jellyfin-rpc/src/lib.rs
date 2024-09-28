@@ -5,7 +5,7 @@ use discord_rich_presence::{
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{EndTime, ExternalUrl, Item, RawSession, Session};
+use jellyfin::{ExternalUrl, Item, PlayTime, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
@@ -133,15 +133,15 @@ impl Client {
 
             let mut timestamps = Timestamps::new();
 
-            match session.get_endtime()? {
-                EndTime::Some(end) => timestamps = timestamps.end(end),
-                EndTime::None => (),
-                EndTime::Paused if self.show_paused => {
+            match session.get_time()? {
+                PlayTime::Some(start, end) => timestamps = timestamps.start(start).end(end),
+                PlayTime::None => (),
+                PlayTime::Paused if self.show_paused => {
                     assets = assets
                         .small_image("https://i.imgur.com/wlHSvYy.png")
                         .small_text("Paused");
                 }
-                EndTime::Paused => return Ok(String::new()),
+                PlayTime::Paused => return Ok(String::new()),
             }
 
             let buttons: Vec<Button>;
