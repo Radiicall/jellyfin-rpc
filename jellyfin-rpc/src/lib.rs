@@ -1,11 +1,11 @@
-use discord_rich_presence::activity::Button as ActButton;
+use discord_rich_presence::activity::{ActivityType, Button as ActButton};
 use discord_rich_presence::{
     activity::{Activity, Assets, Timestamps},
     DiscordIpc, DiscordIpcClient,
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{EndTime, ExternalUrl, Item, RawSession, Session};
+use jellyfin::{ExternalUrl, Item, PlayTime, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
@@ -133,15 +133,15 @@ impl Client {
 
             let mut timestamps = Timestamps::new();
 
-            match session.get_endtime()? {
-                EndTime::Some(end) => timestamps = timestamps.end(end),
-                EndTime::None => (),
-                EndTime::Paused if self.show_paused => {
+            match session.get_time()? {
+                PlayTime::Some(start, end) => timestamps = timestamps.start(start).end(end),
+                PlayTime::None => (),
+                PlayTime::Paused if self.show_paused => {
                     assets = assets
                         .small_image("https://i.imgur.com/wlHSvYy.png")
                         .small_text("Paused");
                 }
-                EndTime::Paused => return Ok(String::new()),
+                PlayTime::Paused => return Ok(String::new()),
             }
 
             let buttons: Vec<Button>;
@@ -171,6 +171,14 @@ impl Client {
                 details = details.chars().take(128).collect();
             } else if details.len() < 3 {
                 details += "‎‎‎";
+            }
+
+            match session.now_playing_item.media_type {
+                MediaType::Book => (),
+                MediaType::Music | MediaType::AudioBook => {
+                    activity = activity.activity_type(ActivityType::Listening)
+                }
+                _ => activity = activity.activity_type(ActivityType::Watching),
             }
 
             activity = activity
@@ -511,10 +519,10 @@ impl Client {
 
         let ancestors: Vec<Item> = self
             .reqwest
-            .get(self.url.join(&format!(
-                "Items/{}/Ancestors",
-                session.now_playing_item.id
-            ))?)
+            .get(
+                self.url
+                    .join(&format!("Items/{}/Ancestors", session.now_playing_item.id))?,
+            )
             .send()?
             .json()?;
 
@@ -813,12 +821,15 @@ impl ClientBuilder {
     /// ```
     pub fn build(self) -> JfResult<Client> {
         if self.url.is_empty() || self.usernames.is_empty() || self.api_key.is_empty() {
-            return Err(Box::new(JfError::MissingRequiredValues))
+            return Err(Box::new(JfError::MissingRequiredValues));
         }
 
         let mut headers = HeaderMap::new();
 
-        headers.insert(AUTHORIZATION, format!("MediaBrowser Token=\"{}\"", self.api_key).parse()?);
+        headers.insert(
+            AUTHORIZATION,
+            format!("MediaBrowser Token=\"{}\"", self.api_key).parse()?,
+        );
         headers.insert("X-Emby-Token", self.api_key.parse()?);
 
         Ok(Client {
