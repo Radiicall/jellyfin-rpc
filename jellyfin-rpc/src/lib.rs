@@ -255,7 +255,10 @@ impl Client {
         ) {
             let ext_urls: Vec<&ExternalUrl> = ext_urls
                 .iter()
-                .filter(|eu| !eu.url.starts_with("http://localhost") && !eu.url.starts_with("https://localhost"))
+                .filter(|eu| {
+                    !eu.url.starts_with("http://localhost")
+                        && !eu.url.starts_with("https://localhost")
+                })
                 .collect();
             let mut i = 0;
             for button in buttons {
@@ -290,7 +293,10 @@ impl Client {
         } else if let Some(ext_urls) = &session.now_playing_item.external_urls {
             let ext_urls: Vec<&ExternalUrl> = ext_urls
                 .iter()
-                .filter(|eu| !eu.url.starts_with("http://localhost") && !eu.url.starts_with("https://localhost"))
+                .filter(|eu| {
+                    !eu.url.starts_with("http://localhost")
+                        && !eu.url.starts_with("https://localhost")
+                })
                 .collect();
             for ext_url in ext_urls {
                 if activity_buttons.len() == 2 {
@@ -311,11 +317,14 @@ impl Client {
 
         let image_url = self.url.join(&path)?;
 
-        if self.reqwest.get(image_url.as_ref())
+        if self
+            .reqwest
+            .get(image_url.as_ref())
             .send()?
             .text()?
-            .contains("does not have an image of type Primary") {
-                Err(Box::new(JfError::NoImage))
+            .contains("does not have an image of type Primary")
+        {
+            Err(Box::new(JfError::NoImage))
         } else {
             Ok(image_url)
         }

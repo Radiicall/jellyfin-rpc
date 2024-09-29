@@ -102,8 +102,7 @@ impl Session {
             / ticks_to_seconds;
 
         Ok(PlayTime::Some(
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
-                - position_ticks,
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64 - position_ticks,
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64
                 + (runtime_ticks - position_ticks),
         ))
@@ -114,7 +113,7 @@ impl Session {
 pub enum PlayTime {
     Some(i64, i64),
     Paused,
-    None
+    None,
 }
 
 /// Contains information about buttons displayed in Discord
