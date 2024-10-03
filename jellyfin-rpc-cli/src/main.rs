@@ -92,24 +92,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .large_image_text(format!("Jellyfin-RPC v{}", VERSION.unwrap_or("UNKNOWN")))
         .imgur_urls_file_location(args.image_urls.unwrap_or(get_urls_path()?));
 
-    if let Some(display) = conf.jellyfin.music.display {
-        debug!("Found config.jellyfin.music.display");
-        builder.music_display(display);
+    if let Some(state_text) = conf.jellyfin.music.state_text {
+        debug!("Found config.jellyfin.music.state_text");
+        builder.music_state_text(state_text);
     }
 
-    if let Some(separator) = conf.jellyfin.music.separator {
-        debug!("Found config.jellyfin.music.separator");
-        builder.music_separator(separator);
+    if let Some(details_text) = conf.jellyfin.music.details_text {
+        debug!("Found config.jellyfin.music.details_text");
+        builder.music_details_text(details_text);
     }
 
-    if let Some(display) = conf.jellyfin.movies.display {
-        debug!("Found config.jellyfin.music.display");
-        builder.movies_display(display);
+    if let Some(image_text) = conf.jellyfin.music.image_text {
+        debug!("Found config.jellyfin.music.image_text");
+        builder.music_image_text(image_text);
     }
 
-    if let Some(separator) = conf.jellyfin.movies.separator {
-        debug!("Found config.jellyfin.music.separator");
-        builder.movies_separator(separator);
+    if let Some(state_text) = conf.jellyfin.movies.state_text {
+        debug!("Found config.jellyfin.movies.state_text");
+        builder.movies_state_text(state_text);
+    }
+
+    if let Some(details_text) = conf.jellyfin.movies.details_text {
+        debug!("Found config.jellyfin.movies.details_text");
+        builder.movies_details_text(details_text);
+    }
+
+    if let Some(image_text) = conf.jellyfin.movies.image_text {
+        debug!("Found config.jellyfin.movies.image_text");
+        builder.movies_image_text(image_text);
     }
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {
@@ -162,8 +172,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut currently_playing = String::new();
 
     loop {
-        sleep(Duration::from_secs(args.wait_time as u64));
-
         match client.set_activity() {
             Ok(activity) => {
                 if activity.is_empty() && !currently_playing.is_empty() {
@@ -202,5 +210,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 info!("Reconnected!");
             }
         }
+
+        sleep(Duration::from_secs(args.wait_time as u64));
     }
 }

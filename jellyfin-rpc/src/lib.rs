@@ -34,7 +34,6 @@ pub struct Client {
     show_paused: bool,
     show_images: bool,
     imgur_options: ImgurOptions,
-    large_image_text: String,
 }
 
 impl Client {
@@ -62,7 +61,7 @@ impl Client {
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
-    ///     .username("user");    
+    ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
     ///
@@ -85,7 +84,7 @@ impl Client {
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
-    ///     .username("user");    
+    ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
     ///
@@ -107,6 +106,8 @@ impl Client {
 
             let mut activity = Activity::new();
 
+            let activity_text = self.get_activity_text();
+
             let mut image_url = Url::from_str("https://i.imgur.com/oX6vcds.png")?;
 
             if session.now_playing_item.media_type == MediaType::LiveTv {
@@ -127,8 +128,10 @@ impl Client {
 
             let mut assets = Assets::new().large_image(image_url.as_str());
 
-            if !self.large_image_text.is_empty() {
-                assets = assets.large_text(&self.large_image_text);
+            let image_text = activity_text.image_text;
+
+            if !image_text.is_empty() {
+                assets = assets.large_text(&image_text);
             }
 
             let mut timestamps = Timestamps::new();
@@ -157,20 +160,16 @@ impl Client {
                 );
             }
 
-            let mut state = self.get_state();
+            let mut state_text = activity_text.state_text;
 
-            if state.len() > 128 {
-                state = state.chars().take(128).collect();
-            } else if state.len() < 3 {
-                state += "‎‎‎";
+            if state_text.len() > 128 {
+                state_text = state_text.chars().take(128).collect();
             }
 
-            let mut details = session.get_details().to_string();
+            let mut details_text = activity_text.details_text;
 
-            if details.len() > 128 {
-                details = details.chars().take(128).collect();
-            } else if details.len() < 3 {
-                details += "‎‎‎";
+            if details_text.len() > 128 {
+                details_text = details_text.chars().take(128).collect();
             }
 
             match session.now_playing_item.media_type {
@@ -184,12 +183,12 @@ impl Client {
             activity = activity
                 .timestamps(timestamps)
                 .assets(assets)
-                .details(&details)
-                .state(&state);
+                .state(&state_text)
+                .details(&details_text);
 
             self.discord_ipc_client.set_activity(activity)?;
 
-            return Ok(format!("{} | {}", details, state));
+            return Ok(format!("{} | {}", state_text, details_text));
         }
         Ok(String::new())
     }
@@ -330,7 +329,7 @@ impl Client {
         }
     }
 
-    fn get_state(&self) -> String {
+    fn get_activity_text(&self) -> DisplayText {
         let session = self.session.as_ref().unwrap();
 
         match session.now_playing_item.media_type {
@@ -372,55 +371,73 @@ impl Client {
                     state += &format!(" {}", session.now_playing_item.name)
                 }
 
-                state
+                DisplayText {
+                    image_text: String::new(),
+                    state_text: state,
+                    details_text: String::new(),
+                }
             }
-            MediaType::LiveTv => "Live TV".to_string(),
+            MediaType::LiveTv => DisplayText {
+                image_text: String::new(),
+                state_text: "Live TV".to_string(),
+                details_text: String::new(),
+            },
             MediaType::Music => {
-                let mut state = String::new();
-
                 let artists = session.format_artists();
 
-                if !artists.is_empty() {
-                    state += &format!("By {}", artists)
+                let title = &session.now_playing_item.name;
+
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["".to_string()])
+                    .join(", ");
+
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|x| x.to_string())
+                    .unwrap_or(String::new());
+
+                let album = session
+                    .now_playing_item
+                    .album
+                    .clone()
+                    .unwrap_or(String::new());
+
+                let image_text = self
+                    .music_display_options
+                    .image_text
+                    .replace("{title}", &title)
+                    .replace("{artists}", &artists)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{album}", &album);
+
+                let state_text = self
+                    .music_display_options
+                    .state_text
+                    .replace("{title}", &title)
+                    .replace("{artists}", &artists)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{album}", &album);
+
+                let details_text = self
+                    .music_display_options
+                    .details_text
+                    .replace("{title}", &title)
+                    .replace("{artists}", &artists)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{album}", &album);
+
+                DisplayText {
+                    state_text,
+                    details_text,
+                    image_text,
                 }
-
-                for data in &self.music_display_options.display {
-                    match data.as_str() {
-                        "genres" => {
-                            let genres = session
-                                .now_playing_item
-                                .genres
-                                .as_ref()
-                                .unwrap_or(&vec!["".to_string()])
-                                .join(", ");
-                            if !state.is_empty() && !genres.is_empty() {
-                                state += &format!(" {} ", self.music_display_options.separator);
-                            }
-                            state += &genres
-                        }
-                        "year" => {
-                            if let Some(year) = session.now_playing_item.production_year {
-                                if !state.is_empty() {
-                                    state += &format!(" {} ", self.music_display_options.separator);
-                                }
-
-                                state += &year.to_string();
-                            }
-                        }
-                        "album" => {
-                            if let Some(album) = &session.now_playing_item.album {
-                                if !state.is_empty() {
-                                    state += &format!(" {} ", self.music_display_options.separator);
-                                }
-
-                                state += album;
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-
-                state
             }
             MediaType::Book => {
                 let mut state = String::new();
@@ -433,7 +450,11 @@ impl Client {
                     state += &format!("Reading page {}", page);
                 }
 
-                state
+                DisplayText {
+                    image_text: String::new(),
+                    state_text: state,
+                    details_text: String::new(),
+                }
             }
             MediaType::AudioBook => {
                 let mut state = String::new();
@@ -457,69 +478,82 @@ impl Client {
 
                 state += &genres;
 
-                state
+                DisplayText {
+                    image_text: String::new(),
+                    state_text: state,
+                    details_text: String::new(),
+                }
             }
             MediaType::Movie => {
-                let mut state = String::new();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["".to_string()])
+                    .join(", ");
 
-                for data in &self.movies_display_options.display {
-                    match data.as_str() {
-                        "genres" => {
-                            let genres = session
-                                .now_playing_item
-                                .genres
-                                .as_ref()
-                                .unwrap_or(&vec!["".to_string()])
-                                .join(", ");
-                            if !state.is_empty() && !genres.is_empty() {
-                                state += &format!(" {} ", self.movies_display_options.separator);
-                            }
-                            state += &genres
-                        }
-                        "year" => {
-                            if let Some(year) = session.now_playing_item.production_year {
-                                if !state.is_empty() {
-                                    state +=
-                                        &format!(" {} ", self.movies_display_options.separator);
-                                }
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|x| x.to_string())
+                    .unwrap_or(String::new());
 
-                                state += &year.to_string();
-                            }
-                        }
-                        "critic-score" => {
-                            if let Some(critic_score) = &session.now_playing_item.critic_rating {
-                                if !state.is_empty() {
-                                    state +=
-                                        &format!(" {} ", self.movies_display_options.separator);
-                                }
+                let critic_rating = session
+                    .now_playing_item
+                    .critic_rating
+                    .map(|x| x.to_string())
+                    .unwrap_or(String::new());
 
-                                state += &format!("🍅{}/100", critic_score);
-                            }
-                        }
-                        "community-score" => {
-                            if let Some(community_score) =
-                                &session.now_playing_item.community_rating
-                            {
-                                if !state.is_empty() {
-                                    state +=
-                                        &format!(" {} ", self.movies_display_options.separator);
-                                }
+                let community_rating = session
+                    .now_playing_item
+                    .community_rating
+                    .map(|x| x.to_string())
+                    .unwrap_or(String::new());
 
-                                state += &format!("⭐{:.1}/10", community_score);
-                            }
-                        }
-                        _ => (),
-                    }
+                let image_text = self
+                    .music_display_options
+                    .image_text
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{critic_rating}", &critic_rating)
+                    .replace("{community_rating}", &community_rating);
+
+                let details_line_1 = self
+                    .music_display_options
+                    .state_text
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{critic_rating}", &critic_rating)
+                    .replace("{community_rating}", &community_rating);
+
+                let details_line_2 = self
+                    .music_display_options
+                    .details_text
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{critic_rating}", &critic_rating)
+                    .replace("{community_rating}", &community_rating);
+
+                DisplayText {
+                    image_text,
+                    state_text: details_line_1,
+                    details_text: details_line_2,
                 }
-
-                state
             }
-            _ => session
-                .now_playing_item
-                .genres
-                .as_ref()
-                .unwrap_or(&vec!["".to_string()])
-                .join(", "),
+            _ => {
+                let state = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["".to_string()])
+                    .join(", ");
+
+                DisplayText {
+                    image_text: String::new(),
+                    state_text: state,
+                    details_text: String::new(),
+                }
+            }
         }
     }
 
@@ -572,8 +606,15 @@ struct EpisodeDisplayOptions {
 }
 
 struct DisplayOptions {
-    separator: String,
-    display: Vec<String>,
+    image_text: String,
+    state_text: String,
+    details_text: String,
+}
+
+struct DisplayText {
+    image_text: String,
+    state_text: String,
+    details_text: String,
 }
 
 struct Blacklist {
@@ -599,10 +640,12 @@ pub struct ClientBuilder {
     episode_divider: bool,
     episode_prefix: bool,
     episode_simple: bool,
-    music_separator: String,
-    music_display: Vec<String>,
-    movies_separator: String,
-    movies_display: Vec<String>,
+    music_image_text: String,
+    music_state_text: String,
+    music_details_text: String,
+    movie_image_text: String,
+    movie_state_text: String,
+    movie_details_text: String,
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
@@ -618,10 +661,12 @@ impl ClientBuilder {
     pub fn new() -> Self {
         Self {
             client_id: "1053747938519679018".to_string(),
-            music_separator: "-".to_string(),
-            music_display: vec!["genres".to_string()],
-            movies_separator: "-".to_string(),
-            movies_display: vec!["genres".to_string()],
+            music_image_text: "{track}".to_string(),
+            music_state_text: "by {artists}".to_string(),
+            music_details_text: "on {album} ({genres})".to_string(),
+            movie_image_text: "{title}".to_string(),
+            movie_state_text: "{episode_title}".to_string(),
+            movie_details_text: "E{episode_number}S{season_number}".to_string(),
             show_paused: true,
             ..Default::default()
         }
@@ -725,23 +770,33 @@ impl ClientBuilder {
         self
     }
 
-    pub fn music_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
-        self.music_separator = separator.into();
+    pub fn music_state_text(&mut self, state_text: String) -> &mut Self {
+        self.music_state_text = state_text;
         self
     }
 
-    pub fn music_display(&mut self, display: Vec<String>) -> &mut Self {
-        self.music_display = display;
+    pub fn music_details_text(&mut self, details_text: String) -> &mut Self {
+        self.music_details_text = details_text;
         self
     }
 
-    pub fn movies_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
-        self.movies_separator = separator.into();
+    pub fn music_image_text(&mut self, image_text: String) -> &mut Self {
+        self.music_image_text = image_text;
         self
     }
 
-    pub fn movies_display(&mut self, display: Vec<String>) -> &mut Self {
-        self.movies_display = display;
+    pub fn movies_state_text(&mut self, state_text: String) -> &mut Self {
+        self.music_state_text = state_text;
+        self
+    }
+
+    pub fn movies_details_text(&mut self, details_text: String) -> &mut Self {
+        self.music_details_text = details_text;
+        self
+    }
+
+    pub fn movies_image_text(&mut self, image_text: String) -> &mut Self {
+        self.music_image_text = image_text;
         self
     }
 
@@ -857,12 +912,14 @@ impl ClientBuilder {
                 simple: self.episode_simple,
             },
             music_display_options: DisplayOptions {
-                separator: self.music_separator,
-                display: self.music_display,
+                state_text: self.music_state_text,
+                details_text: self.music_details_text,
+                image_text: self.music_image_text,
             },
             movies_display_options: DisplayOptions {
-                separator: self.movies_separator,
-                display: self.movies_display,
+                state_text: self.movie_state_text,
+                details_text: self.movie_details_text,
+                image_text: self.movie_image_text,
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
@@ -875,7 +932,6 @@ impl ClientBuilder {
                 client_id: self.imgur_client_id,
                 urls_location: self.imgur_urls_file_location,
             },
-            large_image_text: self.large_image_text,
         })
     }
 }
