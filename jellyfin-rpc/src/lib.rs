@@ -10,6 +10,7 @@ use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
 use url::Url;
+use crate::jellyfin::VirtualFolder;
 
 mod error;
 mod external;
@@ -523,26 +524,23 @@ impl Client {
         }
     }
 
-    fn get_ancestors(&self) -> JfResult<Vec<Item>> {
-        let session = self.session.as_ref().unwrap();
+    fn get_virtual_media_folders(&self) -> JfResult<Vec<VirtualFolder>> {
 
-        let ancestors: Vec<Item> = self
+        let virtual_folders: Vec<VirtualFolder> = self
             .reqwest
             .get(
                 self.url
-                    .join(&format!("Items/{}/Ancestors", session.now_playing_item.id))?,
+                    .join(&"Library/VirtualFolders".to_string())?,
             )
             .send()?
             .json()?;
 
-        debug!("Ancestors: {:?}", ancestors);
-
-        Ok(ancestors)
+        Ok(virtual_folders)
     }
 
     fn check_blacklist(&self) -> JfResult<bool> {
         let session = self.session.as_ref().unwrap();
-        let ancestors = self.get_ancestors()?;
+        let media_folders = self.get_virtual_media_folders()?;
 
         if self
             .blacklist
@@ -553,11 +551,24 @@ impl Client {
             return Ok(true);
         }
 
-        if self.blacklist.libraries.iter().any(|l| {
-            ancestors
-                .iter()
-                .any(|a| l == a.name.as_ref().unwrap_or(&"".to_string()))
-        }) {
+        let matching_media_folders: Vec<&VirtualFolder> = media_folders
+            .iter()
+            .filter(|vf| self.blacklist.libraries_names.contains(vf.name.as_ref().unwrap())).collect();
+
+        debug!("Matching media folders: {:?}", matching_media_folders);
+
+        if matching_media_folders.iter()
+            .any(|blacklisted_mf| {
+                blacklisted_mf.locations.iter().any(|physical_folder| {
+                    debug!("Playing now: {}\nBL: {}", session.now_playing_item.path.as_ref().unwrap().to_string(), physical_folder);
+                    session.now_playing_item
+                        .path.as_ref().unwrap().starts_with(physical_folder)
+                }
+                )
+
+            }
+            )
+        {
             return Ok(true);
         }
 
@@ -866,7 +877,7 @@ impl ClientBuilder {
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
-                libraries: self.blacklist_libraries,
+                libraries_names: self.blacklist_libraries,
             },
             show_paused: self.show_paused,
             show_images: self.show_images,

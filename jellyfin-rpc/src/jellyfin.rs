@@ -186,6 +186,7 @@ pub struct NowPlayingItem {
     pub extra_type: Option<String>,
     pub album_id: Option<String>,
     pub album: Option<String>,
+    pub path: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -327,8 +328,17 @@ pub struct PlayState {
     pub position_ticks: Option<i64>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Item {
     pub name: Option<String>,
+    pub path: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "PascalCase")]
+pub struct VirtualFolder {
+    pub name: Option<String>,
+    pub locations: Vec<String>,
+    pub collection_type: MediaType,
 }
