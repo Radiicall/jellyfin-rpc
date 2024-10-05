@@ -601,6 +601,7 @@ impl Blacklist {
 
     /// Check whether a [NowPlayingItem] is in a blacklisted library
     fn check_item(&self, playing_item: &NowPlayingItem) -> bool {
+        debug!("Checking if an item is blacklisted: {}", playing_item.name);
         self.check_path(&*playing_item.path.as_ref().unwrap())
     }
 
@@ -608,11 +609,12 @@ impl Blacklist {
     fn check_path(&self, item_path: &str) -> bool {
         match &self.libraries {
             Initialized (libraries) => {
+                debug!("Checking path: {}", item_path);
                 libraries
                     .iter()
                     .any(|blacklisted_mf| {
                         blacklisted_mf.locations.iter().any(|physical_folder| {
-                            debug!("Playing now: {}\nBL: {}", item_path, physical_folder);
+                            debug!("BL path: {}", physical_folder);
                             item_path.starts_with(physical_folder)
                         })
                     })
