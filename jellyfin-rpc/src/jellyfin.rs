@@ -330,15 +330,7 @@ pub struct PlayState {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
-pub struct Item {
-    pub name: Option<String>,
-    pub path: Option<String>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "PascalCase")]
 pub struct VirtualFolder {
     pub name: Option<String>,
     pub locations: Vec<String>,
-    pub collection_type: MediaType,
 }
