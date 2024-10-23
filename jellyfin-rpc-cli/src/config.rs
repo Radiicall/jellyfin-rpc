@@ -175,13 +175,13 @@ pub fn get_urls_path() -> Result<String, Box<dyn std::error::Error>> {
     }
 }
 
-/// Find config.json in filesystem.
+/// Find default config path (main.json) in filesystem.
 ///
 /// This is to avoid the user having to specify a filepath on launch.
 ///
 /// Default config path depends on OS
-/// Windows: `%appdata%\jellyfin-rpc\config.json`
-/// Linux/macOS: `~/.config/jellyfin-rpc/config.json`
+/// Windows: `%appdata%\jellyfin-rpc\main.json`
+/// Linux/macOS: `~/.config/jellyfin-rpc/main.json`
 pub fn get_config_path() -> Result<String, Box<dyn std::error::Error>> {
     debug!("Getting config path");
     if cfg!(not(windows)) {
