@@ -73,8 +73,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let conf = match Config::builder().load(conf_path) {
         Ok(file) => file.build(),
-        Err(_error) => {
-            error!("Config file could not be found at path: {}", conf_path.red());
+        Err(error) => {
+            error!("Config file could not be loaded at path: {}", conf_path.red());
+            error!("{}", error);
             error!("Please create a proper config file: {}", "https://github.com/Radiicall/jellyfin-rpc/wiki/Setup".green());
             std::process::exit(1)
         }
