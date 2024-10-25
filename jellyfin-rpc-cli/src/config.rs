@@ -44,11 +44,11 @@ pub struct Jellyfin {
 }
 
 /// Contains configuration for Music/Movie display.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DisplayOptions {
-    /// Display is where you tell the program what should be displayed.
-    pub display: Option<Vec<String>>,
-    /// Separator is what should be between the artist(s) and the `display` options.
-    pub separator: Option<String>,
+    pub state_text: Option<String>,
+    pub details_text: Option<String>,
+    pub image_text: Option<String>,
 }
 
 /// Discord configuration
@@ -90,8 +90,8 @@ pub struct JellyfinBuilder {
     pub url: String,
     pub api_key: String,
     pub username: Username,
-    pub music: Option<DisplayOptionsBuilder>,
-    pub movies: Option<DisplayOptionsBuilder>,
+    pub music: Option<DisplayOptions>,
+    pub movies: Option<DisplayOptions>,
     pub blacklist: Option<Blacklist>,
     pub self_signed_cert: Option<bool>,
     pub show_simple: Option<bool>,
@@ -105,21 +105,6 @@ pub enum Username {
     /// If the username is a `Vec<String>`.
     Vec(Vec<String>),
     /// If the username is a `String`.
-    String(String),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct DisplayOptionsBuilder {
-    pub display: Option<Display>,
-    pub separator: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(untagged)]
-pub enum Display {
-    /// If the Display is a `Vec<String>`.
-    Vec(Vec<String>),
-    /// If the Display is a comma separated `String`.
     String(String),
 }
 
@@ -238,42 +223,24 @@ impl ConfigBuilder {
             Username::String(username) => username.split(',').map(|u| u.to_string()).collect(),
         };
 
-        let music_display;
-        let music_separator;
+        let mut music_state_text = None;
+        let mut music_details_text = None;
+        let mut music_image_text = None;
 
         if let Some(music) = self.jellyfin.music {
-            if let Some(disp) = music.display {
-                music_display = Some(match disp {
-                    Display::Vec(display) => display,
-                    Display::String(display) => display.split(',').map(|d| d.to_string()).collect(),
-                })
-            } else {
-                music_display = None;
-            }
-
-            music_separator = music.separator;
-        } else {
-            music_display = None;
-            music_separator = None;
+            music_state_text = music.state_text;
+            music_details_text = music.details_text;
+            music_image_text = music.image_text;
         }
 
-        let movie_display;
-        let movie_separator;
+        let mut movies_state_text = None;
+        let mut movies_details_text = None;
+        let mut movies_image_text = None;
 
         if let Some(movies) = self.jellyfin.movies {
-            if let Some(disp) = movies.display {
-                movie_display = Some(match disp {
-                    Display::Vec(display) => display,
-                    Display::String(display) => display.split(',').map(|d| d.to_string()).collect(),
-                })
-            } else {
-                movie_display = None;
-            }
-
-            movie_separator = movies.separator;
-        } else {
-            movie_display = None;
-            movie_separator = None;
+            movies_state_text = movies.state_text;
+            movies_details_text = movies.details_text;
+            movies_image_text = movies.image_text;
         }
 
         let media_types;
@@ -326,12 +293,14 @@ impl ConfigBuilder {
                 api_key: self.jellyfin.api_key,
                 username,
                 music: DisplayOptions {
-                    display: music_display,
-                    separator: music_separator,
+                    state_text: music_state_text,
+                    details_text: music_details_text,
+                    image_text: music_image_text,
                 },
                 movies: DisplayOptions {
-                    display: movie_display,
-                    separator: movie_separator,
+                    state_text: movies_state_text,
+                    details_text: movies_details_text,
+                    image_text: movies_image_text,
                 },
                 blacklist: Blacklist {
                     media_types,
