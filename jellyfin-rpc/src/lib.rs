@@ -5,11 +5,13 @@ use discord_rich_presence::{
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{ExternalUrl, Item, PlayTime, RawSession, Session};
+use jellyfin::{ExternalUrl, PlayTime, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::str::FromStr;
 use url::Url;
+use crate::BlacklistedLibraries::{Initialized, Uninitialized};
+use crate::jellyfin::{NowPlayingItem, VirtualFolder};
 
 mod error;
 mod external;
@@ -95,6 +97,14 @@ impl Client {
     /// ```
     pub fn set_activity(&mut self) -> JfResult<String> {
         self.get_session()?;
+
+        // Make sure the blacklist cache is loaded/valid
+        match &self.blacklist.libraries {
+            Uninitialized => {
+                self.reload_blacklist();
+            },
+            _ => {}
+        }
 
         if let Some(session) = &self.session {
             if session.now_playing_item.media_type == MediaType::None {
@@ -523,26 +533,8 @@ impl Client {
         }
     }
 
-    fn get_ancestors(&self) -> JfResult<Vec<Item>> {
-        let session = self.session.as_ref().unwrap();
-
-        let ancestors: Vec<Item> = self
-            .reqwest
-            .get(
-                self.url
-                    .join(&format!("Items/{}/Ancestors", session.now_playing_item.id))?,
-            )
-            .send()?
-            .json()?;
-
-        debug!("Ancestors: {:?}", ancestors);
-
-        Ok(ancestors)
-    }
-
     fn check_blacklist(&self) -> JfResult<bool> {
         let session = self.session.as_ref().unwrap();
-        let ancestors = self.get_ancestors()?;
 
         if self
             .blacklist
@@ -553,15 +545,33 @@ impl Client {
             return Ok(true);
         }
 
-        if self.blacklist.libraries.iter().any(|l| {
-            ancestors
-                .iter()
-                .any(|a| l == a.name.as_ref().unwrap_or(&"".to_string()))
-        }) {
+        if self.blacklist.check_item(&session.now_playing_item)
+        {
             return Ok(true);
         }
 
         Ok(false)
+    }
+
+    /// Fetch the virtual folder list and filter out the blacklisted libraries
+    fn fetch_blacklist(&self) -> JfResult<Vec<VirtualFolder>> {
+        let virtual_folders : Vec<VirtualFolder> = self.reqwest
+            .get(
+                self.url
+                    .join(&"Library/VirtualFolders".to_string())?,
+            )
+            .send()?
+            .json()?;
+
+        Ok(virtual_folders
+            .into_iter()
+            .filter(|library_folder| self.blacklist.libraries_names.contains(library_folder.name.as_ref().unwrap())).collect()
+        )
+    }
+
+    /// Reload the library list from Jellyfin and filter out the user-provided blacklisted libraries
+    fn reload_blacklist(&mut self) {
+        self.blacklist.libraries = Initialized(self.fetch_blacklist().unwrap())
     }
 }
 
@@ -578,7 +588,43 @@ struct DisplayOptions {
 
 struct Blacklist {
     media_types: Vec<MediaType>,
-    libraries: Vec<String>,
+    libraries_names: Vec<String>,
+    libraries: BlacklistedLibraries
+}
+
+enum BlacklistedLibraries {
+    Uninitialized,
+    Initialized(Vec<VirtualFolder>),
+}
+
+impl Blacklist {
+
+    /// Check whether a [NowPlayingItem] is in a blacklisted library
+    fn check_item(&self, playing_item: &NowPlayingItem) -> bool {
+        debug!("Checking if an item is blacklisted: {}", playing_item.name);
+        self.check_path(&*playing_item.path.as_ref().unwrap())
+    }
+
+    /// Check whether a path is in a blacklisted library
+    fn check_path(&self, item_path: &str) -> bool {
+        match &self.libraries {
+            Initialized (libraries) => {
+                debug!("Checking path: {}", item_path);
+                libraries
+                    .iter()
+                    .any(|blacklisted_mf| {
+                        blacklisted_mf.locations.iter().any(|physical_folder| {
+                            debug!("BL path: {}", physical_folder);
+                            item_path.starts_with(physical_folder)
+                        })
+                    })
+
+            }
+            _ => {
+                false
+            }
+        }
+    }
 }
 
 struct ImgurOptions {
@@ -866,7 +912,8 @@ impl ClientBuilder {
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
-                libraries: self.blacklist_libraries,
+                libraries_names: self.blacklist_libraries,
+                libraries: Uninitialized,
             },
             show_paused: self.show_paused,
             show_images: self.show_images,
