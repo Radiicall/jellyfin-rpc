@@ -8,6 +8,7 @@ pub use jellyfin::{Button, MediaType};
 use jellyfin::{ExternalUrl, Item, PlayTime, RawSession, Session};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use url::Url;
 
@@ -18,6 +19,8 @@ mod jellyfin;
 mod tests;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
+
+const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 /// Client used to interact with jellyfin and discord
 pub struct Client {
@@ -165,13 +168,23 @@ impl Client {
                 state += "‎‎‎";
             }
 
-            let mut details = session.get_details().to_string();
+            let mut details = self.get_details();
 
             if details.len() > 128 {
                 details = details.chars().take(128).collect();
             } else if details.len() < 3 {
                 details += "‎‎‎";
             }
+
+            let mut image_text = self.get_image_text();
+
+            if image_text.len() > 128 {
+                image_text = image_text.chars().take(128).collect();
+            } else if image_text.len() < 3 {
+                image_text += "‎‎‎";
+            }
+
+            assets = assets.large_text(image_text.as_str());
 
             match session.now_playing_item.media_type {
                 MediaType::Book => (),
@@ -330,6 +343,101 @@ impl Client {
         }
     }
 
+    fn get_details(&self) -> String {
+        let session = self.session.as_ref().unwrap();
+
+        match session.now_playing_item.media_type {
+            MediaType::Music => {
+                let display_details_format = &self.music_display_options.display.details_text.as_ref().unwrap();
+
+                let separator = &self.music_display_options.separator;
+                let track = session.now_playing_item.name.as_ref();
+                let artists = session.format_artists();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["Unknown genre".to_string()])
+                    .join(", ");
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|y| y.to_string())
+                    .unwrap_or("Unknown year".to_string());
+                let album = session
+                    .now_playing_item
+                    .album
+                    .as_ref()
+                    .unwrap_or(&"Unknown album".to_string())
+                    .clone();
+
+                display_details_format
+                    .replace("{__default}", "{track}")
+                    .replace("{track}", &track)
+                    .replace("{album}", &album)
+                    .replace("{artists}", &artists)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{sep}", &separator)
+                    .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
+            }
+            MediaType::Movie => {
+                let display_details_format = &self.movies_display_options.display.details_text.as_ref().unwrap();
+
+                let separator = &self.movies_display_options.separator;
+                let title = session.now_playing_item.name.as_ref();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["Unknown genre".to_string()])
+                    .join(", ");
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|y| y.to_string())
+                    .unwrap_or("Unknown year".to_string());
+                let critic_score = &session
+                    .now_playing_item
+                    .critic_rating
+                    .map(|s| format!("🍅{}/100", s))
+                    .unwrap_or("🍅 ?/100".to_string());
+                let community_score = &session
+                    .now_playing_item
+                    .community_rating
+                    .map(|s| format!("⭐{:.1}/10", s))
+                    .unwrap_or("⭐ ?/10".to_string());
+
+                display_details_format
+                    .replace("{__default}", "{title}")
+                    .replace("{title}", &title)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{critic-score}", &critic_score)
+                    .replace("{community-score}", &community_score)
+                    .replace("{sep}", &separator)
+                    .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
+            }
+            MediaType::Episode => {
+                session
+                    .now_playing_item
+                    .series_name
+                    .as_ref()
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| session.now_playing_item.name.to_string())
+            }
+            MediaType::AudioBook => {
+                session
+                    .now_playing_item
+                    .album
+                    .as_ref()
+                    .map(|a| a.to_string())
+                    .unwrap_or_else(|| session.now_playing_item.name.to_string())
+            }
+            _ => session.now_playing_item.name.to_string(),
+        }
+    }
+
     fn get_state(&self) -> String {
         let session = self.session.as_ref().unwrap();
 
@@ -376,51 +484,38 @@ impl Client {
             }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
-                let mut state = String::new();
+                let display_state_format = &self.music_display_options.display.state_text.as_ref().unwrap();
 
+                let separator = &self.music_display_options.separator;
+                let track = session.now_playing_item.name.as_ref();
                 let artists = session.format_artists();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["Unknown genre".to_string()])
+                    .join(", ");
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|y| y.to_string())
+                    .unwrap_or("Unknown year".to_string());
+                let album = session
+                    .now_playing_item
+                    .album
+                    .as_ref()
+                    .unwrap_or(&"Unknown album".to_string())
+                    .clone();
 
-                if !artists.is_empty() {
-                    state += &format!("By {}", artists)
-                }
-
-                for data in &self.music_display_options.display {
-                    match data.as_str() {
-                        "genres" => {
-                            let genres = session
-                                .now_playing_item
-                                .genres
-                                .as_ref()
-                                .unwrap_or(&vec!["".to_string()])
-                                .join(", ");
-                            if !state.is_empty() && !genres.is_empty() {
-                                state += &format!(" {} ", self.music_display_options.separator);
-                            }
-                            state += &genres
-                        }
-                        "year" => {
-                            if let Some(year) = session.now_playing_item.production_year {
-                                if !state.is_empty() {
-                                    state += &format!(" {} ", self.music_display_options.separator);
-                                }
-
-                                state += &year.to_string();
-                            }
-                        }
-                        "album" => {
-                            if let Some(album) = &session.now_playing_item.album {
-                                if !state.is_empty() {
-                                    state += &format!(" {} ", self.music_display_options.separator);
-                                }
-
-                                state += album;
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-
-                state
+                display_state_format
+                    .replace("{__default}", "By {artists} {sep} ")
+                    .replace("{track}", &track)
+                    .replace("{album}", &album)
+                    .replace("{artists}", &artists)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{sep}", &separator)
+                    .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
             }
             MediaType::Book => {
                 let mut state = String::new();
@@ -460,59 +555,41 @@ impl Client {
                 state
             }
             MediaType::Movie => {
-                let mut state = String::new();
+                let display_state_format = &self.movies_display_options.display.state_text.as_ref().unwrap();
 
-                for data in &self.movies_display_options.display {
-                    match data.as_str() {
-                        "genres" => {
-                            let genres = session
-                                .now_playing_item
-                                .genres
-                                .as_ref()
-                                .unwrap_or(&vec!["".to_string()])
-                                .join(", ");
-                            if !state.is_empty() && !genres.is_empty() {
-                                state += &format!(" {} ", self.movies_display_options.separator);
-                            }
-                            state += &genres
-                        }
-                        "year" => {
-                            if let Some(year) = session.now_playing_item.production_year {
-                                if !state.is_empty() {
-                                    state +=
-                                        &format!(" {} ", self.movies_display_options.separator);
-                                }
+                let separator = &self.movies_display_options.separator;
+                let title = session.now_playing_item.name.as_ref();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["Unknown genre".to_string()])
+                    .join(", ");
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|y| y.to_string())
+                    .unwrap_or("Unknown year".to_string());
+                let critic_score = &session
+                    .now_playing_item
+                    .critic_rating
+                    .map(|s| format!("🍅{}/100", s))
+                    .unwrap_or("🍅 ?/100".to_string());
+                let community_score = &session
+                    .now_playing_item
+                    .community_rating
+                    .map(|s| format!("⭐{:.1}/10", s))
+                    .unwrap_or("⭐ ?/10".to_string());
 
-                                state += &year.to_string();
-                            }
-                        }
-                        "critic-score" => {
-                            if let Some(critic_score) = &session.now_playing_item.critic_rating {
-                                if !state.is_empty() {
-                                    state +=
-                                        &format!(" {} ", self.movies_display_options.separator);
-                                }
-
-                                state += &format!("🍅{}/100", critic_score);
-                            }
-                        }
-                        "community-score" => {
-                            if let Some(community_score) =
-                                &session.now_playing_item.community_rating
-                            {
-                                if !state.is_empty() {
-                                    state +=
-                                        &format!(" {} ", self.movies_display_options.separator);
-                                }
-
-                                state += &format!("⭐{:.1}/10", community_score);
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-
-                state
+                display_state_format
+                    .replace("{__default}", "")
+                    .replace("{title}", &title)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{critic-score}", &critic_score)
+                    .replace("{community-score}", &community_score)
+                    .replace("{sep}", &separator)
+                    .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
             }
             _ => session
                 .now_playing_item
@@ -520,6 +597,83 @@ impl Client {
                 .as_ref()
                 .unwrap_or(&vec!["".to_string()])
                 .join(", "),
+        }
+    }
+
+    fn get_image_text(&self) -> String {
+        let session = self.session.as_ref().unwrap();
+
+        match session.now_playing_item.media_type {
+            MediaType::Music => {
+                let display_image_format = &self.music_display_options.display.image_text.as_ref().unwrap();
+
+                let separator = &self.music_display_options.separator;
+                let track = session.now_playing_item.name.as_ref();
+                let artists = session.format_artists();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["Unknown genre".to_string()])
+                    .join(", ");
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|y| y.to_string())
+                    .unwrap_or("Unknown year".to_string());
+                let album = session
+                    .now_playing_item
+                    .album
+                    .as_ref()
+                    .unwrap_or(&"Unknown album".to_string())
+                    .clone();
+
+                display_image_format
+                    .replace("{track}", &track)
+                    .replace("{album}", &album)
+                    .replace("{artists}", &artists)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{sep}", &separator)
+                    .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
+            }
+            MediaType::Movie => {
+                let display_image_format = &self.movies_display_options.display.image_text.as_ref().unwrap();
+
+                let separator = &self.movies_display_options.separator;
+                let title = session.now_playing_item.name.as_ref();
+                let genres = session
+                    .now_playing_item
+                    .genres
+                    .as_ref()
+                    .unwrap_or(&vec!["".to_string()])
+                    .join(", ");
+                let year = session
+                    .now_playing_item
+                    .production_year
+                    .map(|y| y.to_string())
+                    .unwrap_or("Unknown year".to_string());
+                let critic_score = &session
+                    .now_playing_item
+                    .critic_rating
+                    .map(|s| format!("🍅{}/100", s))
+                    .unwrap_or("🍅 ?/100".to_string());
+                let community_score = &session
+                    .now_playing_item
+                    .community_rating
+                    .map(|s| format!("⭐{:.1}/10", s))
+                    .unwrap_or("⭐ ?/10".to_string());
+
+                display_image_format
+                    .replace("{title}", &title)
+                    .replace("{genres}", &genres)
+                    .replace("{year}", &year)
+                    .replace("{critic-score}", &critic_score)
+                    .replace("{community-score}", &community_score)
+                    .replace("{sep}", &separator)
+                    .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
+            }
+            _ => "".to_string(),
         }
     }
 
@@ -573,7 +727,51 @@ struct EpisodeDisplayOptions {
 
 struct DisplayOptions {
     separator: String,
-    display: Vec<String>,
+    display: DisplayFormat,
+}
+
+/// Represents the formatting details for `Display`.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+pub struct DisplayFormat {
+    /// First line of the activity.
+    pub details_text: Option<String>,
+    /// Second line of the activity.
+    pub state_text: Option<String>,
+    /// Third line / large image text of the activity.
+    pub image_text: Option<String>,
+}
+
+/// Converts legacy `Vec<String>` to `DisplayFormat`
+impl From<Vec<String>> for DisplayFormat {
+    fn from(items: Vec<String>) -> Self {
+        let details_text = "{__default}".to_string();
+        let image_text = "Jellyfin-RPC v{version}".to_string();
+        let mut state_text = "{__default}".to_string();
+
+        let items_joined = items
+            .iter()
+            .map(|i| format!("{{{}}}", i))
+            .collect::<Vec<String>>()
+            .join(" {sep} ");
+
+        if !items_joined.is_empty() {
+            state_text += &items_joined;
+        }
+
+        DisplayFormat {
+            details_text: Some(details_text),
+            state_text: Some(state_text),
+            image_text: Some(image_text),
+        }
+    }
+}
+
+/// Reuses `DisplayFormat::from(Vec<String>)`
+impl From<String> for DisplayFormat {
+    fn from(item: String) -> Self {
+        let data: Vec<String> = item.split(',').map(|d| d.to_string()).collect();
+        DisplayFormat::from(data)
+    }
 }
 
 struct Blacklist {
@@ -600,9 +798,9 @@ pub struct ClientBuilder {
     episode_prefix: bool,
     episode_simple: bool,
     music_separator: String,
-    music_display: Vec<String>,
+    music_display: DisplayFormat,
     movies_separator: String,
-    movies_display: Vec<String>,
+    movies_display: DisplayFormat,
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
@@ -619,9 +817,9 @@ impl ClientBuilder {
         Self {
             client_id: "1053747938519679018".to_string(),
             music_separator: "-".to_string(),
-            music_display: vec!["genres".to_string()],
+            music_display: DisplayFormat::from(vec!["genres".to_string()]),
             movies_separator: "-".to_string(),
-            movies_display: vec!["genres".to_string()],
+            movies_display: DisplayFormat::from(vec!["genres".to_string()]),
             show_paused: true,
             ..Default::default()
         }
@@ -730,7 +928,7 @@ impl ClientBuilder {
         self
     }
 
-    pub fn music_display(&mut self, display: Vec<String>) -> &mut Self {
+    pub fn music_display(&mut self, display: DisplayFormat) -> &mut Self {
         self.music_display = display;
         self
     }
@@ -740,7 +938,7 @@ impl ClientBuilder {
         self
     }
 
-    pub fn movies_display(&mut self, display: Vec<String>) -> &mut Self {
+    pub fn movies_display(&mut self, display: DisplayFormat) -> &mut Self {
         self.movies_display = display;
         self
     }
