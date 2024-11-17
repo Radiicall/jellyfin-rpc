@@ -493,7 +493,7 @@ impl Client {
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
                 let display_state_format = &self.music_display_options.display.state_text.as_ref().unwrap();
-                self.parse_music_display(display_state_format.replace("{__default}", "By {artists} {sep}").as_str())
+                self.parse_music_display(display_state_format.replace("{__default}", "By {artists} {sep} ").as_str())
             }
             MediaType::Book => {
                 let mut state = String::new();
