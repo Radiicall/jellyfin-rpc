@@ -348,7 +348,9 @@ impl Client {
     }
 
     fn sanitize_display_format(input: &str) -> String {
-        let mut result = input.trim().to_string();
+        let mut result = input.to_string();
+
+        result = result.trim().to_string();
 
         // Remove unnecessary spaces
         while result.contains("  ") {
@@ -364,17 +366,13 @@ impl Client {
         }
 
         // Remove unnecessary separators
-        while result.starts_with(" {sep}") {
-            result = result.drain(6..).collect();
-        }
         while result.starts_with("{sep}") {
             result = result.drain(5..).collect();
-        }
-        while result.ends_with(" {sep}") {
-            result = result.drain(..result.len() - 6).collect();
+            result = result.trim_start().to_string();
         }
         while result.ends_with("{sep}") {
             result = result.drain(..result.len() - 5).collect();
+            result = result.trim_end().to_string();
         }
 
         result
