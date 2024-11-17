@@ -178,6 +178,10 @@ impl Client {
 
             let mut image_text = self.get_image_text();
 
+            if image_text.is_empty() {
+                image_text = format!("Jellyfin-RPC v{}", VERSION.unwrap_or("UNKNOWN"));
+            }
+
             if image_text.len() > 128 {
                 image_text = image_text.chars().take(128).collect();
             } else if image_text.len() < 3 {
