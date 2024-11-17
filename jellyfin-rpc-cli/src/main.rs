@@ -1,7 +1,7 @@
 use clap::Parser;
 use colored::Colorize;
 use config::{get_config_path, get_urls_path, Config};
-use jellyfin_rpc::Client;
+use jellyfin_rpc::{Client, VERSION};
 use log::{debug, error, info};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
@@ -14,8 +14,6 @@ mod updates;
 /*
     TODO: Comments
 */
-
-const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 #[command(author = "Radical <Radiicall> <radical@radical.fun>")]

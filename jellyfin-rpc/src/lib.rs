@@ -20,7 +20,7 @@ mod tests;
 
 pub(crate) type JfResult<T> = Result<T, Box<dyn std::error::Error>>;
 
-const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
+pub const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 /// Client used to interact with jellyfin and discord
 pub struct Client {
