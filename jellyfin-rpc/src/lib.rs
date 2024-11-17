@@ -347,7 +347,41 @@ impl Client {
         }
     }
 
+    fn sanitize_display_format(input: &str) -> String {
+        let mut result = input.trim().to_string();
+
+        // Remove unnecessary spaces
+        while result.contains("  ") {
+            result = result.replace("  ", " ");
+        }
+
+        // Remove duplicated separators
+        while result.contains("{sep}{sep}") {
+            result = result.replace("{sep}{sep}", "{sep}");
+        }
+        while result.contains("{sep} {sep}") {
+            result = result.replace("{sep} {sep}", "{sep}");
+        }
+
+        // Remove unnecessary separators
+        while result.starts_with(" {sep}") {
+            result = result.drain(6..).collect();
+        }
+        while result.starts_with("{sep}") {
+            result = result.drain(5..).collect();
+        }
+        while result.ends_with(" {sep}") {
+            result = result.drain(..result.len() - 6).collect();
+        }
+        while result.ends_with("{sep}") {
+            result = result.drain(..result.len() - 5).collect();
+        }
+
+        result
+    }
+
     fn parse_music_display(&self, input: &str) -> String {
+        let mut result = input.trim().to_string();
         let session = self.session.as_ref().unwrap();
 
         let separator = &self.music_display_options.separator;
@@ -357,31 +391,34 @@ impl Client {
             .now_playing_item
             .genres
             .as_ref()
-            .unwrap_or(&vec!["Unknown genre".to_string()])
+            .unwrap_or(&vec!["".to_string()])
             .join(", ");
         let year = session
             .now_playing_item
             .production_year
             .map(|y| y.to_string())
-            .unwrap_or("Unknown year".to_string());
+            .unwrap_or_default();
         let album = session
             .now_playing_item
             .album
             .as_ref()
-            .unwrap_or(&"Unknown album".to_string())
+            .unwrap_or(&"".to_string())
             .clone();
 
-        input
+        result = result
             .replace("{track}", &track)
             .replace("{album}", &album)
             .replace("{artists}", &artists)
             .replace("{genres}", &genres)
             .replace("{year}", &year)
+            .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
+
+        Self::sanitize_display_format(&result)
             .replace("{sep}", &separator)
-            .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
     }
 
     fn parse_movies_display(&self, input: &str) -> String {
+        let mut result = input.trim().to_string();
         let session = self.session.as_ref().unwrap();
 
         let separator = &self.movies_display_options.separator;
@@ -396,26 +433,28 @@ impl Client {
             .now_playing_item
             .production_year
             .map(|y| y.to_string())
-            .unwrap_or("Unknown year".to_string());
+            .unwrap_or_default();
         let critic_score = &session
             .now_playing_item
             .critic_rating
             .map(|s| format!("🍅 {}/100", s))
-            .unwrap_or("🍅 ?/100".to_string());
+            .unwrap_or_default();
         let community_score = &session
             .now_playing_item
             .community_rating
             .map(|s| format!("⭐ {:.1}/10", s))
-            .unwrap_or("⭐ ?/10".to_string());
+            .unwrap_or_default();
 
-        input
+        result = result
             .replace("{title}", &title)
             .replace("{genres}", &genres)
             .replace("{year}", &year)
             .replace("{critic-score}", &critic_score)
             .replace("{community-score}", &community_score)
+            .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
+
+        Self::sanitize_display_format(&result)
             .replace("{sep}", &separator)
-            .replace("{version}", VERSION.unwrap_or("UNKNOWN"))
     }
 
     fn get_details(&self) -> String {
