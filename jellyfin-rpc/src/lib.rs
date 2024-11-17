@@ -638,7 +638,7 @@ impl From<Vec<String>> for DisplayFormat {
 
         let items_joined = items
             .iter()
-            .map(|i| format!("{{{}}}", i))
+            .map(|i| format!("{{{}}}", i.trim()))
             .collect::<Vec<String>>()
             .join(" {sep} ");
 
