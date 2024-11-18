@@ -417,7 +417,7 @@ impl Client {
             .now_playing_item
             .genres
             .as_ref()
-            .unwrap_or(&vec!["Unknown genre".to_string()])
+            .unwrap_or(&vec!["".to_string()])
             .join(", ");
         let year = session
             .now_playing_item
