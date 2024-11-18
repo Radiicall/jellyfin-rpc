@@ -348,20 +348,12 @@ impl Client {
     }
 
     fn sanitize_display_format(input: &str) -> String {
-        let mut result = input.to_string();
-
-        result = result.trim().to_string();
-
         // Remove unnecessary spaces
-        while result.contains("  ") {
-            result = result.replace("  ", " ");
-        }
+        let mut result = input.trim().split_whitespace().collect::<Vec<&str>>().join(" ");
 
         // Remove duplicated separators
-        while result.contains("{sep}{sep}") {
+        while result.contains("{sep}{sep}") || result.contains("{sep} {sep}") {
             result = result.replace("{sep}{sep}", "{sep}");
-        }
-        while result.contains("{sep} {sep}") {
             result = result.replace("{sep} {sep}", "{sep}");
         }
 
