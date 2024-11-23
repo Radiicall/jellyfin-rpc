@@ -359,12 +359,10 @@ impl Client {
 
         // Remove unnecessary separators
         while result.starts_with("{sep}") {
-            result = result.drain(5..).collect();
-            result = result.trim_start().to_string();
+            result = result.drain(5..).collect::<String>().trim_start().to_string();
         }
         while result.ends_with("{sep}") {
-            result = result.drain(..result.len() - 5).collect();
-            result = result.trim_end().to_string();
+            result = result.drain(..result.len() - 5).collect::<String>().trim_end().to_string();
         }
 
         result
