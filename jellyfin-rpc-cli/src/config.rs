@@ -1,4 +1,4 @@
-use jellyfin_rpc::{Button, MediaType};
+use jellyfin_rpc::{Button, DisplayFormat, MediaType};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -46,7 +46,7 @@ pub struct Jellyfin {
 /// Contains configuration for Music/Movie display.
 pub struct DisplayOptions {
     /// Display is where you tell the program what should be displayed.
-    pub display: Option<Vec<String>>,
+    pub display: Option<DisplayFormat>,
     /// Separator is what should be between the artist(s) and the `display` options.
     pub separator: Option<String>,
 }
@@ -121,6 +121,8 @@ pub enum Display {
     Vec(Vec<String>),
     /// If the Display is a comma separated `String`.
     String(String),
+    /// If the Display is a `DisplayFormat` struct.
+    CustomFormat(DisplayFormat),
 }
 
 /// Blacklist MediaTypes and libraries.
@@ -244,9 +246,10 @@ impl ConfigBuilder {
         if let Some(music) = self.jellyfin.music {
             if let Some(disp) = music.display {
                 music_display = Some(match disp {
-                    Display::Vec(display) => display,
-                    Display::String(display) => display.split(',').map(|d| d.to_string()).collect(),
-                })
+                    Display::Vec(display) => DisplayFormat::from(display),
+                    Display::String(display) => DisplayFormat::from(display),
+                    Display::CustomFormat(display) => display,
+                });
             } else {
                 music_display = None;
             }
@@ -263,9 +266,10 @@ impl ConfigBuilder {
         if let Some(movies) = self.jellyfin.movies {
             if let Some(disp) = movies.display {
                 movie_display = Some(match disp {
-                    Display::Vec(display) => display,
-                    Display::String(display) => display.split(',').map(|d| d.to_string()).collect(),
-                })
+                    Display::Vec(display) => DisplayFormat::from(display),
+                    Display::String(display) => DisplayFormat::from(display),
+                    Display::CustomFormat(display) => display,
+                });
             } else {
                 movie_display = None;
             }

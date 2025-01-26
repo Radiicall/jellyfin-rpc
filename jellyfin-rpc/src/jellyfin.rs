@@ -36,22 +36,6 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn get_details(&self) -> &str {
-        match self.now_playing_item.media_type {
-            MediaType::Episode => self
-                .now_playing_item
-                .series_name
-                .as_ref()
-                .unwrap_or(&self.now_playing_item.name),
-            MediaType::AudioBook => self
-                .now_playing_item
-                .album
-                .as_ref()
-                .unwrap_or(&self.now_playing_item.name),
-            _ => &self.now_playing_item.name,
-        }
-    }
-
     /// Formats artists with comma separation and a final "and" before the last name.
     pub fn format_artists(&self) -> String {
         // let default is to create a longer lived value for artists_vec
