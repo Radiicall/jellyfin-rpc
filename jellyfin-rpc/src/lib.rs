@@ -165,6 +165,7 @@ impl Client {
             if state.len() > 128 {
                 state = state.chars().take(128).collect();
             } else if state.len() < 3 {
+                // Add three zero width joiners due to discord requiring a minimum length of 3 chars in statuses 
                 state += "‎‎‎";
             }
 
@@ -173,6 +174,7 @@ impl Client {
             if details.len() > 128 {
                 details = details.chars().take(128).collect();
             } else if details.len() < 3 {
+                // add three (3) zero width joiners
                 details += "‎‎‎";
             }
 
@@ -185,6 +187,7 @@ impl Client {
             if image_text.len() > 128 {
                 image_text = image_text.chars().take(128).collect();
             } else if image_text.len() < 3 {
+                // add three zero width joiners
                 image_text += "‎‎‎";
             }
 
@@ -210,6 +213,7 @@ impl Client {
         }
         Ok(String::new())
     }
+
 
     fn get_session(&mut self) -> Result<(), reqwest::Error> {
         let sessions: Vec<RawSession> = self
