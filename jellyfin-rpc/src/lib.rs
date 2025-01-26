@@ -165,7 +165,7 @@ impl Client {
             if state.len() > 128 {
                 state = state.chars().take(128).collect();
             } else if state.len() < 3 {
-                // Add three zero width joiners due to discord requiring a minimum length of 3 chars in statuses 
+                // Add three zero width joiners due to discord requiring a minimum length of 3 chars in statuses
                 state += "‎‎‎";
             }
 
@@ -213,7 +213,6 @@ impl Client {
         }
         Ok(String::new())
     }
-
 
     fn get_session(&mut self) -> Result<(), reqwest::Error> {
         let sessions: Vec<RawSession> = self
@@ -353,7 +352,7 @@ impl Client {
 
     fn sanitize_display_format(input: &str) -> String {
         // Remove unnecessary spaces
-        let mut result = input.trim().split_whitespace().collect::<Vec<&str>>().join(" ");
+        let mut result = input.split_whitespace().collect::<Vec<&str>>().join(" ");
 
         // Remove duplicated separators
         while result.contains("{sep}{sep}") || result.contains("{sep} {sep}") {
@@ -363,10 +362,19 @@ impl Client {
 
         // Remove unnecessary separators
         while result.starts_with("{sep}") {
-            result = result.drain(5..).collect::<String>().trim_start().to_string();
+            result = result
+                .drain(5..)
+                .collect::<String>()
+                .trim_start()
+                .to_string();
         }
+
         while result.ends_with("{sep}") {
-            result = result.drain(..result.len() - 5).collect::<String>().trim_end().to_string();
+            result = result
+                .drain(..result.len() - 5)
+                .collect::<String>()
+                .trim_end()
+                .to_string();
         }
 
         result
@@ -398,15 +406,14 @@ impl Client {
             .clone();
 
         result = result
-            .replace("{track}", &track)
+            .replace("{track}", track)
             .replace("{album}", &album)
             .replace("{artists}", &artists)
             .replace("{genres}", &genres)
             .replace("{year}", &year)
             .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
 
-        Self::sanitize_display_format(&result)
-            .replace("{sep}", &separator)
+        Self::sanitize_display_format(&result).replace("{sep}", separator)
     }
 
     fn parse_movies_display(&self, input: &str) -> String {
@@ -438,15 +445,14 @@ impl Client {
             .unwrap_or_default();
 
         result = result
-            .replace("{title}", &title)
+            .replace("{title}", title)
             .replace("{genres}", &genres)
             .replace("{year}", &year)
-            .replace("{critic-score}", &critic_score)
-            .replace("{community-score}", &community_score)
+            .replace("{critic-score}", critic_score)
+            .replace("{community-score}", community_score)
             .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
 
-        Self::sanitize_display_format(&result)
-            .replace("{sep}", &separator)
+        Self::sanitize_display_format(&result).replace("{sep}", separator)
     }
 
     fn get_details(&self) -> String {
@@ -454,29 +460,43 @@ impl Client {
 
         match session.now_playing_item.media_type {
             MediaType::Music => {
-                let display_details_format = &self.music_display_options.display.details_text.as_ref().unwrap();
-                self.parse_music_display(display_details_format.replace("{__default}", "{track}").as_str())
+                let display_details_format = &self
+                    .music_display_options
+                    .display
+                    .details_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_music_display(
+                    display_details_format
+                        .replace("{__default}", "{track}")
+                        .as_str(),
+                )
             }
             MediaType::Movie => {
-                let display_details_format = &self.movies_display_options.display.details_text.as_ref().unwrap();
-                self.parse_movies_display(&display_details_format.replace("{__default}", "{title}").as_str())
-            }
-            MediaType::Episode => {
-                session
-                    .now_playing_item
-                    .series_name
+                let display_details_format = &self
+                    .movies_display_options
+                    .display
+                    .details_text
                     .as_ref()
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| session.now_playing_item.name.to_string())
+                    .unwrap();
+                self.parse_movies_display(
+                    display_details_format
+                        .replace("{__default}", "{title}")
+                        .as_str(),
+                )
             }
-            MediaType::AudioBook => {
-                session
-                    .now_playing_item
-                    .album
-                    .as_ref()
-                    .map(|a| a.to_string())
-                    .unwrap_or_else(|| session.now_playing_item.name.to_string())
-            }
+            MediaType::Episode => session
+                .now_playing_item
+                .series_name
+                .as_ref()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| session.now_playing_item.name.to_string()),
+            MediaType::AudioBook => session
+                .now_playing_item
+                .album
+                .as_ref()
+                .map(|a| a.to_string())
+                .unwrap_or_else(|| session.now_playing_item.name.to_string()),
             _ => session.now_playing_item.name.to_string(),
         }
     }
@@ -527,8 +547,17 @@ impl Client {
             }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
-                let display_state_format = &self.music_display_options.display.state_text.as_ref().unwrap();
-                self.parse_music_display(display_state_format.replace("{__default}", "By {artists} {sep} ").as_str())
+                let display_state_format = &self
+                    .music_display_options
+                    .display
+                    .state_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_music_display(
+                    display_state_format
+                        .replace("{__default}", "By {artists} {sep} ")
+                        .as_str(),
+                )
             }
             MediaType::Book => {
                 let mut state = String::new();
@@ -568,8 +597,13 @@ impl Client {
                 state
             }
             MediaType::Movie => {
-                let display_state_format = &self.movies_display_options.display.state_text.as_ref().unwrap();
-                self.parse_movies_display(&display_state_format.replace("{__default}", "").as_str())
+                let display_state_format = &self
+                    .movies_display_options
+                    .display
+                    .state_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_movies_display(display_state_format.replace("{__default}", "").as_str())
             }
             _ => session
                 .now_playing_item
@@ -585,12 +619,22 @@ impl Client {
 
         match session.now_playing_item.media_type {
             MediaType::Music => {
-                let display_image_format = &self.music_display_options.display.image_text.as_ref().unwrap();
-                self.parse_music_display(&display_image_format)
+                let display_image_format = &self
+                    .music_display_options
+                    .display
+                    .image_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_music_display(display_image_format)
             }
             MediaType::Movie => {
-                let display_image_format = &self.movies_display_options.display.image_text.as_ref().unwrap();
-                self.parse_movies_display(&display_image_format)
+                let display_image_format = &self
+                    .movies_display_options
+                    .display
+                    .image_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_movies_display(display_image_format)
             }
             _ => "".to_string(),
         }

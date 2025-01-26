@@ -1,4 +1,4 @@
-use jellyfin_rpc::{Button, MediaType, DisplayFormat};
+use jellyfin_rpc::{Button, DisplayFormat, MediaType};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::env;
