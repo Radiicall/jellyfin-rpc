@@ -13,7 +13,7 @@ import sys
 
 
 # customizable confirm prompt
-def confirm(message: str = "Continue", default: bool | None = None) -> bool:
+def confirm(message: str = "Continue", default: bool | None = None, direct: bool | None = None) -> bool:
     prompts = {True: "(Y/n)", False: "(y/N)", None: "(y/n)"}
     full_message = f"{message} {prompts[default]}: "
 
@@ -24,7 +24,10 @@ def confirm(message: str = "Continue", default: bool | None = None) -> bool:
     while (response := input(full_message).strip().lower()) not in valid_inputs:
         print("Invalid input, please type y or n")
 
-    return valid_inputs[response]
+    output = valid_inputs[response]
+    if direct is not None and not output:
+        return None
+    return output
 
 
 path = ""
@@ -73,7 +76,7 @@ if not use_existing:
     self_signed_cert = None
     if url.startswith("https://"):
         self_signed_cert = confirm(
-            message="Are you using a self signed certificate?", default=False
+            message="Are you using a self signed certificate?", default=False, direct=True
         )
 
     print(
@@ -96,6 +99,8 @@ if not use_existing:
             separator = None
 
         music = {"display": display, "separator": separator}
+    else:
+        music = None
 
     movies = confirm(message="Do you want to customize movie display?", default=False)
     if movies:
@@ -113,6 +118,8 @@ if not use_existing:
             separator = None
 
         movies = {"display": display, "separator": separator}
+    else:
+        movies = None
 
     blacklist = confirm(
         message="Do you want to blacklist media types or libraries?", default=False
@@ -138,17 +145,19 @@ if not use_existing:
         libraries = input("Enter libraries to blacklist [Default: ]: ").split(",")
 
         blacklist = {"media_types": media_types, "libraries": libraries}
+    else:
+        blacklist = None
 
     show_simple = confirm(
-        message="Do you want to show episode names in RPC?", default=True
+        message="Do you want to show episode names in RPC?", default=True, direct=True
     )
 
     append_prefix = confirm(
-        "Do you want to add a leading 0 to season and episode numbers?", default=False
+        "Do you want to add a leading 0 to season and episode numbers?", default=False, direct=True
     )
 
     add_divider = confirm(
-        "Do you want to add a divider between numbers, ex. S01 - E01?", default=False
+        "Do you want to add a divider between numbers, ex. S01 - E01?", default=False, direct=True
     )
 
     jellyfin = {
@@ -170,7 +179,7 @@ if not use_existing:
     if appid == "":
         appid = None
 
-    show_paused = confirm(message="Do you want to show paused videos?", default=True)
+    show_paused = confirm(message="Do you want to show paused videos?", default=True, direct=True)
 
     print("----------Buttons----------")
 
@@ -198,21 +207,26 @@ if not use_existing:
 
         if name != "" and url != "":
             buttons.append({"name": name, "url": url})
+    else:
+        buttons = None
 
     print("----------Images----------")
     images = confirm(message="Do you want images?", default=False)
-    imgur = None
     if images:
-        imgur_images = confirm("Do you want imgur images?", default=False)
-        client_id = ""
+        imgur_images = confirm("Do you want imgur images?", default=False, direct=True)
         if imgur_images:
             client_id = input("Enter your imgur client id: ")
-        imgur = {"client_id": client_id}
+            imgur = {"client_id": client_id}
+        else:
+            imgur = None
 
         images = {
             "enable_images": True,
             "imgur_images": imgur_images,
         }
+    else:
+        imgur = None
+        images = None
 
     discord = {"application_id": appid, "buttons": buttons, "show_paused": show_paused}
 
