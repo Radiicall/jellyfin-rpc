@@ -1,0 +1,13 @@
+services:
+  jellyfin-rpc:
+    build: .
+    container_name: jellyfin-rpc
+    user: 1000:1000
+    environment:
+      UID: 1000
+      GID: 1000
+      XDG_RUNTIME_DIR: "/run/app"
+    volumes:
+      - /home/ray/.config/jellyfin-rpc://.config/jellyfin-rpc
+      - /run/user/1000:/run/app:ro
+    restart: unless-stopped
