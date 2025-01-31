@@ -422,7 +422,13 @@ impl Client {
 
         let separator = &self.movies_display_options.separator;
         let title = session.now_playing_item.name.as_ref();
-        let genres = session
+        let original_title = session
+            .now_playing_item
+            .original_title
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
+        let genres = &session
             .now_playing_item
             .genres
             .as_ref()
@@ -446,6 +452,7 @@ impl Client {
 
         result = result
             .replace("{title}", title)
+            .replace("{original-title}", &original_title)
             .replace("{genres}", &genres)
             .replace("{year}", &year)
             .replace("{critic-score}", critic_score)
@@ -460,13 +467,19 @@ impl Client {
         let session = self.session.as_ref().unwrap();
 
         let separator = &self.shows_display_options.separator;
-        let show_name = session
+        let show_title = session
             .now_playing_item
             .series_name
             .as_ref()
             .unwrap_or(&"".to_string())
             .clone();
         let episode_title = session.now_playing_item.name.as_ref();
+        let original_title = session
+            .now_playing_item
+            .original_title
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
         let season = session.now_playing_item.parent_index_number.unwrap_or(0);
         let year = session
             .now_playing_item
@@ -479,6 +492,12 @@ impl Client {
             .as_ref()
             .unwrap_or(&vec!["".to_string()])
             .join(", ");
+        let studio = session
+            .now_playing_item
+            .series_studio
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
 
         // One episode on Jellyfin can span across multiple actual episodes
         // For example E01-03 is 3 episodes in one media file
@@ -487,8 +506,9 @@ impl Client {
             session.now_playing_item.index_number_end,
         );
         result = result
-            .replace("{show-title}", &show_name)
+            .replace("{show-title}", &show_title)
             .replace("{title}", episode_title)
+            .replace("{original-title}", &original_title)
             .replace(
                 "{episode}",
                 &match episode_range {
@@ -507,6 +527,7 @@ impl Client {
             .replace("{season-padded}", &format!("{:02}", season))
             .replace("{year}", &year)
             .replace("{genres}", &genres)
+            .replace("{studio}", &studio)
             .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
 
         Self::sanitize_display_format(&result).replace("{sep}", separator)
@@ -581,7 +602,7 @@ impl Client {
                         .replace(
                             "{__default}",
                             "",
-                        )
+                )
                         .as_str(),
                 )
             }

@@ -159,12 +159,14 @@ pub struct NowPlayingItem {
     pub external_urls: Option<Vec<ExternalUrl>>,
     pub critic_rating: Option<i64>,
     pub community_rating: Option<f64>,
+    pub original_title: Option<String>,
     // Episode related
     pub parent_index_number: Option<i32>,
     pub index_number: Option<i32>,
     pub index_number_end: Option<i32>,
     pub series_name: Option<String>,
     pub series_id: Option<String>,
+    pub series_studio: Option<String>,
     // Audio related
     pub artists: Option<Vec<String>>,
     pub extra_type: Option<String>,
