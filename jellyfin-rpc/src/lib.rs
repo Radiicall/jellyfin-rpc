@@ -487,7 +487,7 @@ impl Client {
             session.now_playing_item.index_number_end,
         );
         result = result
-            .replace("{show-name}", &show_name)
+            .replace("{show-title}", &show_name)
             .replace("{title}", episode_title)
             .replace(
                 "{episode}",
@@ -551,7 +551,7 @@ impl Client {
                     .unwrap();
                 self.parse_shows_display(
                     display_details_format
-                        .replace("{__default}", "{show-name}")
+                        .replace("{__default}", "{show-title}")
                         .as_str(),
                 )
             }
@@ -789,7 +789,7 @@ impl From<String> for DisplayFormat {
 /// Converts `EpisodeDisplayOptions` to `DisplayFormat`
 impl From<EpisodeDisplayOptions> for DisplayFormat {
     fn from(value: EpisodeDisplayOptions) -> Self {
-        let details_text = "{show-name}".to_string();
+        let details_text = "{show-title}".to_string();
         let state_text = {
             let (season_tag, episode_tag) = if value.prefix {
                 (
