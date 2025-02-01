@@ -597,14 +597,7 @@ impl Client {
                     .state_text
                     .as_ref()
                     .unwrap();
-                self.parse_shows_display(
-                    display_state_format
-                        .replace(
-                            "{__default}",
-                            "",
-                )
-                        .as_str(),
-                )
+                self.parse_shows_display(display_state_format.replace("{__default}", "").as_str())
             }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
