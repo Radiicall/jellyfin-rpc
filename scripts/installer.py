@@ -405,7 +405,7 @@ else:
         )
 
     autostart = confirm(
-        message="Do you want to autostart Jellyfin-RPC at login?", default=False
+        message="Do you want to autostart Jellyfin-RPC at login using systemd?", default=False
     )
     if autostart:
         print(f"\nSetting up service file in {path}")
