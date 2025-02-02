@@ -6,7 +6,7 @@ use discord_rich_presence::{
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
 use jellyfin::{ExternalUrl, PlayTime, RawSession, Session, NowPlayingItem, VirtualFolder};
-use log::debug;
+use log::{debug, warn};
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -680,13 +680,19 @@ impl Client {
 
         Ok(virtual_folders
             .into_iter()
-            .filter(|library_folder| self.blacklist.libraries_names.contains(library_folder.name.as_ref().unwrap())).collect()
+            .filter(|library_folder| self.blacklist.libraries_names.contains(library_folder.name.as_ref().unwrap_or(&String::new()))).collect()
         )
     }
 
     /// Reload the library list from Jellyfin and filter out the user-provided blacklisted libraries
     fn reload_blacklist(&mut self) {
-        self.blacklist.libraries = BlacklistedLibraries::Initialized(self.fetch_blacklist().unwrap())
+        self.blacklist.libraries = match self.fetch_blacklist() {
+            Ok(blacklist) => BlacklistedLibraries::Initialized(blacklist),
+            Err(err) => {
+                warn!("Failed to intialize blacklist: {}", err);
+                BlacklistedLibraries::Uninitialized
+            },
+        }
     }
 }
 
@@ -761,7 +767,7 @@ impl Blacklist {
     /// Check whether a [NowPlayingItem] is in a blacklisted library
     fn check_item(&self, playing_item: &NowPlayingItem) -> bool {
         debug!("Checking if an item is blacklisted: {}", playing_item.name);
-        self.check_path(&*playing_item.path.as_ref().unwrap())
+        self.check_path(&*playing_item.path.as_ref().unwrap_or(&String::new()))
     }
 
     /// Check whether a path is in a blacklisted library
