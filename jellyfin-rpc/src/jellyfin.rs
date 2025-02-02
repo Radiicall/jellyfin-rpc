@@ -159,6 +159,7 @@ pub struct NowPlayingItem {
     pub external_urls: Option<Vec<ExternalUrl>>,
     pub critic_rating: Option<i64>,
     pub community_rating: Option<f64>,
+    pub path: Option<String>,
     // Episode related
     pub parent_index_number: Option<i32>,
     pub index_number: Option<i32>,
@@ -170,7 +171,6 @@ pub struct NowPlayingItem {
     pub extra_type: Option<String>,
     pub album_id: Option<String>,
     pub album: Option<String>,
-    pub path: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

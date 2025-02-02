@@ -5,14 +5,12 @@ use discord_rich_presence::{
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{ExternalUrl, PlayTime, RawSession, Session};
+use jellyfin::{ExternalUrl, PlayTime, RawSession, Session, NowPlayingItem, VirtualFolder};
 use log::debug;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use url::Url;
-use crate::BlacklistedLibraries::{Initialized, Uninitialized};
-use crate::jellyfin::{NowPlayingItem, VirtualFolder};
 
 mod error;
 mod external;
@@ -103,7 +101,7 @@ impl Client {
 
         // Make sure the blacklist cache is loaded/valid
         match &self.blacklist.libraries {
-            Uninitialized => {
+            BlacklistedLibraries::Uninitialized => {
                 self.reload_blacklist();
             },
             _ => {}
@@ -675,7 +673,7 @@ impl Client {
         let virtual_folders : Vec<VirtualFolder> = self.reqwest
             .get(
                 self.url
-                    .join(&"Library/VirtualFolders".to_string())?,
+                    .join("Library/VirtualFolders")?,
             )
             .send()?
             .json()?;
@@ -688,7 +686,7 @@ impl Client {
 
     /// Reload the library list from Jellyfin and filter out the user-provided blacklisted libraries
     fn reload_blacklist(&mut self) {
-        self.blacklist.libraries = Initialized(self.fetch_blacklist().unwrap())
+        self.blacklist.libraries = BlacklistedLibraries::Initialized(self.fetch_blacklist().unwrap())
     }
 }
 
@@ -769,7 +767,7 @@ impl Blacklist {
     /// Check whether a path is in a blacklisted library
     fn check_path(&self, item_path: &str) -> bool {
         match &self.libraries {
-            Initialized (libraries) => {
+            BlacklistedLibraries::Initialized (libraries) => {
                 debug!("Checking path: {}", item_path);
                 libraries
                     .iter()
@@ -779,9 +777,8 @@ impl Blacklist {
                             item_path.starts_with(physical_folder)
                         })
                     })
-
-            }
-            _ => {
+            },
+            BlacklistedLibraries::Uninitialized => {
                 false
             }
         }
@@ -1074,7 +1071,7 @@ impl ClientBuilder {
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
                 libraries_names: self.blacklist_libraries,
-                libraries: Uninitialized,
+                libraries: BlacklistedLibraries::Uninitialized,
             },
             show_paused: self.show_paused,
             show_images: self.show_images,
