@@ -773,7 +773,7 @@ impl Blacklist {
     /// Check whether a [NowPlayingItem] is in a blacklisted library
     fn check_item(&self, playing_item: &NowPlayingItem) -> bool {
         debug!("Checking if an item is blacklisted: {}", playing_item.name);
-        self.check_path(&*playing_item.path.as_ref().unwrap_or(&String::new()))
+        self.check_path(playing_item.path.as_ref().unwrap_or(&String::new()))
     }
 
     /// Check whether a path is in a blacklisted library
