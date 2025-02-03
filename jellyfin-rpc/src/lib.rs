@@ -10,6 +10,7 @@ use log::{debug, warn};
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use std::time::SystemTime;
 use url::Url;
 
 mod error;
@@ -104,7 +105,12 @@ impl Client {
             BlacklistedLibraries::Uninitialized => {
                 self.reload_blacklist();
             },
-            _ => {}
+            BlacklistedLibraries::Initialized(_, init_time) => {
+                if SystemTime::now().duration_since(*init_time).map(|passed| passed.as_secs() > 3600).unwrap_or(false) {
+                    debug!("reloading blacklist after cache expiration");
+                    self.reload_blacklist();
+                }
+            }
         }
 
         if let Some(session) = &self.session {
@@ -687,7 +693,7 @@ impl Client {
     /// Reload the library list from Jellyfin and filter out the user-provided blacklisted libraries
     fn reload_blacklist(&mut self) {
         self.blacklist.libraries = match self.fetch_blacklist() {
-            Ok(blacklist) => BlacklistedLibraries::Initialized(blacklist),
+            Ok(blacklist) => BlacklistedLibraries::Initialized(blacklist, SystemTime::now()),
             Err(err) => {
                 warn!("Failed to intialize blacklist: {}", err);
                 BlacklistedLibraries::Uninitialized
@@ -759,7 +765,7 @@ struct Blacklist {
 
 enum BlacklistedLibraries {
     Uninitialized,
-    Initialized(Vec<VirtualFolder>),
+    Initialized(Vec<VirtualFolder>, SystemTime),
 }
 
 impl Blacklist {
@@ -773,7 +779,7 @@ impl Blacklist {
     /// Check whether a path is in a blacklisted library
     fn check_path(&self, item_path: &str) -> bool {
         match &self.libraries {
-            BlacklistedLibraries::Initialized (libraries) => {
+            BlacklistedLibraries::Initialized (libraries, _) => {
                 debug!("Checking path: {}", item_path);
                 libraries
                     .iter()
