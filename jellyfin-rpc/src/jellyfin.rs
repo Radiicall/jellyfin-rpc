@@ -159,6 +159,7 @@ pub struct NowPlayingItem {
     pub external_urls: Option<Vec<ExternalUrl>>,
     pub critic_rating: Option<i64>,
     pub community_rating: Option<f64>,
+    pub path: Option<String>,
     // Episode related
     pub parent_index_number: Option<i32>,
     pub index_number: Option<i32>,
@@ -311,8 +312,9 @@ pub struct PlayState {
     pub position_ticks: Option<i64>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
-pub struct Item {
+pub struct VirtualFolder {
     pub name: Option<String>,
+    pub locations: Vec<String>,
 }
