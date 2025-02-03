@@ -5,7 +5,7 @@ use discord_rich_presence::{
 };
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
-use jellyfin::{ExternalUrl, PlayTime, RawSession, Session, NowPlayingItem, VirtualFolder};
+use jellyfin::{ExternalUrl, NowPlayingItem, PlayTime, RawSession, Session, VirtualFolder};
 use log::{debug, warn};
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
@@ -104,9 +104,13 @@ impl Client {
         match &self.blacklist.libraries {
             BlacklistedLibraries::Uninitialized => {
                 self.reload_blacklist();
-            },
+            }
             BlacklistedLibraries::Initialized(_, init_time) => {
-                if SystemTime::now().duration_since(*init_time).map(|passed| passed.as_secs() > 3600).unwrap_or(false) {
+                if SystemTime::now()
+                    .duration_since(*init_time)
+                    .map(|passed| passed.as_secs() > 3600)
+                    .unwrap_or(false)
+                {
                     debug!("reloading blacklist after cache expiration");
                     self.reload_blacklist();
                 }
@@ -666,8 +670,7 @@ impl Client {
             return Ok(true);
         }
 
-        if self.blacklist.check_item(&session.now_playing_item)
-        {
+        if self.blacklist.check_item(&session.now_playing_item) {
             return Ok(true);
         }
 
@@ -676,18 +679,20 @@ impl Client {
 
     /// Fetch the virtual folder list and filter out the blacklisted libraries
     fn fetch_blacklist(&self) -> JfResult<Vec<VirtualFolder>> {
-        let virtual_folders : Vec<VirtualFolder> = self.reqwest
-            .get(
-                self.url
-                    .join("Library/VirtualFolders")?,
-            )
+        let virtual_folders: Vec<VirtualFolder> = self
+            .reqwest
+            .get(self.url.join("Library/VirtualFolders")?)
             .send()?
             .json()?;
 
         Ok(virtual_folders
             .into_iter()
-            .filter(|library_folder| self.blacklist.libraries_names.contains(library_folder.name.as_ref().unwrap_or(&String::new()))).collect()
-        )
+            .filter(|library_folder| {
+                self.blacklist
+                    .libraries_names
+                    .contains(library_folder.name.as_ref().unwrap_or(&String::new()))
+            })
+            .collect())
     }
 
     /// Reload the library list from Jellyfin and filter out the user-provided blacklisted libraries
@@ -697,7 +702,7 @@ impl Client {
             Err(err) => {
                 warn!("Failed to intialize blacklist: {}", err);
                 BlacklistedLibraries::Uninitialized
-            },
+            }
         }
     }
 }
@@ -760,7 +765,7 @@ impl From<String> for DisplayFormat {
 struct Blacklist {
     media_types: Vec<MediaType>,
     libraries_names: Vec<String>,
-    libraries: BlacklistedLibraries
+    libraries: BlacklistedLibraries,
 }
 
 enum BlacklistedLibraries {
@@ -769,7 +774,6 @@ enum BlacklistedLibraries {
 }
 
 impl Blacklist {
-
     /// Check whether a [NowPlayingItem] is in a blacklisted library
     fn check_item(&self, playing_item: &NowPlayingItem) -> bool {
         debug!("Checking if an item is blacklisted: {}", playing_item.name);
@@ -779,20 +783,16 @@ impl Blacklist {
     /// Check whether a path is in a blacklisted library
     fn check_path(&self, item_path: &str) -> bool {
         match &self.libraries {
-            BlacklistedLibraries::Initialized (libraries, _) => {
+            BlacklistedLibraries::Initialized(libraries, _) => {
                 debug!("Checking path: {}", item_path);
-                libraries
-                    .iter()
-                    .any(|blacklisted_mf| {
-                        blacklisted_mf.locations.iter().any(|physical_folder| {
-                            debug!("BL path: {}", physical_folder);
-                            item_path.starts_with(physical_folder)
-                        })
+                libraries.iter().any(|blacklisted_mf| {
+                    blacklisted_mf.locations.iter().any(|physical_folder| {
+                        debug!("BL path: {}", physical_folder);
+                        item_path.starts_with(physical_folder)
                     })
-            },
-            BlacklistedLibraries::Uninitialized => {
-                false
+                })
             }
+            BlacklistedLibraries::Uninitialized => false,
         }
     }
 }
