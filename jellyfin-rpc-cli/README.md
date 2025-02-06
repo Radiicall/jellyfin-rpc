@@ -53,4 +53,4 @@ For setup instructions refer to the [Wiki](https://github.com/Radiicall/jellyfin
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=radiicall/jellyfin-rpc&type=Date)](https://star-history.com/#radiicall/jellyfin-rpc&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=radiicall/jellyfin-rpc&type=Date&theme=dark)](https://star-history.com/#radiicall/jellyfin-rpc&Date&theme=dark)
