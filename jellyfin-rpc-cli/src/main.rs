@@ -1,7 +1,7 @@
 use clap::Parser;
 use colored::Colorize;
 use config::{get_config_path, get_urls_path, Config};
-use jellyfin_rpc::{Client, VERSION};
+use jellyfin_rpc::{Client, DisplayFormat, EpisodeDisplayOptions, VERSION};
 use log::{debug, error, info};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
@@ -120,6 +120,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(separator) = conf.jellyfin.movies.separator {
         debug!("Found config.jellyfin.music.separator");
         builder.movies_separator(separator);
+    }
+
+    if let Some(display) = conf.jellyfin.shows.display {
+        debug!("Found config.jellyfin.shows.display");
+        builder.shows_display(display);
+    } else {
+        debug!("Couldn't find config.jellyfin.shows.display, using legacy episode values");
+        builder.shows_display(DisplayFormat::from(EpisodeDisplayOptions {
+            divider: conf.jellyfin.add_divider,
+            prefix: conf.jellyfin.append_prefix,
+            simple: conf.jellyfin.show_simple,
+        }));
+    }
+
+    if let Some(separator) = conf.jellyfin.shows.separator {
+        debug!("Found config.jellyfin.shows.separator");
+        builder.shows_separator(separator);
     }
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {
