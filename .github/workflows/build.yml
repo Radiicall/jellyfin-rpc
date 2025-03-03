@@ -211,7 +211,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --workspace --locked --release
+          args: --target x86_64-apple-darwin --workspace --locked --release
 
       - name: Rename binary
         run: mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
