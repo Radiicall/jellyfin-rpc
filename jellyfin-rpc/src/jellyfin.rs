@@ -151,43 +151,40 @@ fn deserialize_i64_from_float_or_int<'de, D>(deserializer: D) -> Result<Option<i
 where
     D: serde::Deserializer<'de>,
 {
-    use serde::de::Error;
+    // First try to deserialize as an Option<Value>
+    let opt = Option::<Value>::deserialize(deserializer);
     
-    let value = Value::deserialize(deserializer)?;
-    match value {
-        Value::Number(num) => {
+    match opt {
+        Ok(Some(Value::Number(num))) => {
             if let Some(n) = num.as_i64() {
-                return Ok(Some(n));
+                Ok(Some(n))
+            } else if let Some(n) = num.as_f64() {
+                Ok(Some(n as i64))
+            } else {
+                Ok(None)
             }
-            if let Some(n) = num.as_f64() {
-                return Ok(Some(n as i64));
-            }
-            Err(Error::custom("Expected number"))
-        }
-        Value::Null => Ok(None),
-        _ => Err(Error::custom("Expected number or null")),
+        },
+        Ok(_) => Ok(None),
+        Err(_) => Ok(None),
     }
 }
 
-fn deserialize_i32_from_float_or_int<'de, D>(deserializer: D) -> Result<Option<i32>, D::Error>
+fn deserialize_optional_i64<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    use serde::de::Error;
-    
-    let value = Value::deserialize(deserializer)?;
+    let value = Option::<Value>::deserialize(deserializer)?;
     match value {
-        Value::Number(num) => {
+        Some(Value::Number(num)) => {
             if let Some(n) = num.as_i64() {
-                return Ok(Some(n as i32));
+                Ok(Some(n))
+            } else if let Some(n) = num.as_f64() {
+                Ok(Some(n as i64))
+            } else {
+                Ok(None)
             }
-            if let Some(n) = num.as_f64() {
-                return Ok(Some(n as i32));
-            }
-            Err(Error::custom("Expected number"))
         }
-        Value::Null => Ok(None),
-        _ => Err(Error::custom("Expected number or null")),
+        _ => Ok(None),
     }
 }
 
@@ -199,21 +196,17 @@ pub struct NowPlayingItem {
     #[serde(rename = "Type")]
     pub media_type: MediaType,
     pub id: String,
-    #[serde(deserialize_with = "deserialize_i64_from_float_or_int")]
+    #[serde(deserialize_with = "deserialize_optional_i64")]
     pub run_time_ticks: Option<i64>,
     pub production_year: Option<i64>,
     pub genres: Option<Vec<String>>,
     pub external_urls: Option<Vec<ExternalUrl>>,
-    #[serde(deserialize_with = "deserialize_i64_from_float_or_int")]
     pub critic_rating: Option<i64>,
     pub community_rating: Option<f64>,
     pub path: Option<String>,
     // Episode related
-    #[serde(deserialize_with = "deserialize_i32_from_float_or_int")]
     pub parent_index_number: Option<i32>,
-    #[serde(deserialize_with = "deserialize_i32_from_float_or_int")]
     pub index_number: Option<i32>,
-    #[serde(deserialize_with = "deserialize_i32_from_float_or_int")]
     pub index_number_end: Option<i32>,
     pub series_name: Option<String>,
     pub series_id: Option<String>,
@@ -359,8 +352,9 @@ impl From<String> for MediaType {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct PlayState {
+    #[serde(default)]
     pub is_paused: bool,
-    #[serde(deserialize_with = "deserialize_i64_from_float_or_int")]
+    #[serde(default, deserialize_with = "deserialize_i64_from_float_or_int")]
     pub position_ticks: Option<i64>,
 }
 

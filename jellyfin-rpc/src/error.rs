@@ -10,6 +10,10 @@ pub enum JfError {
     ContentBlacklist,
     MissingRequiredValues,
     NoImage,
+    /// Network errors
+    NetworkError(String),
+    /// JSON parsing errors
+    JsonParseError(String),
 }
 
 impl Error for JfError {}
@@ -21,6 +25,8 @@ impl Display for JfError {
             JfError::UnrecognizedMediaType => write!(f, "unrecognized media type"),
             JfError::ContentBlacklist => write!(f, "content is blacklisted"),
             JfError::NoImage => write!(f, "media does not have an image"),
+            JfError::NetworkError(msg) => write!(f, "network error: {}", msg),
+            JfError::JsonParseError(msg) => write!(f, "error parsing JSON: {}", msg),
         }
     }
 }
