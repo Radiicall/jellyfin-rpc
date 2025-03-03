@@ -215,10 +215,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --workspace --locked --release
+          args: --target x86_64-apple-darwin --workspace --locked --release
 
       - name: Rename binary
-        run: mv target/release/jellyfin-rpc target/release/jellyfin-rpc-x86_64-darwin
+        run: mv target/x86_64-apple-darwin/release/jellyfin-rpc target/x86_64-apple-darwin/release/jellyfin-rpc-x86_64-darwin
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -230,7 +230,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-x86_64
-          path: target/release/jellyfin-rpc-x86_64-darwin
+          path: target/x86_64-apple-darwin/release/jellyfin-rpc-x86_64-darwin
 
   macos-arm64:
     runs-on: macos-latest
