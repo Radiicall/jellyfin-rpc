@@ -31,8 +31,8 @@ pub struct Jellyfin {
     pub music: DisplayOptions,
     /// Contains configuration for Movie display.
     pub movies: DisplayOptions,
-    /// Contains configuration for Shows display.
-    pub shows: DisplayOptions,
+    /// Contains configuration for Episode display.
+    pub episodes: DisplayOptions,
     /// Blacklist configuration.
     pub blacklist: Blacklist,
     /// Self signed certificate option
@@ -94,7 +94,7 @@ pub struct JellyfinBuilder {
     pub username: Username,
     pub music: Option<DisplayOptionsBuilder>,
     pub movies: Option<DisplayOptionsBuilder>,
-    pub shows: Option<DisplayOptionsBuilder>,
+    pub episodes: Option<DisplayOptionsBuilder>,
     pub blacklist: Option<Blacklist>,
     pub self_signed_cert: Option<bool>,
     pub show_simple: Option<bool>,
@@ -213,7 +213,7 @@ impl ConfigBuilder {
                 api_key: "".to_string(),
                 music: None,
                 movies: None,
-                shows: None,
+                episodes: None,
                 blacklist: None,
                 self_signed_cert: None,
                 show_simple: Some(false),
@@ -284,24 +284,24 @@ impl ConfigBuilder {
             movie_separator = None;
         }
 
-        let shows_display;
-        let shows_separator;
+        let episode_display;
+        let episode_separator;
 
-        if let Some(shows) = self.jellyfin.shows {
-            if let Some(disp) = shows.display {
-                shows_display = Some(match disp {
+        if let Some(episodes) = self.jellyfin.episodes {
+            if let Some(disp) = episodes.display {
+                episode_display = Some(match disp {
                     Display::Vec(display) => DisplayFormat::from(display),
                     Display::String(display) => DisplayFormat::from(display),
                     Display::CustomFormat(display) => display,
                 });
             } else {
-                shows_display = None;
+                episode_display = None;
             }
 
-            shows_separator = shows.separator;
+            episode_separator = episodes.separator;
         } else {
-            shows_display = None;
-            shows_separator = None;
+            episode_display = None;
+            episode_separator = None;
         }
 
         let media_types;
@@ -361,9 +361,9 @@ impl ConfigBuilder {
                     display: movie_display,
                     separator: movie_separator,
                 },
-                shows: DisplayOptions {
-                    display: shows_display,
-                    separator: shows_separator,
+                episodes: DisplayOptions {
+                    display: episode_display,
+                    separator: episode_separator,
                 },
                 blacklist: Blacklist {
                     media_types,

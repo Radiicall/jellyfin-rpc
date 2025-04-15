@@ -33,7 +33,7 @@ pub struct Client {
     buttons: Option<Vec<Button>>,
     music_display_options: DisplayOptions,
     movies_display_options: DisplayOptions,
-    shows_display_options: DisplayOptions,
+    episodes_display_options: DisplayOptions,
     blacklist: Blacklist,
     show_paused: bool,
     show_images: bool,
@@ -480,11 +480,11 @@ impl Client {
         Self::sanitize_display_format(&result).replace("{sep}", separator)
     }
 
-    fn parse_shows_display(&self, input: &str) -> String {
+    fn parse_episodes_display(&self, input: &str) -> String {
         let mut result = input.trim().to_string();
         let session = self.session.as_ref().unwrap();
 
-        let separator = &self.shows_display_options.separator;
+        let separator = &self.episodes_display_options.separator;
         let show_title = session
             .now_playing_item
             .series_name
@@ -583,12 +583,12 @@ impl Client {
             }
             MediaType::Episode => {
                 let display_details_format = &self
-                    .shows_display_options
+                    .episodes_display_options
                     .display
                     .details_text
                     .as_ref()
                     .unwrap();
-                self.parse_shows_display(
+                self.parse_episodes_display(
                     display_details_format
                         .replace("{__default}", "{show-title}")
                         .as_str(),
@@ -610,12 +610,12 @@ impl Client {
         match session.now_playing_item.media_type {
             MediaType::Episode => {
                 let display_state_format = &self
-                    .shows_display_options
+                    .episodes_display_options
                     .display
                     .state_text
                     .as_ref()
                     .unwrap();
-                self.parse_shows_display(display_state_format.replace("{__default}", "").as_str())
+                self.parse_episodes_display(display_state_format.replace("{__default}", "").as_str())
             }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
@@ -710,12 +710,12 @@ impl Client {
             }
             MediaType::Episode => {
                 let display_image_format = &self
-                    .shows_display_options
+                    .episodes_display_options
                     .display
                     .image_text
                     .as_ref()
                     .unwrap();
-                self.parse_shows_display(display_image_format)
+                self.parse_episodes_display(display_image_format)
             }
             _ => "".to_string(),
         }
@@ -914,8 +914,8 @@ pub struct ClientBuilder {
     music_display: DisplayFormat,
     movies_separator: String,
     movies_display: DisplayFormat,
-    shows_separator: String,
-    shows_display: DisplayFormat,
+    episodes_separator: String,
+    episodes_display: DisplayFormat,
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
@@ -935,8 +935,8 @@ impl ClientBuilder {
             music_display: DisplayFormat::from(vec!["genres".to_string()]),
             movies_separator: "-".to_string(),
             movies_display: DisplayFormat::from(vec!["genres".to_string()]),
-            shows_separator: "-".to_string(),
-            shows_display: DisplayFormat::from(EpisodeDisplayOptions {
+            episodes_separator: "-".to_string(),
+            episodes_display: DisplayFormat::from(EpisodeDisplayOptions {
                 divider: true,
                 prefix: true,
                 simple: false,
@@ -1064,13 +1064,13 @@ impl ClientBuilder {
         self
     }
 
-    pub fn shows_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
-        self.shows_separator = separator.into();
+    pub fn episodes_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
+        self.episodes_separator = separator.into();
         self
     }
 
-    pub fn shows_display(&mut self, display: DisplayFormat) -> &mut Self {
-        self.shows_display = display;
+    pub fn episodes_display(&mut self, display: DisplayFormat) -> &mut Self {
+        self.episodes_display = display;
         self
     }
 
@@ -1188,9 +1188,9 @@ impl ClientBuilder {
                 separator: self.movies_separator,
                 display: self.movies_display,
             },
-            shows_display_options: DisplayOptions {
-                separator: self.shows_separator,
-                display: self.shows_display,
+            episodes_display_options: DisplayOptions {
+                separator: self.episodes_separator,
+                display: self.episodes_display,
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
