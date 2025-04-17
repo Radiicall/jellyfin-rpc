@@ -31,6 +31,8 @@ pub struct Jellyfin {
     pub music: DisplayOptions,
     /// Contains configuration for Movie display.
     pub movies: DisplayOptions,
+    /// Contains configuration for Episode display.
+    pub episodes: DisplayOptions,
     /// Blacklist configuration.
     pub blacklist: Blacklist,
     /// Self signed certificate option
@@ -92,6 +94,7 @@ pub struct JellyfinBuilder {
     pub username: Username,
     pub music: Option<DisplayOptionsBuilder>,
     pub movies: Option<DisplayOptionsBuilder>,
+    pub episodes: Option<DisplayOptionsBuilder>,
     pub blacklist: Option<Blacklist>,
     pub self_signed_cert: Option<bool>,
     pub show_simple: Option<bool>,
@@ -210,6 +213,7 @@ impl ConfigBuilder {
                 api_key: "".to_string(),
                 music: None,
                 movies: None,
+                episodes: None,
                 blacklist: None,
                 self_signed_cert: None,
                 show_simple: Some(false),
@@ -280,6 +284,26 @@ impl ConfigBuilder {
             movie_separator = None;
         }
 
+        let episode_display;
+        let episode_separator;
+
+        if let Some(episodes) = self.jellyfin.episodes {
+            if let Some(disp) = episodes.display {
+                episode_display = Some(match disp {
+                    Display::Vec(display) => DisplayFormat::from(display),
+                    Display::String(display) => DisplayFormat::from(display),
+                    Display::CustomFormat(display) => display,
+                });
+            } else {
+                episode_display = None;
+            }
+
+            episode_separator = episodes.separator;
+        } else {
+            episode_display = None;
+            episode_separator = None;
+        }
+
         let media_types;
         let libraries;
 
@@ -336,6 +360,10 @@ impl ConfigBuilder {
                 movies: DisplayOptions {
                     display: movie_display,
                     separator: movie_separator,
+                },
+                episodes: DisplayOptions {
+                    display: episode_display,
+                    separator: episode_separator,
                 },
                 blacklist: Blacklist {
                     media_types,

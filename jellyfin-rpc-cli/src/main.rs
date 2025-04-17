@@ -1,7 +1,7 @@
 use clap::Parser;
 use colored::Colorize;
 use config::{get_config_path, get_urls_path, Config};
-use jellyfin_rpc::{Client, VERSION};
+use jellyfin_rpc::{Client, DisplayFormat, EpisodeDisplayOptions, VERSION};
 use log::{debug, error, info};
 use retry::retry_with_index;
 use simple_logger::SimpleLogger;
@@ -113,13 +113,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(display) = conf.jellyfin.movies.display {
-        debug!("Found config.jellyfin.music.display");
+        debug!("Found config.jellyfin.movies.display");
         builder.movies_display(display);
     }
 
     if let Some(separator) = conf.jellyfin.movies.separator {
-        debug!("Found config.jellyfin.music.separator");
+        debug!("Found config.jellyfin.movies.separator");
         builder.movies_separator(separator);
+    }
+
+    if let Some(display) = conf.jellyfin.episodes.display {
+        debug!("Found config.jellyfin.episodes.display");
+        builder.episodes_display(display);
+    } else {
+        debug!("Couldn't find config.jellyfin.episodes.display, using legacy episode values");
+        builder.episodes_display(DisplayFormat::from(EpisodeDisplayOptions {
+            divider: conf.jellyfin.add_divider,
+            prefix: conf.jellyfin.append_prefix,
+            simple: conf.jellyfin.show_simple,
+        }));
+    }
+
+    if let Some(separator) = conf.jellyfin.episodes.separator {
+        debug!("Found config.jellyfin.episodes.separator");
+        builder.episodes_separator(separator);
     }
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {

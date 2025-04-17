@@ -31,9 +31,9 @@ pub struct Client {
     reqwest: reqwest::blocking::Client,
     session: Option<Session>,
     buttons: Option<Vec<Button>>,
-    episode_display_options: EpisodeDisplayOptions,
     music_display_options: DisplayOptions,
     movies_display_options: DisplayOptions,
+    episodes_display_options: DisplayOptions,
     blacklist: Blacklist,
     show_paused: bool,
     show_images: bool,
@@ -440,7 +440,13 @@ impl Client {
 
         let separator = &self.movies_display_options.separator;
         let title = session.now_playing_item.name.as_ref();
-        let genres = session
+        let original_title = session
+            .now_playing_item
+            .original_title
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
+        let genres = &session
             .now_playing_item
             .genres
             .as_ref()
@@ -464,10 +470,82 @@ impl Client {
 
         result = result
             .replace("{title}", title)
+            .replace("{original-title}", &original_title)
             .replace("{genres}", &genres)
             .replace("{year}", &year)
             .replace("{critic-score}", critic_score)
             .replace("{community-score}", community_score)
+            .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
+
+        Self::sanitize_display_format(&result).replace("{sep}", separator)
+    }
+
+    fn parse_episodes_display(&self, input: &str) -> String {
+        let mut result = input.trim().to_string();
+        let session = self.session.as_ref().unwrap();
+
+        let separator = &self.episodes_display_options.separator;
+        let show_title = session
+            .now_playing_item
+            .series_name
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
+        let episode_title = session.now_playing_item.name.as_ref();
+        let original_title = session
+            .now_playing_item
+            .original_title
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
+        let season = session.now_playing_item.parent_index_number.unwrap_or(0);
+        let year = session
+            .now_playing_item
+            .production_year
+            .map(|y| y.to_string())
+            .unwrap_or_default();
+        let genres = session
+            .now_playing_item
+            .genres
+            .as_ref()
+            .unwrap_or(&vec!["".to_string()])
+            .join(", ");
+        let studio = session
+            .now_playing_item
+            .series_studio
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
+
+        // One episode on Jellyfin can span across multiple actual episodes
+        // For example E01-03 is 3 episodes in one media file
+        let episode_range = (
+            session.now_playing_item.index_number.unwrap_or(0),
+            session.now_playing_item.index_number_end,
+        );
+        result = result
+            .replace("{show-title}", &show_title)
+            .replace("{title}", episode_title)
+            .replace("{original-title}", &original_title)
+            .replace(
+                "{episode}",
+                &match episode_range {
+                    (first, Some(last)) => format!("{}-{}", first, last),
+                    (episode, None) => format!("{}", episode),
+                },
+            )
+            .replace(
+                "{episode-padded}",
+                &match episode_range {
+                    (first, Some(last)) => format!("{:02}-{:02}", first, last),
+                    (episode, None) => format!("{:02}", episode),
+                },
+            )
+            .replace("{season}", &season.to_string())
+            .replace("{season-padded}", &format!("{:02}", season))
+            .replace("{year}", &year)
+            .replace("{genres}", &genres)
+            .replace("{studio}", &studio)
             .replace("{version}", VERSION.unwrap_or("UNKNOWN"));
 
         Self::sanitize_display_format(&result).replace("{sep}", separator)
@@ -503,12 +581,19 @@ impl Client {
                         .as_str(),
                 )
             }
-            MediaType::Episode => session
-                .now_playing_item
-                .series_name
-                .as_ref()
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| session.now_playing_item.name.to_string()),
+            MediaType::Episode => {
+                let display_details_format = &self
+                    .episodes_display_options
+                    .display
+                    .details_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_episodes_display(
+                    display_details_format
+                        .replace("{__default}", "{show-title}")
+                        .as_str(),
+                )
+            }
             MediaType::AudioBook => session
                 .now_playing_item
                 .album
@@ -524,44 +609,13 @@ impl Client {
 
         match session.now_playing_item.media_type {
             MediaType::Episode => {
-                let episode = (
-                    session.now_playing_item.index_number.unwrap_or(0),
-                    session.now_playing_item.index_number_end,
-                );
-                let mut state = String::new();
-
-                if let Some(season) = session.now_playing_item.parent_index_number {
-                    if self.episode_display_options.prefix {
-                        state += &format!("S{:02}", season);
-                    } else {
-                        state += &format!("S{}", season);
-                    }
-                }
-
-                if !state.is_empty() && self.episode_display_options.divider {
-                    state += " - "
-                }
-
-                if let (first, Some(last)) = episode {
-                    if self.episode_display_options.prefix {
-                        state += &format!("E{:02} - {:02}", first, last)
-                    } else {
-                        state += &format!("E{} - {}", first, last)
-                    }
-                } else {
-                    let (episode, _) = episode;
-                    if self.episode_display_options.prefix {
-                        state += &format!("E{:02}", episode)
-                    } else {
-                        state += &format!("E{}", episode)
-                    }
-                }
-
-                if !self.episode_display_options.simple {
-                    state += &format!(" {}", session.now_playing_item.name)
-                }
-
-                state
+                let display_state_format = &self
+                    .episodes_display_options
+                    .display
+                    .state_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_episodes_display(display_state_format.replace("{__default}", "").as_str())
             }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
@@ -654,6 +708,15 @@ impl Client {
                     .unwrap();
                 self.parse_movies_display(display_image_format)
             }
+            MediaType::Episode => {
+                let display_image_format = &self
+                    .episodes_display_options
+                    .display
+                    .image_text
+                    .as_ref()
+                    .unwrap();
+                self.parse_episodes_display(display_image_format)
+            }
             _ => "".to_string(),
         }
     }
@@ -707,10 +770,10 @@ impl Client {
     }
 }
 
-struct EpisodeDisplayOptions {
-    divider: bool,
-    prefix: bool,
-    simple: bool,
+pub struct EpisodeDisplayOptions {
+    pub divider: bool,
+    pub prefix: bool,
+    pub simple: bool,
 }
 
 struct DisplayOptions {
@@ -759,6 +822,38 @@ impl From<String> for DisplayFormat {
     fn from(item: String) -> Self {
         let data: Vec<String> = item.split(',').map(|d| d.to_string()).collect();
         DisplayFormat::from(data)
+    }
+}
+
+/// Converts `EpisodeDisplayOptions` to `DisplayFormat`
+impl From<EpisodeDisplayOptions> for DisplayFormat {
+    fn from(value: EpisodeDisplayOptions) -> Self {
+        let details_text = "{show-title}".to_string();
+        let state_text = {
+            let (season_tag, episode_tag) = if value.prefix {
+                (
+                    "S{season-padded}".to_string(),
+                    "E{episode-padded}".to_string(),
+                )
+            } else {
+                ("S{season}".to_string(), "E{episode}".to_string())
+            };
+
+            let divider = if value.divider { " - " } else { "" };
+
+            if value.simple {
+                format!("{}{}{}", season_tag, divider, episode_tag)
+            } else {
+                format!("{}{}{} {}", season_tag, divider, episode_tag, "{title}")
+            }
+        };
+        let image_text = "Jellyfin-RPC v{version}".to_string();
+
+        DisplayFormat {
+            details_text: Some(details_text),
+            state_text: Some(state_text),
+            image_text: Some(image_text),
+        }
     }
 }
 
@@ -819,6 +914,8 @@ pub struct ClientBuilder {
     music_display: DisplayFormat,
     movies_separator: String,
     movies_display: DisplayFormat,
+    episodes_separator: String,
+    episodes_display: DisplayFormat,
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
@@ -838,6 +935,12 @@ impl ClientBuilder {
             music_display: DisplayFormat::from(vec!["genres".to_string()]),
             movies_separator: "-".to_string(),
             movies_display: DisplayFormat::from(vec!["genres".to_string()]),
+            episodes_separator: "-".to_string(),
+            episodes_display: DisplayFormat::from(EpisodeDisplayOptions {
+                divider: true,
+                prefix: true,
+                simple: false,
+            }),
             show_paused: true,
             ..Default::default()
         }
@@ -961,6 +1064,16 @@ impl ClientBuilder {
         self
     }
 
+    pub fn episodes_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
+        self.episodes_separator = separator.into();
+        self
+    }
+
+    pub fn episodes_display(&mut self, display: DisplayFormat) -> &mut Self {
+        self.episodes_display = display;
+        self
+    }
+
     /// Blacklist certain `MediaType`s so they don't display.
     ///
     /// Defaults to `Vec::new()`.
@@ -1067,11 +1180,6 @@ impl ClientBuilder {
             usernames: self.usernames,
             buttons: self.buttons,
             session: None,
-            episode_display_options: EpisodeDisplayOptions {
-                divider: self.episode_divider,
-                prefix: self.episode_prefix,
-                simple: self.episode_simple,
-            },
             music_display_options: DisplayOptions {
                 separator: self.music_separator,
                 display: self.music_display,
@@ -1079,6 +1187,10 @@ impl ClientBuilder {
             movies_display_options: DisplayOptions {
                 separator: self.movies_separator,
                 display: self.movies_display,
+            },
+            episodes_display_options: DisplayOptions {
+                separator: self.episodes_separator,
+                display: self.episodes_display,
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
