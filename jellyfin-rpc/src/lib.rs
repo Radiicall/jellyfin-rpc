@@ -232,10 +232,10 @@ impl Client {
         Ok(String::new())
     }
 
-    fn get_session(&mut self) -> Result<(), reqwest::Error> {
+    fn get_session(&mut self) -> JfResult<()> {
         let sessions: Vec<RawSession> = self
             .reqwest
-            .get(format!("{}Sessions", self.url))
+            .get(self.url.join("Sessions")?)
             .send()?
             .json()?;
 
