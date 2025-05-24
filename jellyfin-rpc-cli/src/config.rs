@@ -348,9 +348,17 @@ impl ConfigBuilder {
             imgur_images = false;
         }
 
+        let url;
+
+        if self.jellyfin.url.ends_with("/") {
+            url = self.jellyfin.url;
+        } else {
+             url = self.jellyfin.url + "/"
+        }
+
         Config {
             jellyfin: Jellyfin {
-                url: self.jellyfin.url,
+                url,
                 api_key: self.jellyfin.api_key,
                 username,
                 music: DisplayOptions {
