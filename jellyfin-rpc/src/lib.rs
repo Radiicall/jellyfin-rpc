@@ -98,8 +98,21 @@ impl Client {
     /// client.set_activity().unwrap();
     /// ```
     pub fn set_activity(&mut self) -> JfResult<String> {
-        self.get_session()?;
-
+        match self.get_session() {
+            Ok(true) => {
+                // Session was set inside get_session
+            },
+            Ok(false) => {
+                // No active session
+                self.session = None;
+                return Ok(String::new());
+            },
+            Err(e) => {
+                log::error!("Error getting session: {}", e);
+                return Err(e);
+            }
+        }
+        
         // Make sure the blacklist cache is loaded/valid
         match &self.blacklist.libraries {
             BlacklistedLibraries::Uninitialized => {
@@ -232,17 +245,114 @@ impl Client {
         Ok(String::new())
     }
 
-    fn get_session(&mut self) -> Result<(), reqwest::Error> {
-        let sessions: Vec<RawSession> = self
-            .reqwest
-            .get(format!("{}Sessions", self.url))
-            .send()?
-            .json()?;
+    fn get_session(&mut self) -> JfResult<bool> {
+        // Try the standard URL first
+        let url = if self.url.to_string().ends_with('/') {
+            format!("{}Sessions", self.url)
+        } else {
+            format!("{}/Sessions", self.url)
+        };
+        
+        log::debug!("Requesting sessions from URL: {}", url);
+        
+        let result = self.try_get_sessions_from_url(&url);
+        if result.is_ok() {
+            return result;
+        }
+        
+        // If the standard URL fails with 404, try an alternative path format
+        let alt_url = if self.url.to_string().ends_with('/') {
+            format!("{}emby/Sessions", self.url)
+        } else {
+            format!("{}/emby/Sessions", self.url)
+        };
+        
+        log::debug!("First attempt failed, trying alternative URL: {}", alt_url);
+        self.try_get_sessions_from_url(&alt_url)
+    }
 
-        debug!("Found {} sessions", sessions.len());
+    fn try_get_sessions_from_url(&mut self, url: &str) -> JfResult<bool> {
+        // Get the response as a string first for debugging
+        let response = match self.reqwest.get(url).send() {
+            Ok(resp) => resp,
+            Err(e) => {
+                log::error!("Failed to get sessions from {}: {}", url, e);
+                return Err(Box::new(JfError::NetworkError(format!("Request failed: {}", e))));
+            }
+        };
+        
+        let status = response.status();
+        if !status.is_success() {
+            log::error!("Failed to get sessions from {}: HTTP {}", url, status);
+            return Err(Box::new(JfError::NetworkError(format!("HTTP {}", status))));
+        }
+        
+        // Get the response text
+        let response_text = match response.text() {
+            Ok(text) => text,
+            Err(e) => {
+                log::error!("Failed to get response text: {}", e);
+                return Err(Box::new(JfError::NetworkError(format!("Failed to read response: {}", e))));
+            }
+        };
+        
+        // If the response is empty, just return None
+        if response_text.trim().is_empty() {
+            log::debug!("Empty response from Sessions API");
+            return Ok(false);
+        }
+        
+        // Log the first part of the response for debugging
+        let preview_len = std::cmp::min(response_text.len(), 500);
+        log::debug!("Sessions API response preview: {}", &response_text[0..preview_len]);
+        
+        // Try to parse the response in different ways
+        let sessions: Vec<RawSession> = match serde_json::from_str(&response_text) {
+            Ok(sessions) => {
+                log::debug!("Successfully parsed sessions response");
+                sessions
+            },
+            Err(e) => {
+                log::error!("Failed to parse sessions response: {}", e);
+                
+                // Try to parse as a flexible format
+                let value: serde_json::Value = match serde_json::from_str(&response_text) {
+                    Ok(val) => val,
+                    Err(e2) => {
+                        log::error!("Couldn't parse response as JSON at all: {}", e2);
+                        return Err(Box::new(JfError::JsonParseError(format!("Failed to parse response: {}", e))));
+                    }
+                };
+                
+                // If it's an array, try to parse each element individually
+                if let serde_json::Value::Array(items) = value {
+                    log::debug!("Response is an array, parsing each item individually");
+                    let mut valid_sessions = Vec::new();
+                    
+                    for item in items {
+                        match serde_json::from_value::<RawSession>(item.clone()) {
+                            Ok(session) => {
+                                valid_sessions.push(session);
+                            },
+                            Err(err) => {
+                                log::debug!("Skipping invalid session: {}", err);
+                                // Just skip invalid sessions
+                            }
+                        }
+                    }
+                    
+                    valid_sessions
+                } else {
+                    log::error!("Response is not an array, can't parse sessions");
+                    return Err(Box::new(JfError::JsonParseError("Response is not an array of sessions".into())));
+                }
+            }
+        };
+
+        log::debug!("Found {} sessions", sessions.len());
 
         for session in sessions {
-            debug!("Session username is {:?}", session.user_name);
+            log::debug!("Session username is {:?}", session.user_name);
             if let Some(username) = session.user_name.as_ref() {
                 if self
                     .usernames
@@ -255,31 +365,31 @@ impl Client {
                 if session.now_playing_item.is_none() {
                     continue;
                 }
-                debug!("NowPlayingItem exists");
+                log::debug!("NowPlayingItem exists");
 
                 if session.play_state.is_none() {
                     continue;
                 }
-                debug!("PlayState exists");
+                log::debug!("PlayState exists");
 
-                let session = session.build();
+                let built_session = session.build();
 
-                if session
+                if built_session
                     .now_playing_item
                     .extra_type
                     .as_ref()
                     .is_some_and(|et| et == "ThemeSong")
                 {
-                    debug!("Session is playing a theme song, continuing loop");
+                    log::debug!("Session is playing a theme song, continuing loop");
                     continue;
                 }
 
-                self.session = Some(session);
-                return Ok(());
+                self.session = Some(built_session);
+                return Ok(true);
             }
         }
         self.session = None;
-        Ok(())
+        Ok(false)
     }
 
     fn get_buttons(&self) -> Option<Vec<Button>> {

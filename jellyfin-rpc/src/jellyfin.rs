@@ -1,4 +1,5 @@
 use serde::{de::Visitor, Deserialize, Serialize};
+use serde_json::Value;
 use std::time::{SystemTime, SystemTimeError, UNIX_EPOCH};
 
 #[derive(Deserialize, Debug)]
@@ -145,6 +146,48 @@ impl Button {
     }
 }
 
+// Add custom deserializer functions for different numeric types
+fn deserialize_i64_from_float_or_int<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    // First try to deserialize as an Option<Value>
+    let opt = Option::<Value>::deserialize(deserializer);
+    
+    match opt {
+        Ok(Some(Value::Number(num))) => {
+            if let Some(n) = num.as_i64() {
+                Ok(Some(n))
+            } else if let Some(n) = num.as_f64() {
+                Ok(Some(n as i64))
+            } else {
+                Ok(None)
+            }
+        },
+        Ok(_) => Ok(None),
+        Err(_) => Ok(None),
+    }
+}
+
+fn deserialize_optional_i64<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<Value>::deserialize(deserializer)?;
+    match value {
+        Some(Value::Number(num)) => {
+            if let Some(n) = num.as_i64() {
+                Ok(Some(n))
+            } else if let Some(n) = num.as_f64() {
+                Ok(Some(n as i64))
+            } else {
+                Ok(None)
+            }
+        }
+        _ => Ok(None),
+    }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct NowPlayingItem {
@@ -153,6 +196,7 @@ pub struct NowPlayingItem {
     #[serde(rename = "Type")]
     pub media_type: MediaType,
     pub id: String,
+    #[serde(deserialize_with = "deserialize_optional_i64")]
     pub run_time_ticks: Option<i64>,
     pub production_year: Option<i64>,
     pub genres: Option<Vec<String>>,
@@ -310,7 +354,9 @@ impl From<String> for MediaType {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct PlayState {
+    #[serde(default)]
     pub is_paused: bool,
+    #[serde(default, deserialize_with = "deserialize_i64_from_float_or_int")]
     pub position_ticks: Option<i64>,
 }
 
