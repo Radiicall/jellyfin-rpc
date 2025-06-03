@@ -896,6 +896,7 @@ struct ImgurOptions {
     enabled: bool,
     client_id: String,
     urls_location: String,
+    process_images: bool,
 }
 
 /// Used to build a new Client
@@ -924,6 +925,7 @@ pub struct ClientBuilder {
     imgur_client_id: String,
     imgur_urls_file_location: String,
     large_image_text: String,
+    process_images: bool,
 }
 
 impl ClientBuilder {
@@ -942,6 +944,7 @@ impl ClientBuilder {
                 simple: false,
             }),
             show_paused: true,
+            process_images: true,
             ..Default::default()
         }
     }
@@ -1136,6 +1139,14 @@ impl ClientBuilder {
         self
     }
 
+    /// Process images before uploading to imgur
+    ///
+    /// Defaults to `true`.
+    pub fn process_images(&mut self, val: bool) -> &mut Self {
+        self.process_images = val;
+        self
+    }
+
     /// Text to be displayed when hovering the large activity image in Discord
     ///
     /// Empty by default
@@ -1203,6 +1214,7 @@ impl ClientBuilder {
                 enabled: self.use_imgur,
                 client_id: self.imgur_client_id,
                 urls_location: self.imgur_urls_file_location,
+                process_images: self.process_images,
             },
             large_image_text: self.large_image_text,
         })

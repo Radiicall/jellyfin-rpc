@@ -99,6 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .show_paused(conf.discord.show_paused)
         .show_images(conf.images.enable_images)
         .use_imgur(conf.images.imgur_images)
+        .process_images(conf.images.process_images)
         .large_image_text(format!("Jellyfin-RPC v{}", VERSION.unwrap_or("UNKNOWN")))
         .imgur_urls_file_location(args.image_urls.unwrap_or(get_urls_path()?));
 
