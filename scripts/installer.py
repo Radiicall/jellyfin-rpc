@@ -67,7 +67,7 @@ if os.path.isfile(config_path):
 if not use_existing:
     print("----------Jellyfin----------")
     url = input("URL (include http/https): ")
-    api_key = input(f"API key [Create one here: {url}/web/index.html#!/apikeys.html]: ")
+    api_key = input(f"API key [Create one here: {url}/web/#/dashboard/keys]: ")
     print(
         "Enter a single username or enter multiple usernames in a comma separated list."
     )
