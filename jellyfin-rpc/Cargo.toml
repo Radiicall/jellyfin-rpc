@@ -1,6 +1,6 @@
 [package]
 name        = "jellyfin-rpc"
-version     = "1.3.3"
+version     = "1.3.4"
 edition     = "2021"
 description = "Backend for the Jellyfin-RPC-cli and Jellyfin-RPC-Iced projects"
 license     = "GPL-3.0-or-later"
@@ -12,6 +12,7 @@ discord-rich-presence = "0.2"
 serde_json            = "1.0"
 log                   = "0.4"
 url                   = "2.5"
+base64                = "0.22"
 
 [dependencies.serde]
 features = ["derive"]
@@ -19,5 +20,5 @@ version  = "1.0"
 
 [dependencies.reqwest]
 default-features = false
-features         = ["rustls-tls", "json", "blocking"]
+features         = ["rustls-tls", "json", "blocking", "multipart"]
 version          = "0.12"

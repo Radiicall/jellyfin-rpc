@@ -38,6 +38,7 @@ pub struct Client {
     show_paused: bool,
     show_images: bool,
     imgur_options: ImgurOptions,
+    imgbb_options: ImgbbOptions,
     large_image_text: String,
 }
 
@@ -130,6 +131,9 @@ impl Client {
 
             let mut image_url = Url::from_str("https://i.imgur.com/oX6vcds.png")?;
 
+            debug!("Image hosting options - Imgur enabled: {}, ImgBB enabled: {}, show_images: {}", 
+                   self.imgur_options.enabled, self.imgbb_options.enabled, self.show_images);
+
             if session.now_playing_item.media_type == MediaType::LiveTv {
                 image_url = Url::from_str("https://i.imgur.com/XxdHOqm.png")?;
             } else if self.imgur_options.enabled && self.show_images {
@@ -137,6 +141,18 @@ impl Client {
                     image_url = imgur_url;
                 } else {
                     debug!("imgur::get_image() didnt return an image, using default..")
+                }
+            } else if self.imgbb_options.enabled && self.show_images {
+                debug!("Using ImgBB for images, enabled: {}, show_images: {}", self.imgbb_options.enabled, self.show_images);
+                debug!("ImgBB API key length: {}", self.imgbb_options.api_key.len());
+                match external::imgbb::get_image(self) {
+                    Ok(imgbb_url) => {
+                        debug!("Successfully got ImgBB URL: {}", imgbb_url);
+                        image_url = imgbb_url;
+                    }
+                    Err(e) => {
+                        debug!("imgbb::get_image() failed with error: {}, using default..", e);
+                    }
                 }
             } else if self.show_images {
                 if let Ok(iu) = self.get_image() {
@@ -898,6 +914,12 @@ struct ImgurOptions {
     urls_location: String,
 }
 
+struct ImgbbOptions {
+    enabled: bool,
+    api_key: String,
+    urls_location: String,
+}
+
 /// Used to build a new Client
 #[derive(Default)]
 pub struct ClientBuilder {
@@ -923,6 +945,9 @@ pub struct ClientBuilder {
     use_imgur: bool,
     imgur_client_id: String,
     imgur_urls_file_location: String,
+    use_imgbb: bool,
+    imgbb_api_key: String,
+    imgbb_urls_file_location: String,
     large_image_text: String,
 }
 
@@ -1136,6 +1161,36 @@ impl ClientBuilder {
         self
     }
 
+    /// Use imgbb for images, uploads images from jellyfin to imgbb and stores the imgbb links in a local cache
+    ///
+    /// Defaults to `false`.
+    pub fn use_imgbb(&mut self, val: bool) -> &mut Self {
+        self.use_imgbb = val;
+        self
+    }
+
+    /// ImgBB API key, used to upload images through their API.
+    ///
+    /// Empty by default.
+    pub fn imgbb_api_key<T: Into<String>>(&mut self, api_key: T) -> &mut Self {
+        self.imgbb_api_key = api_key.into();
+        self
+    }
+
+    /// Where to store the URLs to images uploaded to imgbb.
+    /// Having this cache lets you avoid uploading the same image several times to their service.
+    ///
+    /// Empty by default.
+    ///
+    /// # Warning
+    /// Setting this to something like `/dev/null` is **NOT** recommended,
+    /// jellyfin-rpc will upload the image every time you call `Client::set_activity()`
+    /// if it can't find the image its looking for in the cache.
+    pub fn imgbb_urls_file_location<T: Into<String>>(&mut self, location: T) -> &mut Self {
+        self.imgbb_urls_file_location = location.into();
+        self
+    }
+
     /// Text to be displayed when hovering the large activity image in Discord
     ///
     /// Empty by default
@@ -1203,6 +1258,11 @@ impl ClientBuilder {
                 enabled: self.use_imgur,
                 client_id: self.imgur_client_id,
                 urls_location: self.imgur_urls_file_location,
+            },
+            imgbb_options: ImgbbOptions {
+                enabled: self.use_imgbb,
+                api_key: self.imgbb_api_key,
+                urls_location: self.imgbb_urls_file_location,
             },
             large_image_text: self.large_image_text,
         })

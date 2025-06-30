@@ -25,7 +25,7 @@ struct Args {
     #[arg(
         short = 'i',
         long = "image-urls-file",
-        help = "Path to image urls file for imgur"
+        help = "Path to image urls file for imgur/imgbb"
     )]
     image_urls: Option<String>,
     #[arg(
@@ -99,8 +99,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .show_paused(conf.discord.show_paused)
         .show_images(conf.images.enable_images)
         .use_imgur(conf.images.imgur_images)
-        .large_image_text(format!("Jellyfin-RPC v{}", VERSION.unwrap_or("UNKNOWN")))
-        .imgur_urls_file_location(args.image_urls.unwrap_or(get_urls_path()?));
+        .imgur_urls_file_location(args.image_urls.clone().unwrap_or_else(|| {
+            let path = get_urls_path().unwrap_or_default();
+            path.replace("urls.json", "imgur_urls.json")
+        }))
+        .use_imgbb(conf.images.imgbb_images)
+        .imgbb_urls_file_location(args.image_urls.unwrap_or_else(|| {
+            let path = get_urls_path().unwrap_or_default();
+            path.replace("urls.json", "imgbb_urls.json")
+        }));
 
     if let Some(display) = conf.jellyfin.music.display {
         debug!("Found config.jellyfin.music.display");
@@ -164,6 +171,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(client_id) = conf.imgur.client_id {
         debug!("Found config.imgur.client_id");
         builder.imgur_client_id(client_id);
+    }
+
+    if let Some(api_key) = conf.imgbb.api_key {
+        debug!("Found config.imgbb.api_key");
+        builder.imgbb_api_key(api_key);
     }
 
     debug!("Building client");

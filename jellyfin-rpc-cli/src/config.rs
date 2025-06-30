@@ -15,6 +15,8 @@ pub struct Config {
     pub discord: Discord,
     /// Imgur configuration.
     pub imgur: Imgur,
+    /// ImgBB configuration.
+    pub imgbb: ImgBB,
     /// Images configuration.
     pub images: Images,
 }
@@ -70,6 +72,8 @@ pub struct Images {
     pub enable_images: bool,
     /// Enables imgur images.
     pub imgur_images: bool,
+    /// Enables imgbb images.
+    pub imgbb_images: bool,
 }
 
 impl Config {
@@ -84,6 +88,7 @@ pub struct ConfigBuilder {
     pub jellyfin: JellyfinBuilder,
     pub discord: Option<DiscordBuilder>,
     pub imgur: Option<Imgur>,
+    pub imgbb: Option<ImgBB>,
     pub images: Option<ImagesBuilder>,
 }
 
@@ -151,13 +156,21 @@ pub struct Imgur {
     pub client_id: Option<String>,
 }
 
+/// ImgBB configuration
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct ImgBB {
+    /// Contains the API key used to upload images to imgbb.
+    pub api_key: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ImagesBuilder {
     pub enable_images: Option<bool>,
     pub imgur_images: Option<bool>,
+    pub imgbb_images: Option<bool>,
 }
 
-/// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
+/// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur/imgbb.
 ///
 /// This is to avoid the user having to specify a filepath on launch.
 ///
@@ -222,6 +235,7 @@ impl ConfigBuilder {
             },
             discord: None,
             imgur: None,
+            imgbb: None,
             images: None,
         }
     }
@@ -337,15 +351,26 @@ impl ConfigBuilder {
             client_id = None
         }
 
+        let api_key;
+
+        if let Some(imgbb) = self.imgbb {
+            api_key = imgbb.api_key;
+        } else {
+            api_key = None
+        }
+
         let enable_images;
         let imgur_images;
+        let imgbb_images;
 
         if let Some(images) = self.images {
             enable_images = images.enable_images.unwrap_or(false);
             imgur_images = images.imgur_images.unwrap_or(false);
+            imgbb_images = images.imgbb_images.unwrap_or(false);
         } else {
             enable_images = false;
             imgur_images = false;
+            imgbb_images = false;
         }
 
         let url;
@@ -388,9 +413,11 @@ impl ConfigBuilder {
                 show_paused,
             },
             imgur: Imgur { client_id },
+            imgbb: ImgBB { api_key },
             images: Images {
                 enable_images,
                 imgur_images,
+                imgbb_images,
             },
         }
     }
