@@ -112,6 +112,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         builder.music_separator(separator);
     }
 
+    if let Some(status_display_type) = conf.jellyfin.music.status_display_type {
+        debug!("Found config.jellyfin.music.status_display_type");
+        builder.music_status_display_type(status_display_type);
+    }
+
     if let Some(display) = conf.jellyfin.movies.display {
         debug!("Found config.jellyfin.movies.display");
         builder.movies_display(display);
@@ -120,6 +125,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(separator) = conf.jellyfin.movies.separator {
         debug!("Found config.jellyfin.movies.separator");
         builder.movies_separator(separator);
+    }
+
+    if let Some(status_display_type) = conf.jellyfin.movies.status_display_type {
+        debug!("Found config.jellyfin.movies.status_display_type");
+        builder.movies_status_display_type(status_display_type);
     }
 
     if let Some(display) = conf.jellyfin.episodes.display {
@@ -137,6 +147,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(separator) = conf.jellyfin.episodes.separator {
         debug!("Found config.jellyfin.episodes.separator");
         builder.episodes_separator(separator);
+    }
+
+    if let Some(status_display_type) = conf.jellyfin.episodes.status_display_type {
+        debug!("Found config.jellyfin.episodes.status_display_type");
+        builder.episodes_status_display_type(status_display_type);
     }
 
     if let Some(media_types) = conf.jellyfin.blacklist.media_types {

@@ -1,4 +1,6 @@
-use discord_rich_presence::activity::{ActivityType, Button as ActButton};
+use discord_rich_presence::activity::{
+    ActivityType, Button as ActButton, StatusDisplayType as DiscordIpcStatusDisplayType,
+};
 use discord_rich_presence::{
     activity::{Activity, Assets, Timestamps},
     DiscordIpc, DiscordIpcClient,
@@ -49,12 +51,14 @@ impl Client {
 
     /// Connects to the discord socket
     pub fn connect(&mut self) -> JfResult<()> {
-        self.discord_ipc_client.connect()
+        self.discord_ipc_client.connect()?;
+        Ok(())
     }
 
     /// Reconnects to the discord socket
     pub fn reconnect(&mut self) -> JfResult<()> {
-        self.discord_ipc_client.reconnect()
+        self.discord_ipc_client.reconnect()?;
+        Ok(())
     }
 
     /// Clears current activity on discord if anything is being displayed
@@ -66,7 +70,7 @@ impl Client {
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
-    ///     .username("user");    
+    ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
     ///
@@ -77,7 +81,8 @@ impl Client {
     /// client.clear_activity().unwrap();
     /// ```
     pub fn clear_activity(&mut self) -> JfResult<()> {
-        self.discord_ipc_client.clear_activity()
+        self.discord_ipc_client.clear_activity()?;
+        Ok(())
     }
 
     /// Gathers information from jellyfin about what is being played and displays it according to the options supplied to the builder.
@@ -89,7 +94,7 @@ impl Client {
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
     ///     .url("https://jellyfin.example.com")
-    ///     .username("user");    
+    ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
     ///
@@ -219,11 +224,14 @@ impl Client {
                 _ => activity = activity.activity_type(ActivityType::Watching),
             }
 
+            let status_display_type = self.get_status_display_type();
+
             activity = activity
                 .timestamps(timestamps)
                 .assets(assets)
                 .details(&details)
-                .state(&state);
+                .state(&state)
+                .status_display_type(status_display_type.into());
 
             self.discord_ipc_client.set_activity(activity)?;
 
@@ -615,7 +623,9 @@ impl Client {
                     .state_text
                     .as_ref()
                     .unwrap();
-                self.parse_episodes_display(display_state_format.replace("{__default}", "").as_str())
+                self.parse_episodes_display(
+                    display_state_format.replace("{__default}", "").as_str(),
+                )
             }
             MediaType::LiveTv => "Live TV".to_string(),
             MediaType::Music => {
@@ -683,6 +693,16 @@ impl Client {
                 .as_ref()
                 .unwrap_or(&vec!["".to_string()])
                 .join(", "),
+        }
+    }
+
+    fn get_status_display_type(&self) -> StatusType {
+        let session = self.session.as_ref().unwrap();
+        match session.now_playing_item.media_type {
+            MediaType::Episode => self.episodes_display_options.status_display_type.clone(),
+            MediaType::Movie => self.movies_display_options.status_display_type.clone(),
+            MediaType::Music => self.music_display_options.status_display_type.clone(),
+            _ => Default::default(),
         }
     }
 
@@ -779,6 +799,7 @@ pub struct EpisodeDisplayOptions {
 struct DisplayOptions {
     separator: String,
     display: DisplayFormat,
+    status_display_type: StatusType,
 }
 
 /// Represents the formatting details for `Display`.
@@ -857,6 +878,55 @@ impl From<EpisodeDisplayOptions> for DisplayFormat {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum StatusType {
+    Name,
+    State,
+    Details,
+}
+impl Default for StatusType {
+    fn default() -> Self {
+        Self::Name
+    }
+}
+
+impl From<DiscordIpcStatusDisplayType> for StatusType {
+    fn from(x: DiscordIpcStatusDisplayType) -> Self {
+        use DiscordIpcStatusDisplayType as T;
+        match x {
+            T::Name => Self::Name,
+            T::State => Self::State,
+            T::Details => Self::Details,
+        }
+    }
+}
+
+impl Into<DiscordIpcStatusDisplayType> for StatusType {
+    fn into(self) -> DiscordIpcStatusDisplayType {
+        use DiscordIpcStatusDisplayType as T;
+        match self {
+            Self::Name => T::Name,
+            Self::State => T::State,
+            Self::Details => T::Details,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct StatusTypeFromStringError;
+
+impl TryFrom<String> for StatusType {
+    type Error = StatusTypeFromStringError;
+    fn try_from(x: String) -> Result<Self, Self::Error> {
+        match x.as_ref() {
+            "name" => Ok(Self::Name),
+            "state" => Ok(Self::State),
+            "details" => Ok(Self::Details),
+            _ => Err(StatusTypeFromStringError),
+        }
+    }
+}
+
 struct Blacklist {
     media_types: Vec<MediaType>,
     libraries_names: Vec<String>,
@@ -912,10 +982,13 @@ pub struct ClientBuilder {
     episode_simple: bool,
     music_separator: String,
     music_display: DisplayFormat,
+    music_status_display_type: StatusType,
     movies_separator: String,
     movies_display: DisplayFormat,
+    movies_status_display_type: StatusType,
     episodes_separator: String,
     episodes_display: DisplayFormat,
+    episodes_status_display_type: StatusType,
     blacklist_media_types: Vec<MediaType>,
     blacklist_libraries: Vec<String>,
     show_paused: bool,
@@ -1054,6 +1127,11 @@ impl ClientBuilder {
         self
     }
 
+    pub fn music_status_display_type(&mut self, status_type: StatusType) -> &mut Self {
+        self.music_status_display_type = status_type;
+        self
+    }
+
     pub fn movies_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
         self.movies_separator = separator.into();
         self
@@ -1064,6 +1142,11 @@ impl ClientBuilder {
         self
     }
 
+    pub fn movies_status_display_type(&mut self, status_type: StatusType) -> &mut Self {
+        self.movies_status_display_type = status_type;
+        self
+    }
+
     pub fn episodes_separator<T: Into<String>>(&mut self, separator: T) -> &mut Self {
         self.episodes_separator = separator.into();
         self
@@ -1071,6 +1154,11 @@ impl ClientBuilder {
 
     pub fn episodes_display(&mut self, display: DisplayFormat) -> &mut Self {
         self.episodes_display = display;
+        self
+    }
+
+    pub fn episodes_status_display_type(&mut self, status_type: StatusType) -> &mut Self {
+        self.music_status_display_type = status_type;
         self
     }
 
@@ -1171,7 +1259,7 @@ impl ClientBuilder {
         headers.insert("X-Emby-Token", self.api_key.parse()?);
 
         Ok(Client {
-            discord_ipc_client: DiscordIpcClient::new(&self.client_id)?,
+            discord_ipc_client: DiscordIpcClient::new(&self.client_id),
             url: self.url.parse()?,
             reqwest: reqwest::blocking::Client::builder()
                 .default_headers(headers)
@@ -1183,14 +1271,17 @@ impl ClientBuilder {
             music_display_options: DisplayOptions {
                 separator: self.music_separator,
                 display: self.music_display,
+                status_display_type: self.music_status_display_type,
             },
             movies_display_options: DisplayOptions {
                 separator: self.movies_separator,
                 display: self.movies_display,
+                status_display_type: self.movies_status_display_type,
             },
             episodes_display_options: DisplayOptions {
                 separator: self.episodes_separator,
                 display: self.episodes_display,
+                status_display_type: self.episodes_status_display_type,
             },
             blacklist: Blacklist {
                 media_types: self.blacklist_media_types,
