@@ -19,5 +19,5 @@ version  = "1.0"
 
 [dependencies.reqwest]
 default-features = false
-features         = ["rustls-tls", "json", "blocking"]
+features         = ["rustls-tls", "json", "blocking", "multipart"]
 version          = "0.12"

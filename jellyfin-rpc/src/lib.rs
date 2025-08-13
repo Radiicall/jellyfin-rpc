@@ -38,6 +38,7 @@ pub struct Client {
     show_paused: bool,
     show_images: bool,
     imgur_options: ImgurOptions,
+    litterbox_options: LitterboxOptions,
     large_image_text: String,
 }
 
@@ -137,6 +138,12 @@ impl Client {
                     image_url = imgur_url;
                 } else {
                     debug!("imgur::get_image() didnt return an image, using default..")
+                }
+            } else if self.litterbox_options.enabled && self.show_images {
+                if let Ok(litterbox_url) = external::litterbox::get_image(self) {
+                    image_url = litterbox_url;
+                } else {
+                    debug!("litterbox::get_image() didn't return an image, using default..")
                 }
             } else if self.show_images {
                 if let Ok(iu) = self.get_image() {
@@ -898,6 +905,11 @@ struct ImgurOptions {
     urls_location: String,
 }
 
+struct LitterboxOptions {
+    enabled: bool,
+    urls_location: String
+}
+
 /// Used to build a new Client
 #[derive(Default)]
 pub struct ClientBuilder {
@@ -923,6 +935,8 @@ pub struct ClientBuilder {
     use_imgur: bool,
     imgur_client_id: String,
     imgur_urls_file_location: String,
+    use_litterbox: bool,
+    litterbox_urls_file_location: String,
     large_image_text: String,
 }
 
@@ -1136,6 +1150,24 @@ impl ClientBuilder {
         self
     }
 
+
+    /// Use litterbox.catbox.moe for images, uploads images from jellyfin to litterbox and stores the litterbox links in a local cache
+    ///
+    /// Defaults to `false`.
+    pub fn use_litterbox(&mut self, val: bool) -> &mut Self {
+        self.use_litterbox = val;
+        self
+    }
+
+    /// Where to store the URLs to images uploaded to litterbox.
+    /// Having this cache lets you avoid uploading the same image several times to their service.
+    ///
+    /// Empty by default.
+    pub fn litterbox_urls_file_location<T: Into<String>>(&mut  self, location: T) -> &mut Self {
+        self.litterbox_urls_file_location = location.into();
+        self
+    }
+
     /// Text to be displayed when hovering the large activity image in Discord
     ///
     /// Empty by default
@@ -1203,6 +1235,10 @@ impl ClientBuilder {
                 enabled: self.use_imgur,
                 client_id: self.imgur_client_id,
                 urls_location: self.imgur_urls_file_location,
+            },
+            litterbox_options: LitterboxOptions {
+                enabled: self.use_litterbox,
+                urls_location: self.litterbox_urls_file_location,
             },
             large_image_text: self.large_image_text,
         })
