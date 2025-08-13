@@ -1158,7 +1158,7 @@ impl ClientBuilder {
     }
 
     pub fn episodes_status_display_type(&mut self, status_type: StatusType) -> &mut Self {
-        self.music_status_display_type = status_type;
+        self.episodes_status_display_type = status_type;
         self
     }
 
