@@ -1,27 +1,28 @@
 use std::{
-    fs::{self, File, OpenOptions},
-    io::{Error, ErrorKind, Write},
-    path::Path, time::SystemTime,
+    fs::{self, File, OpenOptions}, io::{Error, ErrorKind, Write}, path::Path, time::{SystemTime}
 };
 
 use log::{debug};
 use serde::{Deserialize, Serialize};
 use url::Url;
+use chrono::prelude::*;
 
 use reqwest::{blocking::multipart::{ Form, Part }};
 use crate::{ Client, JfResult };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 struct ImageUrl {
     id: String,
     url: String,
+    timestamp: String
 }
 
 impl ImageUrl {
-    fn new<T: Into<String>, Y: Into<String>>(id: T, url: Y) -> Self {
+    fn new<T: Into<String>, Y: Into<String>, U: Into<String>>(id: T, url: Y, timestamp: U) -> Self {
         Self {
             id: id.into(),
             url: url.into(),
+            timestamp: timestamp.into()
         }
     }
 }
@@ -29,15 +30,46 @@ impl ImageUrl {
 pub fn get_image(client: &Client) -> JfResult<Url> {
     let mut image_urls = read_file(client)?;
 
-    if let Some(image_url) = image_urls
+    if let Some(idx) = image_urls
         .iter()
-        .find(|image_url| client.session.as_ref().unwrap().item_id == image_url.id)
+        .position(|image_url| client.session.as_ref().unwrap().item_id == image_url.id)
     {
-        debug!("Found image url: {}", image_url.url.clone());
+        let image_url = image_urls[idx].clone();
 
-        Ok(Url::parse(&image_url.url)?)
+        debug!("Found image url: \"{}\"", image_url.url.clone());
+
+        let file_timestamp = image_url.timestamp.parse::<i64>().unwrap();
+        let file_date = DateTime::from_timestamp(file_timestamp, 0).unwrap();
+        let now = Utc::now();
+
+        let diff = now - file_date;
+
+        debug!("Image is {} hours old.", diff.num_hours().to_string());
+
+        if diff.num_hours() >= 72 {
+            debug!("Image \"{}\" is expired", image_url.url.clone());
+
+            image_urls.swap_remove(idx);
+            
+            let mut file = OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(&client.litterbox_options.urls_location)?;
+
+            file.write_all(serde_json::to_string(&image_urls)?.as_bytes())?;
+
+            let _ = file.flush();
+
+            // Try again
+            self::get_image(client)
+        }
+        else {
+            Ok(Url::parse(&image_url.url)?)
+        }
     } else {
         debug!("No cached litterbox image found. Uploading new image");
+
+        let current_time: DateTime<Utc> = Utc::now();
 
         let litterbox_url = upload(client)?;
 
@@ -46,6 +78,7 @@ pub fn get_image(client: &Client) -> JfResult<Url> {
         let image_url = ImageUrl::new(
             &client.session.as_ref().unwrap().item_id,
             litterbox_url.as_str(),
+            current_time.timestamp().to_string()
         );
 
         image_urls.push(image_url);
@@ -104,8 +137,8 @@ fn upload(client: &Client) -> JfResult<Url> {
 
     let litterbox_form = Form::new()
         .text("reqtype", "fileupload")
-        .text("time", "24h")
-        .part("fileToUpload", Part::bytes(image_bytes.to_vec()).file_name(filename));
+        .text("time", "72h")
+        .part("fileToUpload", Part::bytes(image_bytes.to_vec()).file_name(filename + ".jpg"));
 
     let res: String = litterbox_client
         .post("https://litterbox.catbox.moe/resources/internals/api.php")
