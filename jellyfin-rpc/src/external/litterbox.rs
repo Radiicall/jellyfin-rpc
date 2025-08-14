@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File, OpenOptions}, io::{Error, ErrorKind, Write}, path::Path, time::{SystemTime}
+    fs::{self, File, OpenOptions}, io::{Error, ErrorKind, Write}, path::Path
 };
 
 use log::{debug};
@@ -129,11 +129,7 @@ fn upload(client: &Client) -> JfResult<Url> {
     debug!("Uploading image to litterbox");
 
     let litterbox_client = reqwest::blocking::Client::builder().build()?;
-    let filename = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos()
-        .to_string();
+    let filename = Utc::now().to_string();
 
     let litterbox_form = Form::new()
         .text("reqtype", "fileupload")
