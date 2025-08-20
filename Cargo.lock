@@ -187,6 +187,7 @@ dependencies = [
 [[package]]
 name = "discord-rich-presence"
 version = "0.2.5"
+source = "git+https://github.com/vionya/discord-rich-presence.git#eab0b36bd35c5f58cdb8580ab4fdc01f8ff82414"
 dependencies = [
  "log",
  "serde",
