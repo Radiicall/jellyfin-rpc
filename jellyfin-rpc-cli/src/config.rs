@@ -70,6 +70,8 @@ pub struct Images {
     pub enable_images: bool,
     /// Enables imgur images.
     pub imgur_images: bool,
+    /// Enables litterbox images.
+    pub litterbox_images: bool,
 }
 
 impl Config {
@@ -155,6 +157,7 @@ pub struct Imgur {
 pub struct ImagesBuilder {
     pub enable_images: Option<bool>,
     pub imgur_images: Option<bool>,
+    pub litterbox_images: Option<bool>,
 }
 
 /// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
@@ -339,13 +342,16 @@ impl ConfigBuilder {
 
         let enable_images;
         let imgur_images;
+        let litterbox_images;
 
         if let Some(images) = self.images {
             enable_images = images.enable_images.unwrap_or(false);
             imgur_images = images.imgur_images.unwrap_or(false);
+            litterbox_images = images.litterbox_images.unwrap_or(false);
         } else {
             enable_images = false;
             imgur_images = false;
+            litterbox_images = false;
         }
 
         let url;
@@ -391,6 +397,7 @@ impl ConfigBuilder {
             images: Images {
                 enable_images,
                 imgur_images,
+                litterbox_images,
             },
         }
     }
