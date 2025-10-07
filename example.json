@@ -40,6 +40,7 @@
     },
     "images": {
         "enable_images": true,
-        "imgur_images": true
+        "imgur_images": true,
+        "litterbox_images": false
     }
 }
