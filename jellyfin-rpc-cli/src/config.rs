@@ -1,4 +1,4 @@
-use jellyfin_rpc::{Button, DisplayFormat, MediaType};
+use jellyfin_rpc::{Button, DisplayFormat, MediaType, StatusType};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -51,6 +51,8 @@ pub struct DisplayOptions {
     pub display: Option<DisplayFormat>,
     /// Separator is what should be between the artist(s) and the `display` options.
     pub separator: Option<String>,
+    /// Whether the to display the name, state, or details in the status title.
+    pub status_display_type: Option<StatusType>,
 }
 
 /// Discord configuration
@@ -117,6 +119,7 @@ pub enum Username {
 pub struct DisplayOptionsBuilder {
     pub display: Option<Display>,
     pub separator: Option<String>,
+    pub status_display_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -249,6 +252,7 @@ impl ConfigBuilder {
 
         let music_display;
         let music_separator;
+        let music_status_display_type;
 
         if let Some(music) = self.jellyfin.music {
             if let Some(disp) = music.display {
@@ -262,13 +266,19 @@ impl ConfigBuilder {
             }
 
             music_separator = music.separator;
+
+            music_status_display_type = music
+                .status_display_type
+                .and_then(|x| StatusType::try_from(x).ok());
         } else {
             music_display = None;
             music_separator = None;
+            music_status_display_type = None;
         }
 
         let movie_display;
         let movie_separator;
+        let movie_status_display_type;
 
         if let Some(movies) = self.jellyfin.movies {
             if let Some(disp) = movies.display {
@@ -282,13 +292,19 @@ impl ConfigBuilder {
             }
 
             movie_separator = movies.separator;
+
+            movie_status_display_type = movies
+                .status_display_type
+                .and_then(|x| StatusType::try_from(x).ok());
         } else {
             movie_display = None;
             movie_separator = None;
+            movie_status_display_type = None;
         }
 
         let episode_display;
         let episode_separator;
+        let episode_status_display_type;
 
         if let Some(episodes) = self.jellyfin.episodes {
             if let Some(disp) = episodes.display {
@@ -302,9 +318,14 @@ impl ConfigBuilder {
             }
 
             episode_separator = episodes.separator;
+
+            episode_status_display_type = episodes
+                .status_display_type
+                .and_then(|x| StatusType::try_from(x).ok());
         } else {
             episode_display = None;
             episode_separator = None;
+            episode_status_display_type = None;
         }
 
         let media_types;
@@ -359,7 +380,7 @@ impl ConfigBuilder {
         if self.jellyfin.url.ends_with("/") {
             url = self.jellyfin.url;
         } else {
-             url = self.jellyfin.url + "/"
+            url = self.jellyfin.url + "/"
         }
 
         Config {
@@ -370,14 +391,17 @@ impl ConfigBuilder {
                 music: DisplayOptions {
                     display: music_display,
                     separator: music_separator,
+                    status_display_type: music_status_display_type,
                 },
                 movies: DisplayOptions {
                     display: movie_display,
                     separator: movie_separator,
+                    status_display_type: movie_status_display_type,
                 },
                 episodes: DisplayOptions {
                     display: episode_display,
                     separator: episode_separator,
+                    status_display_type: episode_status_display_type,
                 },
                 blacklist: Blacklist {
                     media_types,
