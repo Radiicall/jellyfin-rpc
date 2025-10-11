@@ -41,6 +41,7 @@ pub struct Client {
     show_images: bool,
     imgur_options: ImgurOptions,
     litterbox_options: LitterboxOptions,
+    process_images: bool,
     large_image_text: String,
 }
 
@@ -973,7 +974,6 @@ struct ImgurOptions {
     enabled: bool,
     client_id: String,
     urls_location: String,
-    process_images: bool,
 }
 
 struct LitterboxOptions {
@@ -1258,7 +1258,7 @@ impl ClientBuilder {
         self
     }
 
-    /// Process images before uploading to imgur
+    /// Process images before uploading to imgur or litterbox
     ///
     /// Defaults to `true`.
     pub fn process_images(&mut self, val: bool) -> &mut Self {
@@ -1336,12 +1336,12 @@ impl ClientBuilder {
                 enabled: self.use_imgur,
                 client_id: self.imgur_client_id,
                 urls_location: self.imgur_urls_file_location,
-                process_images: self.process_images,
             },
             litterbox_options: LitterboxOptions {
                 enabled: self.use_litterbox,
                 urls_location: self.litterbox_urls_file_location,
             },
+            process_images: self.process_images,
             large_image_text: self.large_image_text,
         })
     }

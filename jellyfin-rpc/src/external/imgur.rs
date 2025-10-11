@@ -93,22 +93,24 @@ fn read_file(client: &Client) -> JfResult<Vec<ImageUrl>> {
 }
 
 fn upload(client: &Client) -> JfResult<Url> {
-    use crate::external::image_utils::make_square_with_blur;
     let image_bytes = client.reqwest.get(client.get_image()?).send()?.bytes()?;
-    let buf = if client.imgur_options.process_images {
+
+    let imgur_client = reqwest::blocking::Client::builder().build()?;
+
+    let body = if client.process_images {
+        use crate::external::image_utils::make_square_with_blur;
         make_square_with_blur(&image_bytes)?
     } else {
         image_bytes.to_vec()
     };
-    let imgur_client = reqwest::blocking::Client::builder().build()?;
-    
+
     let res: ImgurResponse = imgur_client
         .post("https://api.imgur.com/3/image")
         .header(
             reqwest::header::AUTHORIZATION,
             format!("Client-ID {}", client.imgur_options.client_id),
         )
-        .body(buf)
+        .body(body)
         .send()?
         .json()?;
 

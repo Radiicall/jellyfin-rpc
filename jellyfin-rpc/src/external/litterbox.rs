@@ -131,10 +131,17 @@ fn upload(client: &Client) -> JfResult<Url> {
     let litterbox_client = reqwest::blocking::Client::builder().build()?;
     let filename = Utc::now().to_string();
 
+    let file_bytes = if client.process_images {
+        use crate::external::image_utils::make_square_with_blur;
+        make_square_with_blur(&image_bytes)?
+    } else {
+        image_bytes.to_vec()
+    };
+
     let litterbox_form = Form::new()
         .text("reqtype", "fileupload")
         .text("time", "72h")
-        .part("fileToUpload", Part::bytes(image_bytes.to_vec()).file_name(filename + ".jpg"));
+        .part("fileToUpload", Part::bytes(file_bytes).file_name(filename + ".jpg"));
 
     let res: String = litterbox_client
         .post("https://litterbox.catbox.moe/resources/internals/api.php")
