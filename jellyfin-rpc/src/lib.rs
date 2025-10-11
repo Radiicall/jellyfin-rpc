@@ -41,6 +41,7 @@ pub struct Client {
     show_images: bool,
     imgur_options: ImgurOptions,
     litterbox_options: LitterboxOptions,
+    process_images: bool,
     large_image_text: String,
 }
 
@@ -1011,6 +1012,7 @@ pub struct ClientBuilder {
     use_litterbox: bool,
     litterbox_urls_file_location: String,
     large_image_text: String,
+    process_images: bool,
 }
 
 impl ClientBuilder {
@@ -1029,6 +1031,7 @@ impl ClientBuilder {
                 simple: false,
             }),
             show_paused: true,
+            process_images: true,
             ..Default::default()
         }
     }
@@ -1238,7 +1241,6 @@ impl ClientBuilder {
         self
     }
 
-
     /// Use litterbox.catbox.moe for images, uploads images from jellyfin to litterbox and stores the litterbox links in a local cache
     ///
     /// Defaults to `false`.
@@ -1253,6 +1255,14 @@ impl ClientBuilder {
     /// Empty by default.
     pub fn litterbox_urls_file_location<T: Into<String>>(&mut  self, location: T) -> &mut Self {
         self.litterbox_urls_file_location = location.into();
+        self
+    }
+
+    /// Process images before uploading to imgur or litterbox
+    ///
+    /// Defaults to `true`.
+    pub fn process_images(&mut self, val: bool) -> &mut Self {
+        self.process_images = val;
         self
     }
 
@@ -1331,6 +1341,7 @@ impl ClientBuilder {
                 enabled: self.use_litterbox,
                 urls_location: self.litterbox_urls_file_location,
             },
+            process_images: self.process_images,
             large_image_text: self.large_image_text,
         })
     }

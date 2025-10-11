@@ -74,6 +74,8 @@ pub struct Images {
     pub imgur_images: bool,
     /// Enables litterbox images.
     pub litterbox_images: bool,
+    /// Processes images by making them square and adding a blur.
+    pub process_images: bool,
 }
 
 impl Config {
@@ -161,6 +163,7 @@ pub struct ImagesBuilder {
     pub enable_images: Option<bool>,
     pub imgur_images: Option<bool>,
     pub litterbox_images: Option<bool>,
+    pub process_images: Option<bool>,
 }
 
 /// Find urls.json in filesystem, used to store images that were already previously uploaded to imgur.
@@ -364,15 +367,18 @@ impl ConfigBuilder {
         let enable_images;
         let imgur_images;
         let litterbox_images;
+        let process_images;
 
         if let Some(images) = self.images {
             enable_images = images.enable_images.unwrap_or(false);
             imgur_images = images.imgur_images.unwrap_or(false);
             litterbox_images = images.litterbox_images.unwrap_or(false);
+            process_images = images.process_images.unwrap_or(true);
         } else {
             enable_images = false;
             imgur_images = false;
             litterbox_images = false;
+            process_images = true;
         }
 
         let url;
@@ -422,6 +428,7 @@ impl ConfigBuilder {
                 enable_images,
                 imgur_images,
                 litterbox_images,
+                process_images,
             },
         }
     }
