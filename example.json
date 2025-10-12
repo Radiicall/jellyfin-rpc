@@ -41,6 +41,7 @@
     "images": {
         "enable_images": true,
         "imgur_images": true,
-        "litterbox_images": false
+        "litterbox_images": false,
+        "process_images": true
     }
 }

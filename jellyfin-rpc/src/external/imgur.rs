@@ -97,13 +97,20 @@ fn upload(client: &Client) -> JfResult<Url> {
 
     let imgur_client = reqwest::blocking::Client::builder().build()?;
 
+    let body = if client.process_images {
+        use crate::external::image_utils::make_square_with_blur;
+        make_square_with_blur(&image_bytes)?
+    } else {
+        image_bytes.to_vec()
+    };
+
     let res: ImgurResponse = imgur_client
         .post("https://api.imgur.com/3/image")
         .header(
             reqwest::header::AUTHORIZATION,
             format!("Client-ID {}", client.imgur_options.client_id),
         )
-        .body(image_bytes)
+        .body(body)
         .send()?
         .json()?;
 
