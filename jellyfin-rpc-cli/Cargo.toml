@@ -21,8 +21,8 @@ default = ["updates"]
 updates = ["dep:reqwest"]
 
 [dependencies]
-colored               = "2.1"
-retry                 = "2.0"
+colored               = "3.0"
+retry                 = "2.1"
 log                   = "0.4"
 simple_logger         = "5.0"
 time                  = "0.3"
