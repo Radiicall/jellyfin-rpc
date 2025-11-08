@@ -66,18 +66,27 @@ if os.path.isfile(config_path):
 
 if not use_existing:
     print("----------Jellyfin----------")
-    url = input("URL (include http/https): ")
-    api_key = input(f"API key [Create one here: {url}/web/index.html#!/apikeys.html]: ")
+    urls = input("URL (include http/https) (Multiple allowed): ")
+    
+    #Allow inputting multiple URLs
+    url = {}
+    urlNumber = 0
+    for address in urls.split(" "):
+        url[str(urlNumber)] = address
+        urlNumber += 1
+
+    api_key = input(f"API key [Create one here: {url["0"]}/web/index.html#!/apikeys.html]: ")
     print(
         "Enter a single username or enter multiple usernames in a comma separated list."
     )
     username = input("username[s]: ").split(",")
 
     self_signed_cert = None
-    if url.startswith("https://"):
-        self_signed_cert = confirm(
-            message="Are you using a self signed certificate?", default=False, direct=True
-        )
+    for i in url:
+        if url[i].startswith("https://"):
+            self_signed_cert = confirm(
+                message="Are you using a self signed certificate?", default=False, direct=True
+            )
 
     print(
         "If you dont want anything else you can just press enter through all of these"
@@ -236,6 +245,8 @@ if not use_existing:
         "imgur": imgur,
         "images": images,
     }
+
+    print(config)
 
     print(f"\nPlacing config in '{path}'")
 
