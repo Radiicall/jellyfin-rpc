@@ -22,7 +22,7 @@ pub struct Config {
 /// This struct contains every "required" part of the config.
 pub struct Jellyfin {
     /// URL to the jellyfin server.
-    pub url: String,
+    pub url: Vec<String>,
     /// Api key from the jellyfin server, used to gather what's being watched.
     pub api_key: String,
     /// Username of the person that info should be gathered from.
@@ -95,7 +95,7 @@ pub struct ConfigBuilder {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct JellyfinBuilder {
-    pub url: String,
+    pub url: Vec<String>,
     pub api_key: String,
     pub username: Username,
     pub music: Option<DisplayOptionsBuilder>,
@@ -217,7 +217,7 @@ impl ConfigBuilder {
     fn new() -> Self {
         Self {
             jellyfin: JellyfinBuilder {
-                url: "".to_string(),
+                url: vec!["".to_owned()],
                 username: Username::String("".to_string()),
                 api_key: "".to_string(),
                 music: None,
@@ -381,12 +381,25 @@ impl ConfigBuilder {
             process_images = true;
         }
 
+        let mut url: Vec<String> = vec!["".to_owned()];
+        /*
         let url;
 
         if self.jellyfin.url.ends_with("/") {
             url = self.jellyfin.url;
         } else {
             url = self.jellyfin.url + "/"
+        }
+        */
+        // Replace to make add "/" to any urls that need it
+        let mut url_num = 0;
+        for u in self.jellyfin.url.iter() {
+            if (u.ends_with("/")) {
+                url[url_num] = u.to_owned();
+            } else {
+                url[url_num] = u.to_owned();
+            }
+            url_num += 1;
         }
 
         Config {

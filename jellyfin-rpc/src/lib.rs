@@ -1,3 +1,4 @@
+use std::ptr::null;
 use discord_rich_presence::activity::{
     ActivityType, Button as ActButton, StatusDisplayType as DiscordIpcStatusDisplayType,
 };
@@ -28,7 +29,7 @@ pub const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 /// Client used to interact with jellyfin and discord
 pub struct Client {
     discord_ipc_client: DiscordIpcClient,
-    url: Url,
+    url: Vec<String>,
     usernames: Vec<String>,
     reqwest: reqwest::blocking::Client,
     session: Option<Session>,
@@ -71,7 +72,7 @@ impl Client {
     ///
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
-    ///     .url("https://jellyfin.example.com")
+    ///     .urls("https://jellyfin.example.com")
     ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
@@ -95,7 +96,7 @@ impl Client {
     ///
     /// let mut builder = Client::builder();
     /// builder.api_key("abcd1234")
-    ///     .url("https://jellyfin.example.com")
+    ///     .urls("https://jellyfin.example.com")
     ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
@@ -249,11 +250,22 @@ impl Client {
     }
 
     fn get_session(&mut self) -> JfResult<()> {
-        let sessions: Vec<RawSession> = self
-            .reqwest
-            .get(self.url.join("Sessions")?)
-            .send()?
-            .json()?;
+        let mut failed = true;
+        let mut i = 0;
+        let mut sessions: Vec<RawSession> = Vec::new();
+        while failed && i < 20 { //Limit amount of tries (20 links should be MORE than enough)
+            let temp_url: Url = self.url[i].parse()?;
+            sessions = self
+                .reqwest
+                .get(temp_url.join("Sessions")?)
+                .send()?
+                .json()?;
+            if !sessions.is_empty() {
+                failed = false;
+            } else {
+                i += 1;
+            }
+        }//Tries to connect to each server provided, stopping once one succeeds, allows for multiple urls.
 
         debug!("Found {} sessions", sessions.len());
 
@@ -369,7 +381,19 @@ impl Client {
 
         let path = "Items/".to_string() + &session.item_id + "/Images/Primary";
 
-        let image_url = self.url.join(&path)?;
+        let mut failed = true;
+        let mut i = 0;
+        let mut image_url: Url = "".parse()?;
+        while failed && i < 20 {
+            let temp_url: Url = self.url[i].parse()?;
+            image_url = temp_url.join(&path)?;
+            if image_url != "".parse()? {
+                failed = false;
+            } else {
+                i += 1;
+            }
+        }
+
 
         if self
             .reqwest
@@ -770,11 +794,23 @@ impl Client {
 
     /// Fetch the virtual folder list and filter out the blacklisted libraries
     fn fetch_blacklist(&self) -> JfResult<Vec<VirtualFolder>> {
-        let virtual_folders: Vec<VirtualFolder> = self
-            .reqwest
-            .get(self.url.join("Library/VirtualFolders")?)
-            .send()?
-            .json()?;
+
+        let mut failed = true;
+        let mut i = 0;
+        let mut virtual_folders: Vec<VirtualFolder> = Vec::new();
+        while failed && i < 20 {
+            let temp_url: Url = self.url[i].parse()?;
+            virtual_folders = self
+                .reqwest
+                .get(temp_url.join("Library/VirtualFolders")?)
+                .send()?
+                .json()?;
+            if !virtual_folders.is_empty() {
+                failed = false;
+            } else {
+                i += 1;
+            }
+        }
 
         Ok(virtual_folders
             .into_iter()
@@ -984,7 +1020,7 @@ struct LitterboxOptions {
 /// Used to build a new Client
 #[derive(Default)]
 pub struct ClientBuilder {
-    url: String,
+    url: Vec<String>,
     client_id: String,
     api_key: String,
     self_signed: bool,
@@ -1039,8 +1075,16 @@ impl ClientBuilder {
     /// Jellyfin URL to be used by the client.
     ///
     /// Has no default.
-    pub fn url<T: Into<String>>(&mut self, url: T) -> &mut Self {
+
+    /*
+    pub fn urls<T: Into<String>>(&mut self, url: T) -> &mut Self {
         self.url = url.into();
+        self
+    }
+    */
+
+    pub fn url(&mut self, url: Vec<String>) -> &mut Self {
+        self.url = url;
         self
     }
 
@@ -1282,7 +1326,7 @@ impl ClientBuilder {
     ///
     /// let mut builder = ClientBuilder::new();
     /// builder.api_key("abcd1234")
-    ///     .url("https://jellyfin.example.com")
+    ///     .urls("https://jellyfin.example.com")
     ///     .username("user");
     ///
     /// let mut client = builder.build().unwrap();
@@ -1302,7 +1346,7 @@ impl ClientBuilder {
 
         Ok(Client {
             discord_ipc_client: DiscordIpcClient::new(&self.client_id),
-            url: self.url.parse()?,
+            url: self.url,
             reqwest: reqwest::blocking::Client::builder()
                 .default_headers(headers)
                 .danger_accept_invalid_certs(self.self_signed)

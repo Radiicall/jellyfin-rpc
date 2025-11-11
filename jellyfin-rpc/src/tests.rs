@@ -15,7 +15,7 @@ fn invalid_url() {
     builder
         .api_key("a1b2c3d4")
         .username("test")
-        .url("url_without_base.com");
+        .url(vec!["url_without_base.com".to_owned()]);
 
     let client = builder.build();
 
