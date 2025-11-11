@@ -8,9 +8,11 @@ use discord_rich_presence::{
 pub use error::JfError;
 pub use jellyfin::{Button, MediaType};
 use jellyfin::{ExternalUrl, NowPlayingItem, PlayTime, RawSession, Session, VirtualFolder};
-use log::{debug, warn};
+use log::{debug, info, warn};
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 use std::str::FromStr;
 use std::time::SystemTime;
 use url::Url;
@@ -1036,11 +1038,30 @@ impl ClientBuilder {
         }
     }
 
+    /// If the given value is a file path, try reading the file location instead of using the raw value. 
+    pub fn resolve_value(value: String) -> String {
+        if Path::new(&value).exists() {
+            match fs::read_to_string(&value) {
+                Ok(content) => {
+                    info!("Loaded value from file: {}", value);
+                    content.trim().to_string()
+                }
+                Err(e) => {
+                    warn!("Failed to read file {}: {}. Using direct value.", value, e);
+                    value
+                }
+            }
+        } else {
+            debug!("Value is not a file path. Using direct value.");
+            value
+        }
+    }
+
     /// Jellyfin URL to be used by the client.
     ///
     /// Has no default.
     pub fn url<T: Into<String>>(&mut self, url: T) -> &mut Self {
-        self.url = url.into();
+        self.url = Self::resolve_value(url.into());
         self
     }
 
@@ -1048,7 +1069,7 @@ impl ClientBuilder {
     ///
     /// Defaults to `"1053747938519679018"`.
     pub fn client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
-        self.client_id = client_id.into();
+        self.client_id = Self::resolve_value(client_id.into());
         self
     }
 
@@ -1056,7 +1077,7 @@ impl ClientBuilder {
     ///
     /// Has no default.
     pub fn api_key<T: Into<String>>(&mut self, api_key: T) -> &mut Self {
-        self.api_key = api_key.into();
+        self.api_key = Self::resolve_value(api_key.into());
         self
     }
 
@@ -1088,7 +1109,7 @@ impl ClientBuilder {
     /// This overwrites the value set in `ClientBuilder::Usernames()`,
     /// only one of these 2 should be used
     pub fn username<T: Into<String>>(&mut self, username: T) -> &mut Self {
-        self.usernames = vec![username.into()];
+        self.usernames = vec![Self::resolve_value(username.into())];
         self
     }
 
@@ -1223,7 +1244,7 @@ impl ClientBuilder {
     ///
     /// Empty by default.
     pub fn imgur_client_id<T: Into<String>>(&mut self, client_id: T) -> &mut Self {
-        self.imgur_client_id = client_id.into();
+        self.imgur_client_id = Self::resolve_value(client_id.into());
         self
     }
 
@@ -1273,7 +1294,7 @@ impl ClientBuilder {
         self.large_image_text = text.into();
         self
     }
-
+    
     /// Builds a client from the options specified in the builder.
     ///
     /// # Example
