@@ -66,16 +66,9 @@ if os.path.isfile(config_path):
 
 if not use_existing:
     print("----------Jellyfin----------")
-    urls = input("URL (include http/https) (Multiple allowed): ")
-    
-    #Allow inputting multiple URLs
-    url = {}
-    urlNumber = 0
-    for address in urls.split(" "):
-        url[str(urlNumber)] = address
-        urlNumber += 1
+    url = input("URL (include http/https) (Multiple allowed, separate with spaces): ").split(" ")
 
-    api_key = input(f"API key [Create one here: {url["0"]}/web/index.html#!/apikeys.html]: ")
+    api_key = input(f"API key [Create one here: {url[0]}/web/index.html#!/apikeys.html]: ")
     print(
         "Enter a single username or enter multiple usernames in a comma separated list."
     )
@@ -83,7 +76,7 @@ if not use_existing:
 
     self_signed_cert = None
     for i in url:
-        if url[i].startswith("https://"):
+        if i.startswith("https://"):
             self_signed_cert = confirm(
                 message="Are you using a self signed certificate?", default=False, direct=True
             )

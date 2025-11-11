@@ -381,7 +381,7 @@ impl ConfigBuilder {
             process_images = true;
         }
 
-        let mut url: Vec<String> = vec!["".to_owned()];
+        let mut url: Vec<String> = self.jellyfin.url.to_owned();
         /*
         let url;
 
