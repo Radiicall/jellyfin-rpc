@@ -7,5 +7,4 @@
 /.DS_Store
 /.vscode
 /jftest
-.idea
-.gitignore
+/shell.nix
